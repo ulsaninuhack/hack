@@ -75,6 +75,12 @@ gh secret set VERCEL_PROJECT_ID --repo ulsaninuhack/hack --body "$(jq -r .projec
 After rotating the token, verify a production deployment before revoking the
 old token.
 
+The frontend job fails before building if the pulled Vercel production
+environment does not contain the exact Cloud Run API origin in
+`VITE_API_BASE_URL`. After deploying, it also checks that the production entry
+bundle references that origin, so the static fallback cannot hide a missing
+production API configuration.
+
 ## Backend production
 
 Current Google Cloud targets:

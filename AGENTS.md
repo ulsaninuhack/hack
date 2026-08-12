@@ -94,7 +94,7 @@ curl -fsS https://incheon-care-map.vercel.app/ >/tmp/incheon-care-map.html
 curl -fsS https://incheon-care-api-vy3v2ludma-du.a.run.app/health
 ```
 
-At this handoff, frontend production and the bootstrap backend `/health` are live. The frontend runtime API integration plus static fallback follow-up PR is still pending, and the bootstrap backend service is not the same as proof that the latest source has completed the main-branch Cloud Run deploy workflow. Firestore exists but is intentionally outside the current request path.
+At this handoff, frontend production and the bootstrap backend `/health` are live. This branch introduces runtime API-first loading with a static fallback, but it is not deployment proof until the branch has merged and the main-branch Vercel and Cloud Run jobs pass. Firestore exists but is intentionally outside the current request path.
 
 ## Safety Guardrails
 
