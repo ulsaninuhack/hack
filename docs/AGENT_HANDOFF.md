@@ -10,12 +10,12 @@
 - Backend local source: Node 24 read-only API for curated `public/data/`, with `src/`, 61 tests, coverage gate, Dockerfile, `.dockerignore`, and README.
 - Backend production: `https://incheon-care-api-vy3v2ludma-du.a.run.app/health` is live. Match the successful `main` run, revision commit label, and image digest before claiming an exact commit is deployed.
 - Backend health convention: `/health` is canonical externally. `/healthz` exists in source/tests, but Cloud Run's frontend intercepts that path and returns its own 404, so external smoke tests use `/health`.
-- Voice input: `voice/` stage 3a converts consented, PII-masked text into the fixed JSON contract. Its golden tests are offline; audio-file transcription and Realtime/WebRTC are the next stages and are not yet implemented.
+- Voice input: `voice/` stage 3a converts consented, PII-masked text into the fixed JSON contract. Stage 3b validates WAV/MP3 files, calls an injectable OpenAI transcription adapter, masks the raw transcript immediately, and reuses 3a. Its deterministic goldens mock transcription; actual-device audio accuracy and Realtime/WebRTC remain unverified or unimplemented.
 - Cloud Run CD status: the merged workflow validates pull requests and runs sibling Vercel and Cloud Run deploy jobs after successful `main` validation.
 - GCP auth: use Workload Identity Federation only. Do not add JSON service-account keys.
 - GCP DB: Firestore Standard Native `(default)` is provisioned in `asia-northeast3`; the runtime service account has `roles/datastore.user`. Current API routes do not use it. Keep static map snapshots in `public/data/` and reserve Firestore for future server-side variable AI reports or notes.
 - Synthetic ContactOps contract: deterministic fixtures now exist in `public/data/synthetic-workers.json` and `public/data/synthetic-households.json`, with JSON Schemas, TypeScript types, tests, and a manifest. They cover 162 current dongs with 162 generic workers and 5,869 synthetic contact tasks; 3,616 are due on the reference date, 5,291 prefer phone, 578 prefer visit, and 0 are preapproved visits. See `docs/SYNTHETIC_CARE_OPS_DATA.md` before wiring voice output, scoring, UI, or routing.
-- ContactOps vertical slice: `backend/src/contact-ops.mjs` and `backend/scripts/demo-contact-ops.mjs` provide the deterministic queue -> dummy contact result -> rule graph -> visit recommendation -> manager approval demo. This completes steps 1-2 only. The standalone text-to-JSON voice contract exists, but its output is not yet connected to ContactOps; scoring, route optimization, audio/Realtime input, and UI wiring remain unimplemented.
+- ContactOps vertical slice: `backend/src/contact-ops.mjs` and `backend/scripts/demo-contact-ops.mjs` provide the deterministic queue -> dummy contact result -> rule graph -> visit recommendation -> manager approval demo. This completes steps 1-2 only. The standalone text/file-to-JSON voice contract exists, but its output is not yet connected to ContactOps; scoring, route optimization, Realtime input, and UI wiring remain unimplemented.
 
 ## Evidence Files
 
@@ -67,7 +67,7 @@ These values are from `public/data/summary.json` and `public/data/validation.jso
 - Do not use external `/healthz` as Cloud Run proof. The source-level alias is tested locally; the production external proof is `/health`.
 - Do not treat VWorld-derived files as cleared for public or commercial redistribution.
 - Do not say route optimization is the main product. The current product slice is phone-first contact queueing, follow-up rules, visit recommendation, and explicit manager approval.
-- Do not say voice input is complete or integrated with ContactOps. Only consented, PII-masked text stage 3a is implemented; audio-file input, Realtime input, ContactOps adaptation, and route optimization are not.
+- Do not say voice input is complete or integrated with ContactOps. Consented, PII-masked text stage 3a and mock-verified audio-file stage 3b are implemented; actual Korean/telephone audio accuracy, Realtime input, ContactOps adaptation, and route optimization are not.
 - Do not treat `voice` output fields such as `risk_score` or `visit_recommended` as an authoritative score, visit decision, or approval.
 - Do not say `max_route_distance_km` exists before approval. It is created only by explicit manager approval.
 
