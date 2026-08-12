@@ -13,6 +13,7 @@
     "preview": "vite preview",
     "prepare:data": "python3 scripts/prepare_web_data.py --source-dir data/processed --output-dir public/data",
     "validate:data": "python3 scripts/prepare_web_data.py --source-dir data/processed --output-dir public/data --check",
+    "test:facility-data": "python3 -m unittest scripts.test_prepare_web_data_facilities",
     "prepare:synthetic-data": "python3 scripts/generate_synthetic_care_ops.py",
     "validate:synthetic-schema": "node scripts/validate_synthetic_schemas.mjs",
     "validate:synthetic-data": "python3 scripts/generate_synthetic_care_ops.py --check && npm run validate:synthetic-schema",

@@ -7,7 +7,7 @@
 - Frontend production: `https://incheon-care-map.vercel.app` is live.
 - Runtime data boundary: Cloud Run API-first loading is merged while `public/data/` remains the outage/local fallback. Production CI verifies both the built bundle and the public Vercel alias reference the API.
 - Deployment owner: GitHub Actions workflow `CI / Production Deploy`.
-- Backend local source: Node 24 read-only API for curated `public/data/`, with `src/`, 61 tests, coverage gate, Dockerfile, `.dockerignore`, and README.
+- Backend local source: Node 24 read-only API for curated `public/data/`, with `src/`, tests, coverage gate, Dockerfile, `.dockerignore`, and README.
 - Backend production: `https://incheon-care-api-vy3v2ludma-du.a.run.app/health` is live. Match the successful `main` run, revision commit label, and image digest before claiming an exact commit is deployed.
 - Backend health convention: `/health` is canonical externally. `/healthz` exists in source/tests, but Cloud Run's frontend intercepts that path and returns its own 404, so external smoke tests use `/health`.
 - Voice input: `voice/` stage 3a converts consented, PII-masked text into the fixed JSON contract. Its golden tests are offline; audio-file transcription and Realtime/WebRTC are the next stages and are not yet implemented.
@@ -37,17 +37,18 @@
 
 ## Current Runtime Counts
 
-These values are from `public/data/summary.json` and `public/data/validation.json`.
+These values are the current consumer contract for the 65+ relevant runtime layer. The canonical source normalization remains preserved separately.
 
 | Item | Current value |
 | --- | ---: |
 | Map geometry zones | 156 |
 | Current admin dongs represented | 162 |
-| Facility points served | 3,061 |
-| Canonical facility records | 3,394 |
+| Facility points served | 2,816 |
+| Canonical facility records preserved | 3,394 |
+| 65+ relevant canonical facility records | 3,115 |
 | Transit usage points served | 6,231 |
 | Transit points with route count | 6,157 |
-| Facility coordinate coverage | 90.188568% |
+| Facility coordinate coverage within relevant set | 90.401284% |
 | Housing strict assignment coverage | 95.886634% |
 | Web data validation status | `pass` |
 | Synthetic workers | 162, one per current admin dong |

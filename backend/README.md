@@ -2,6 +2,8 @@
 
 Read-only Node.js 24 API for the curated map exports in `public/data`. It never creates or returns inferred beneficiary, non-recipient, unserved-person, risk-score, or priority-score fields.
 
+Facility source normalization preserves 3,394 canonical records. The runtime facility layer conservatively excludes clearly child/youth-only services: 3,115 relevant canonical records, 2,816 served facility points, and 90.401284% coordinate coverage. This is a relevance filter, not a legal eligibility determination.
+
 ## Local run
 
 From the repository root:

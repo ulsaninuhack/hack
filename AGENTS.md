@@ -30,6 +30,7 @@ Do not overclaim what the public aggregate data can prove.
 - `P1` is the observed count of resident-registration age-65-plus one-person households.
 - `P2` is `age-65-plus one-person households / age-65-plus population`.
 - `P2` combines a 2026-07-31 household numerator with a 2026-06-30 population denominator. Always state that it is a mixed snapshot, not a same-date rate.
+- Facility source normalization preserves 3,394 canonical records. The current 65+ relevant runtime layer consumes 3,115 relevant canonical records, serves 2,816 facility points, and has 90.401284% coordinate coverage within that set. This is not a legal eligibility determination.
 - The map uses 2025-06-30 geometry zones and maps 2026-07-01 current admin-dong statistics onto them. Do not invent 162 current polygons from the 156 geometry zones.
 - Welfare benefit categories can overlap by person. Do not sum benefit categories into a distinct person count, and do not subtract welfare counts from household counts.
 - Utility data is not current Incheon household anomaly data. Jeongeup smart-meter data is model/UX demo only and must be labeled as not Incheon observed data.

@@ -23,6 +23,11 @@ SCRIPT_VERSION = 1
 EXPECTED_COUNTS = {
     "admin_dongs": 156,
     "facilities": 3_061,
+    "facilities_filtered": 2_816,
+    "facilities_excluded": 245,
+    "facilities_canonical_source": 3_394,
+    "facilities_canonical_excluded": 279,
+    "facilities_canonical_relevant": 3_115,
     "transit_stops": 6_231,
     "housing_zones": 156,
 }
@@ -54,6 +59,26 @@ FACILITY_PROPERTIES = {
     "coordinate_method",
     "coordinate_match_confidence",
     "coordinate_is_representative_point",
+}
+
+FACILITY_ALLOWED_MAJOR_CATEGORIES = {
+    "가족·여성복지",
+    "기타복지",
+    "노인복지",
+    "아동·돌봄",
+    "장애인복지",
+    "정신건강복지",
+    "지역복지",
+    "청소년복지",
+}
+
+FACILITY_EXCLUDED_MAJOR_CATEGORIES = {"아동·돌봄", "청소년복지"}
+FACILITY_EXCLUDED_DETAIL_CONTAINS = {"영유아"}
+FACILITY_EXCLUDED_DETAIL_EXACT = {"피해장애아동쉼터"}
+FACILITY_REVIEWED_EXCLUSIONS = {
+    "fac_7ae417c080e83c45": (
+        "성착취 피해아동청소년 지원센터로 공식 시설명에서 연령 전용성이 확인됨"
+    )
 }
 
 ADMIN_REQUIRED_PROPERTIES = {
@@ -342,7 +367,53 @@ def build_admin_layer(
     )
 
 
-def build_facility_layer(source: Mapping[str, Any]) -> tuple[dict[str, Any], dict[str, int], dict[str, int]]:
+def facility_exclusion_reason(properties: Mapping[str, Any]) -> str | None:
+    facility_id = str(properties["facility_id"])
+    major = str(properties["category_major"])
+    detail = str(properties["category_detail"])
+    if major not in FACILITY_ALLOWED_MAJOR_CATEGORIES:
+        raise BuildError(
+            f"unknown facility category_major requires review: {major!r} ({facility_id})"
+        )
+    if facility_id in FACILITY_REVIEWED_EXCLUSIONS:
+        return "reviewed_facility_id"
+    if major in FACILITY_EXCLUDED_MAJOR_CATEGORIES:
+        return "major_category"
+    if detail in FACILITY_EXCLUDED_DETAIL_EXACT:
+        return "detail_exact"
+    if any(token in detail for token in FACILITY_EXCLUDED_DETAIL_CONTAINS):
+        return "detail_contains"
+    return None
+
+
+def build_facility_filtering_policy(
+    source_count: int, output_count: int, exclusion_counts: Mapping[str, int]
+) -> dict[str, Any]:
+    return {
+        "policy": "senior-care-map-runtime-facility-filter-v1",
+        "sourceFeatureCount": source_count,
+        "excludedFeatureCount": source_count - output_count,
+        "outputFeatureCount": output_count,
+        "canonicalSourceCount": EXPECTED_COUNTS["facilities_canonical_source"],
+        "canonicalExcludedCount": EXPECTED_COUNTS["facilities_canonical_excluded"],
+        "relevantCanonicalCount": EXPECTED_COUNTS["facilities_canonical_relevant"],
+        "excludedMajorCategories": sorted(FACILITY_EXCLUDED_MAJOR_CATEGORIES),
+        "excludedDetailContains": sorted(FACILITY_EXCLUDED_DETAIL_CONTAINS),
+        "excludedDetailExact": sorted(FACILITY_EXCLUDED_DETAIL_EXACT),
+        "reviewedExclusions": [
+            {"facilityId": facility_id, "reason": FACILITY_REVIEWED_EXCLUSIONS[facility_id]}
+            for facility_id in sorted(FACILITY_REVIEWED_EXCLUSIONS)
+        ],
+        "retainedMajorCategories": sorted(
+            FACILITY_ALLOWED_MAJOR_CATEGORIES - FACILITY_EXCLUDED_MAJOR_CATEGORIES
+        ),
+        "exclusionReasonCounts": dict(sorted(exclusion_counts.items())),
+    }
+
+
+def build_facility_layer(
+    source: Mapping[str, Any]
+) -> tuple[dict[str, Any], dict[str, int], dict[str, int], dict[str, Any]]:
     features = source.get("features")
     if source.get("type") != "FeatureCollection" or not isinstance(features, list):
         raise BuildError("facility source must be a GeoJSON FeatureCollection")
@@ -353,6 +424,7 @@ def build_facility_layer(source: Mapping[str, Any]) -> tuple[dict[str, Any], dic
     facility_ids: list[str] = []
     categories: Counter[str] = Counter()
     districts: Counter[str] = Counter()
+    exclusion_counts: Counter[str] = Counter()
     for feature in features:
         properties = feature.get("properties")
         geometry = feature.get("geometry")
@@ -369,6 +441,10 @@ def build_facility_layer(source: Mapping[str, Any]) -> tuple[dict[str, Any], dic
         if not facility_id:
             raise BuildError("facility_id must not be blank")
         facility_ids.append(facility_id)
+        exclusion_reason = facility_exclusion_reason(properties)
+        if exclusion_reason is not None:
+            exclusion_counts[exclusion_reason] += 1
+            continue
         categories[properties["category_major"]] += 1
         districts[properties["district_scope_20260701"]] += 1
         output_features.append(
@@ -376,11 +452,26 @@ def build_facility_layer(source: Mapping[str, Any]) -> tuple[dict[str, Any], dic
         )
 
     ensure_unique(facility_ids, "facility_id")
+    if len(output_features) != EXPECTED_COUNTS["facilities_filtered"]:
+        raise BuildError(
+            "facility filter output count changed: "
+            f"expected {EXPECTED_COUNTS['facilities_filtered']}, got {len(output_features)}"
+        )
+    if sum(exclusion_counts.values()) != EXPECTED_COUNTS["facilities_excluded"]:
+        raise BuildError(
+            "facility filter exclusion count changed: "
+            f"expected {EXPECTED_COUNTS['facilities_excluded']}, "
+            f"got {sum(exclusion_counts.values())}"
+        )
     output_features.sort(key=lambda item: item["properties"]["facility_id"])
+    filtering_policy = build_facility_filtering_policy(
+        len(features), len(output_features), exclusion_counts
+    )
     return (
         {"type": "FeatureCollection", "features": output_features},
         dict(sorted(categories.items())),
         dict(sorted(districts.items())),
+        filtering_policy,
     )
 
 
@@ -473,6 +564,7 @@ def build_summary(
     transit_validation: Mapping[str, Any],
     category_counts: Mapping[str, int],
     district_counts: Mapping[str, int],
+    facility_filtering: Mapping[str, Any],
     map_status_counts: Mapping[str, int],
     route_count_available: int,
     transit_stop_master_date: str,
@@ -480,6 +572,17 @@ def build_summary(
     admin_totals = admin_validation["totals"]["output_geometry_156"]
     housing_totals = housing_validation["outputs"]["city_totals"]
     facility_stats = facility_validation["stats"]
+    canonical_source_count = int(facility_stats["canonical_facility_count"])
+    if canonical_source_count != facility_filtering["canonicalSourceCount"]:
+        raise BuildError(
+            "facility canonical source count changed: "
+            f"expected {facility_filtering['canonicalSourceCount']}, got {canonical_source_count}"
+        )
+    if (
+        canonical_source_count - facility_filtering["canonicalExcludedCount"]
+        != facility_filtering["relevantCanonicalCount"]
+    ):
+        raise BuildError("facility canonical source/exclusion/relevant counts do not reconcile")
     transit_points = transit_validation["stop_usage"]["incheon_map_point_totals"]
     transit_source = transit_validation["sources"]
 
@@ -495,8 +598,11 @@ def build_summary(
             "currentAdminDongsRepresented": admin_validation["counts"][
                 "current_demographic_rows"
             ],
+            "facilityPointsSource": facility_filtering["sourceFeatureCount"],
+            "facilityPointsExcluded": facility_filtering["excludedFeatureCount"],
             "facilityPoints": len(facility_layer["features"]),
-            "facilityCanonicalTotal": facility_stats["canonical_facility_count"],
+            "facilityCanonicalTotal": canonical_source_count,
+            "facilityRelevantCanonicalTotal": facility_filtering["relevantCanonicalCount"],
             "transitUsagePoints": len(transit_layer["features"]),
             "transitUsageSourceRows": transit_validation["sources"]["stop_usage"]["rows"],
             "transitPointsWithRouteCount": route_count_available,
@@ -510,6 +616,12 @@ def build_summary(
         },
         "coverage": {
             "facilityCoordinateCoveragePct": round(
+                100.0
+                * len(facility_layer["features"])
+                / facility_filtering["relevantCanonicalCount"],
+                6,
+            ),
+            "facilitySourceCoordinateCoveragePct": round(
                 100.0 * float(facility_stats["coordinate_coverage_of_canonical"]), 6
             ),
             "housingStrictAssignmentCoveragePct": float(
@@ -544,6 +656,9 @@ def build_summary(
             "mapUnitStatus": dict(map_status_counts),
             "facilityCategoryMajor": dict(category_counts),
             "facilityDistrict": dict(district_counts),
+        },
+        "filtering": {
+            "facilities": dict(facility_filtering),
         },
         "metricGuardrail": admin_validation["bubble_metric"][
             "interpretation_guardrail_ko"
@@ -624,7 +739,7 @@ def build_manifest(
         },
         "filtering": {
             "adminDongs": "All 156 validated 2025 geometry zones; housing aggregates joined one-to-one by geometry_zone_id.",
-            "facilities": "All 3,061 verified full-demo facility points; source 17-field allowlist unchanged.",
+            "facilities": dict(summary["filtering"]["facilities"]),
             "transitStops": "Only exact matched rows marked incheon_map_ready with validated WGS84 coordinates.",
             "individualBeneficiaryPoints": "Not produced; no individual beneficiary or inferred non-recipient data is present.",
         },
@@ -665,7 +780,9 @@ def build_all(source_dir: Path, output_dir: Path) -> dict[str, str]:
     transit_stop_master_date = next(iter(transit_master_dates))
 
     admin_layer, map_status_counts = build_admin_layer(admin_source, housing_rows)
-    facility_layer, category_counts, district_counts = build_facility_layer(facility_source)
+    facility_layer, category_counts, district_counts, facility_filtering = build_facility_layer(
+        facility_source
+    )
     transit_layer, route_count_available = build_transit_layer(usage_rows, supply_rows)
     summary = build_summary(
         admin_layer,
@@ -677,6 +794,7 @@ def build_all(source_dir: Path, output_dir: Path) -> dict[str, str]:
         transit_validation,
         category_counts,
         district_counts,
+        facility_filtering,
         map_status_counts,
         route_count_available,
         transit_stop_master_date,
@@ -706,7 +824,15 @@ def build_all(source_dir: Path, output_dir: Path) -> dict[str, str]:
             "adminFeatureCountIs156": len(admin_layer["features"]) == 156,
             "adminAndHousingZoneSetsMatch": True,
             "adminGeometryZoneIdsUnique": True,
-            "facilityFeatureCountIs3061": len(facility_layer["features"]) == 3_061,
+            "facilitySourceCountIs3061": facility_filtering["sourceFeatureCount"] == 3_061,
+            "facilityExcludedCountIs245": facility_filtering["excludedFeatureCount"] == 245,
+            "facilityFeatureCountIs2816": len(facility_layer["features"]) == 2_816,
+            "facilityCanonicalSourceIs3394": facility_filtering["canonicalSourceCount"]
+            == 3_394,
+            "facilityCanonicalExcludedIs279": facility_filtering["canonicalExcludedCount"]
+            == 279,
+            "facilityRelevantCanonicalIs3115": facility_filtering["relevantCanonicalCount"]
+            == 3_115,
             "facilityIdsUnique": True,
             "facilityPropertiesEqualVerifiedAllowlist": True,
             "transitFeatureCountIs6231": len(transit_layer["features"]) == 6_231,
@@ -718,8 +844,16 @@ def build_all(source_dir: Path, output_dir: Path) -> dict[str, str]:
         "counts": {
             "adminDongs": len(admin_layer["features"]),
             "facilities": len(facility_layer["features"]),
+            "facilitiesSource": facility_filtering["sourceFeatureCount"],
+            "facilitiesExcluded": facility_filtering["excludedFeatureCount"],
+            "facilitiesCanonicalSource": facility_filtering["canonicalSourceCount"],
+            "facilitiesCanonicalExcluded": facility_filtering["canonicalExcludedCount"],
+            "facilitiesCanonicalRelevant": facility_filtering["relevantCanonicalCount"],
             "transitStops": len(transit_layer["features"]),
             "transitStopsWithRouteCount": route_count_available,
+        },
+        "filtering": {
+            "facilities": dict(facility_filtering),
         },
         "outputSha256": {
             name: sha256_bytes(payload) for name, payload in sorted(output_payloads.items())

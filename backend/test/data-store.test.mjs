@@ -3,6 +3,8 @@ import { describe, test } from 'node:test';
 
 import { createDataStore, FORBIDDEN_INFERENCE_KEYS, loadDataStore } from '../src/data-store.mjs';
 
+const EXPECTED_RUNTIME_FACILITY_POINTS = 2_816;
+
 function featureCollection(propertyName, values) {
   return {
     type: 'FeatureCollection',
@@ -44,7 +46,12 @@ describe('curated data store startup validation', () => {
 
     assert.equal(store.validation.status, 'pass');
     assert.equal(store.zones.features.length, 156);
-    assert.equal(store.facilities.features.length, 3_061);
+    assert.equal(store.facilities.features.length, EXPECTED_RUNTIME_FACILITY_POINTS);
+    assert.equal(store.summary.counts.facilityPoints, EXPECTED_RUNTIME_FACILITY_POINTS);
+    assert.equal(store.summary.counts.facilityCanonicalTotal, 3_394);
+    assert.equal(store.summary.counts.facilityRelevantCanonicalTotal, 3_115);
+    assert.equal(Object.hasOwn(store.summary.counts, 'facilityEligibleCanonicalTotal'), false);
+    assert.equal(store.summary.coverage.facilityCoordinateCoveragePct, 90.401284);
     assert.equal(store.transit.features.length, 6_231);
   });
 
