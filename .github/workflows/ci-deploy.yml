@@ -32,6 +32,7 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             backend/package-lock.json
+            voice/package-lock.json
 
       - name: Install frontend dependencies
         run: npm ci
@@ -50,6 +51,12 @@ jobs:
 
       - name: Test backend with coverage gate
         run: npm --prefix backend run test:coverage
+
+      - name: Install voice-layer dependencies
+        run: npm --prefix voice ci
+
+      - name: Test text-to-JSON voice contract and golden set
+        run: npm --prefix voice test
 
       - name: Build backend container
         run: docker build --file backend/Dockerfile --tag incheon-care-api:ci .
