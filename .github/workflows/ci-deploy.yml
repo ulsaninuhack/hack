@@ -63,7 +63,7 @@ jobs:
       - name: Install voice-layer dependencies
         run: npm --prefix voice ci
 
-      - name: Test text-to-JSON voice contract and golden set
+      - name: Test text/file voice contracts and golden sets
         run: npm --prefix voice test
 
       - name: Build backend container
