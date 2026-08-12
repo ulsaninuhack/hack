@@ -1,0 +1,106 @@
+#!/bin/sh
+set -eu
+
+fail() {
+  printf 'FAIL: %s\n' "$1" >&2
+  exit 1
+}
+
+warn() {
+  printf 'WARN: %s\n' "$1" >&2
+}
+
+ok() {
+  printf 'OK: %s\n' "$1"
+}
+
+[ -f package.json ] || fail "run from repository root"
+[ -f AGENTS.md ] || fail "missing AGENTS.md"
+[ -f CLAUDE.md ] || fail "missing CLAUDE.md"
+[ -f docs/AGENT_HANDOFF.md ] || fail "missing docs/AGENT_HANDOFF.md"
+
+grep -q '"name": "incheon-care-context-map"' package.json || fail "unexpected package name"
+grep -q '"private": true' package.json || fail "package must stay private"
+grep -q '"node": ">=24 <25"' package.json || fail "Node 24 engine contract missing"
+ok "package identity and Node 24 engine contract present"
+
+grep -q 'git.deploymentEnabled=false' AGENTS.md || fail "AGENTS.md must mention disabled Vercel Git deploy"
+grep -q '"deploymentEnabled": false' vercel.json || fail "vercel.json must disable Vercel Git deploys"
+grep -q 'CI / Production Deploy' .github/workflows/ci-deploy.yml || fail "workflow name changed unexpectedly"
+grep -q 'Validate frontend and backend' .github/workflows/ci-deploy.yml || fail "workflow must validate frontend and backend"
+grep -q 'npm run validate:data' .github/workflows/ci-deploy.yml || fail "workflow must validate curated web data"
+grep -q 'npm run typecheck' .github/workflows/ci-deploy.yml || fail "workflow must type-check frontend"
+grep -q 'npm run build' .github/workflows/ci-deploy.yml || fail "workflow must build frontend"
+grep -q 'npm --prefix backend ci' .github/workflows/ci-deploy.yml || fail "workflow must install backend dependencies"
+grep -q 'npm --prefix backend run test:coverage' .github/workflows/ci-deploy.yml || fail "workflow must run backend coverage gate"
+grep -q 'docker build --file backend/Dockerfile' .github/workflows/ci-deploy.yml || fail "workflow must build backend container in validation"
+grep -q '^  deploy-frontend-production:' .github/workflows/ci-deploy.yml || fail "missing frontend production deploy job"
+grep -q '^  deploy-backend-production:' .github/workflows/ci-deploy.yml || fail "missing backend production deploy job"
+grep -q 'refs/heads/main' .github/workflows/ci-deploy.yml || fail "workflow must gate production deploy on main"
+grep -q 'needs: validate' .github/workflows/ci-deploy.yml || fail "production deploy jobs must depend on validation"
+grep -q 'vercel deploy --prebuilt --prod' .github/workflows/ci-deploy.yml || fail "frontend deploy must use Vercel production deploy"
+grep -q 'google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093' .github/workflows/ci-deploy.yml || fail "backend deploy must use commit-pinned keyless WIF auth"
+grep -q 'id-token: write' .github/workflows/ci-deploy.yml || fail "backend deploy must request OIDC id-token permission"
+grep -q 'gcloud auth configure-docker' .github/workflows/ci-deploy.yml || fail "backend deploy must configure Artifact Registry auth"
+grep -q 'google-github-actions/deploy-cloudrun@2028e2d7d30a78c6910e0632e48dd561b064884d' .github/workflows/ci-deploy.yml || fail "backend deploy must use commit-pinned Cloud Run deploy action"
+grep -q -- '--service-account=${{ env.GCP_RUNTIME_SERVICE_ACCOUNT }}' .github/workflows/ci-deploy.yml || fail "Cloud Run deploy must set runtime service account"
+grep -q 'CORS_ORIGINS=https://incheon-care-map.vercel.app' .github/workflows/ci-deploy.yml || fail "backend deploy CORS origin must match frontend production"
+if grep -q 'credentials_json\|service_account_key\|--allow-unauthenticated' .github/workflows/ci-deploy.yml; then
+  fail "workflow must not use static GCP keys or mutate public invoker IAM"
+fi
+ok "PR validation and main production deploy lanes are configured"
+
+grep -q 'Firestore Standard Native' AGENTS.md || fail "AGENTS.md must record the provisioned Firestore decision"
+grep -q 'Current API routes do not use it' docs/AGENT_HANDOFF.md || fail "handoff must keep Firestore outside current API routes"
+if grep -Rq "@google-cloud/firestore\|firebase-admin" backend/src backend/package.json; then
+  fail "current static API must not depend on Firestore until an explicit report/notes feature is implemented"
+fi
+ok "Firestore is documented as provisioned but outside the current request path"
+
+grep -q '^/data/' .vercelignore || fail ".vercelignore must exclude root data directory"
+grep -q '^\*.zip filter=lfs' data/.gitattributes || fail "ZIP files must remain declared for Git LFS"
+grep -q '^\*.gz filter=lfs' data/.gitattributes || fail "GZ files must remain declared for Git LFS"
+ok "large data deployment and LFS boundaries present"
+
+node <<'NODE'
+const fs = require('node:fs');
+const validation = JSON.parse(fs.readFileSync('public/data/validation.json', 'utf8'));
+if (validation.status !== 'pass') throw new Error('public data validation status is not pass');
+if (validation.counts.adminDongs !== 156) throw new Error('admin-dong validation count changed');
+if (validation.counts.facilities !== 3061) throw new Error('facility validation count changed');
+if (validation.counts.transitStops !== 6231) throw new Error('transit validation count changed');
+const manifest = JSON.parse(fs.readFileSync('public/data/manifest.json', 'utf8'));
+const caveats = (manifest.caveats || []).join('\n');
+if (!caveats.includes('복지 미수혜자 수')) throw new Error('non-recipient caveat missing');
+if (!caveats.includes('스냅샷')) throw new Error('mixed-snapshot caveat missing');
+if (manifest.snapshotDates?.household !== '2026-07-31') throw new Error('household snapshot date changed');
+if (manifest.snapshotDates?.population !== '2026-06-30') throw new Error('population snapshot date changed');
+NODE
+ok "public runtime validation snapshot is pass with expected counts"
+ok "data interpretation caveats are present in runtime manifest"
+
+if [ -d backend ]; then
+  if [ -f backend/src/app.mjs ] && [ -f backend/src/data-store.mjs ] && [ -f backend/src/server.mjs ]; then
+    ok "backend source files are present locally"
+  else
+    fail "backend source files are incomplete"
+  fi
+  grep -q '^!backend/' .dockerignore || fail "root .dockerignore must include backend for Docker context"
+  grep -q '^!public/data/' .dockerignore || fail "root .dockerignore must include public/data for Docker context"
+  ok "backend Docker context boundary is present"
+  grep -q "url.pathname === '/health' || url.pathname === '/healthz'" backend/src/app.mjs || fail "backend must keep /health canonical and /healthz alias routing"
+  grep -q "fetch('http://127.0.0.1:'+(process.env.PORT||8080)+'/health')" backend/Dockerfile || fail "Docker healthcheck must use canonical /health"
+  grep -q 'GET /health.*canonical external health' backend/README.md || fail "backend README must document /health as canonical"
+  grep -q 'GET /healthz.*alias' backend/README.md || fail "backend README must document /healthz alias"
+  ok "backend health endpoint convention is documented and implemented"
+  npm --prefix backend run test:coverage
+  ok "backend coverage-gated test suite passes locally"
+fi
+
+large_files=$(find data/raw data/processed -type f \( -size +50M \) -print 2>/dev/null | sed -n '1,20p' || true)
+if [ -n "$large_files" ]; then
+  warn "large data files exist; keep them out of public/ and deployment inputs"
+  printf '%s\n' "$large_files"
+fi
+
+ok "read-only agent checks completed"

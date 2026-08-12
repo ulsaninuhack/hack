@@ -1,4 +1,4 @@
-name: CI / Vercel
+name: CI / Production Deploy
 
 on:
   pull_request:
@@ -9,45 +9,59 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-vercel-${{ github.workflow }}-${{ github.ref }}
+  group: ci-production-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   validate:
-    name: Validate (Node 24)
+    name: Validate frontend and backend
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
 
     steps:
       - name: Check out repository without LFS payloads
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           lfs: false
 
       - name: Set up Node.js 24
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: package-lock.json
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
 
-      - name: Install locked dependencies
+      - name: Install frontend dependencies
         run: npm ci
 
-      - name: Type-check
+      - name: Validate curated web data
+        run: npm run validate:data
+
+      - name: Type-check frontend
         run: npm run typecheck
 
-      - name: Build
+      - name: Build frontend
         run: npm run build
 
-  deploy-production:
-    name: Deploy production
+      - name: Install backend dependencies
+        run: npm --prefix backend ci
+
+      - name: Test backend with coverage gate
+        run: npm --prefix backend run test:coverage
+
+      - name: Build backend container
+        run: docker build --file backend/Dockerfile --tag incheon-care-api:ci .
+
+  deploy-frontend-production:
+    name: Deploy frontend production
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment:
-      name: production
+      name: frontend-production
       url: ${{ steps.deploy.outputs.url }}
     env:
       VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -56,12 +70,12 @@ jobs:
 
     steps:
       - name: Check out repository without LFS payloads
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           lfs: false
 
       - name: Set up Node.js 24
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 24
           cache: npm
@@ -103,4 +117,186 @@ jobs:
         run: |
           deployment_url="$(vercel deploy --prebuilt --prod --archive=tgz --token="$VERCEL_TOKEN")"
           echo "url=${deployment_url}" >> "$GITHUB_OUTPUT"
-          echo "Production deployment: ${deployment_url}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Frontend production: ${deployment_url}" >> "$GITHUB_STEP_SUMMARY"
+
+  deploy-backend-production:
+    name: Deploy backend production
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+    environment:
+      name: backend-production
+      url: ${{ steps.deploy.outputs.url }}
+    env:
+      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      GCP_REGION: ${{ vars.GCP_REGION }}
+      GCP_ARTIFACT_REPOSITORY: ${{ vars.GCP_ARTIFACT_REPOSITORY }}
+      GCP_CLOUD_RUN_SERVICE: ${{ vars.GCP_CLOUD_RUN_SERVICE }}
+      GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      GCP_SERVICE_ACCOUNT: ${{ vars.GCP_SERVICE_ACCOUNT }}
+      GCP_RUNTIME_SERVICE_ACCOUNT: ${{ vars.GCP_RUNTIME_SERVICE_ACCOUNT }}
+      REGISTRY_HOST: ${{ vars.GCP_REGION }}-docker.pkg.dev
+      IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GCP_ARTIFACT_REPOSITORY }}/api:${{ github.sha }}
+
+    steps:
+      - name: Check out repository without LFS payloads
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          lfs: false
+
+      - name: Require Google Cloud repository variables
+        shell: bash
+        run: |
+          required=(
+            GCP_PROJECT_ID
+            GCP_REGION
+            GCP_ARTIFACT_REPOSITORY
+            GCP_CLOUD_RUN_SERVICE
+            GCP_WORKLOAD_IDENTITY_PROVIDER
+            GCP_SERVICE_ACCOUNT
+            GCP_RUNTIME_SERVICE_ACCOUNT
+          )
+          for name in "${required[@]}"; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Missing required repository variable: ${name}"
+              exit 1
+            fi
+          done
+
+      - name: Authenticate to Google Cloud with Workload Identity Federation
+        id: auth
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ env.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+
+      - name: Set up Google Cloud CLI
+        uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker "$REGISTRY_HOST" --quiet
+
+      - name: Build Linux AMD64 backend image
+        run: docker build --platform linux/amd64 --file backend/Dockerfile --tag "$IMAGE" .
+
+      - name: Verify backend image platform
+        shell: bash
+        run: |
+          platform="$(docker image inspect "$IMAGE" --format '{{.Os}}/{{.Architecture}}')"
+          if [[ "$platform" != "linux/amd64" ]]; then
+            echo "::error::Expected linux/amd64 image, got ${platform}"
+            exit 1
+          fi
+
+      - name: Push commit-SHA image
+        run: docker push "$IMAGE"
+
+      - name: Resolve pushed image digest
+        id: image
+        shell: bash
+        run: |
+          repository="${IMAGE%:*}"
+          digest_image="$(
+            gcloud artifacts docker images describe "$IMAGE" \
+              --format='value(image_summary.fully_qualified_digest)'
+          )"
+          digest="${digest_image#"${repository}@"}"
+          if [[ "$digest_image" != "${repository}@${digest}" ]] \
+            || [[ ! "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "::error::Artifact Registry did not return the expected image digest"
+            exit 1
+          fi
+          echo "image=${digest_image}" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy backend to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@2028e2d7d30a78c6910e0632e48dd561b064884d # v3
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+          region: ${{ env.GCP_REGION }}
+          service: ${{ env.GCP_CLOUD_RUN_SERVICE }}
+          image: ${{ steps.image.outputs.image }}
+          env_vars: |-
+            CORS_ORIGINS=https://incheon-care-map.vercel.app
+            RATE_LIMIT_PER_MINUTE=0
+          env_vars_update_strategy: overwrite
+          flags: >-
+            --cpu=1
+            --memory=512Mi
+            --concurrency=40
+            --min-instances=0
+            --max-instances=2
+            --timeout=60s
+            --cpu-throttling
+            --cpu-boost
+            --service-account=${{ env.GCP_RUNTIME_SERVICE_ACCOUNT }}
+            --port=8080
+            --ingress=all
+
+      - name: Smoke-test deployed backend and CORS
+        shell: bash
+        env:
+          SERVICE_URL: ${{ steps.deploy.outputs.url }}
+          ALLOWED_ORIGIN: https://incheon-care-map.vercel.app
+        run: |
+          set -euo pipefail
+          if [[ -z "$SERVICE_URL" ]]; then
+            echo "::error::Cloud Run deploy action did not return a service URL"
+            exit 1
+          fi
+
+          service_url="${SERVICE_URL%/}"
+          health_body="$(mktemp)"
+          healthz_body="$(mktemp)"
+          summary_body="$(mktemp)"
+          summary_headers="$(mktemp)"
+          trap 'rm -f "$health_body" "$healthz_body" "$summary_body" "$summary_headers"' EXIT
+
+          curl_args=(
+            --fail
+            --silent
+            --show-error
+            --retry 12
+            --retry-all-errors
+            --retry-delay 5
+            --connect-timeout 10
+            --max-time 30
+          )
+
+          curl "${curl_args[@]}" --output "$health_body" "${service_url}/health"
+          jq --exit-status \
+            '.apiVersion == "v1" and .data.status == "ok"' \
+            "$health_body" >/dev/null
+
+          curl "${curl_args[@]}" --output "$healthz_body" "${service_url}/healthz"
+          jq --exit-status \
+            '.apiVersion == "v1" and .data.status == "ok"' \
+            "$healthz_body" >/dev/null
+
+          curl "${curl_args[@]}" \
+            --header "Origin: ${ALLOWED_ORIGIN}" \
+            --dump-header "$summary_headers" \
+            --output "$summary_body" \
+            "${service_url}/api/v1/summary"
+          jq --exit-status \
+            '.apiVersion == "v1" and (.data | type == "object")' \
+            "$summary_body" >/dev/null
+          tr -d '\r' < "$summary_headers" \
+            | grep --fixed-strings --ignore-case --line-regexp \
+              "access-control-allow-origin: ${ALLOWED_ORIGIN}" >/dev/null
+
+          echo "Backend smoke tests: /health, /healthz, summary CORS passed" \
+            >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Record backend deployment
+        run: |
+          echo "Backend image tag: ${IMAGE}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Deployed image digest: ${{ steps.image.outputs.image }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Cloud Run service: ${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"

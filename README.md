@@ -2,7 +2,8 @@
 
 > 개인을 추정하지 않고, 공개 집계 데이터로 인천의 돌봄 현장 검토 순서를 좁히는 지도
 
-**Live demo:** `__LIVE_URL_TO_BE_REPLACED__`
+**Live demo:** <https://incheon-care-map.vercel.app><br>
+**Read-only API:** <https://incheon-care-api-vy3v2ludma-du.a.run.app> · [health](https://incheon-care-api-vy3v2ludma-du.a.run.app/health)
 
 <!-- SCREENSHOT: 실제 배포 화면을 검증한 뒤 스크린샷과 대체 텍스트를 추가합니다. -->
 
@@ -22,9 +23,9 @@
 | 대중교통 | 승·하차 지도 포인트 6,231개, 노선 정보 결합 6,157개 | 승·하차 건수이며 고유 이용자 수가 아님 |
 | 주거 노후도 | 정규화 건축물대장 157,049건 중 150,589건 배정, strict 커버리지 95.886634% | 대장 레코드 수이며 고유 건물·주택 호수·가구 수가 아님 |
 
-실행 중인 웹앱은 대용량 원천을 직접 읽지 않고, 검증된 정적 자산만 `public/data/`에서 불러온다.
+실행 중인 웹앱은 대용량 원천을 직접 읽지 않고, 검증된 정적 자산만 `public/data/`에서 불러온다. `VITE_API_BASE_URL`이 설정된 runtime에서는 Cloud Run API를 우선 사용하고, 환경변수가 없거나 API 호출이 실패하면 Vercel에 배포된 같은 정적 자산으로 fallback한다.
 
-프론트엔드는 React 19·TypeScript·Vite 8로 구성했고, MapLibre GL JS에 OpenStreetMap 베이스맵을 사용한다. 현재 실행 경로에는 백엔드, 개인 데이터, AI 추론 모델이 없다.
+프론트엔드는 React 19·TypeScript 7·Vite 8·MapLibre GL JS 6으로 구성했고 OpenStreetMap 베이스맵을 사용한다. 백엔드는 Node.js 24로 작성한 읽기 전용 API며, 검증된 `public/data/`를 Docker 이미지에 번들해 Cloud Run에서 제공한다. 어느 현재 경로도 개인 데이터나 AI 추론 결과를 생성하지 않는다. 같은 GCP 프로젝트에는 향후 서버 측 AI 진단 리포트·메모를 저장할 Firestore가 준비되어 있지만, 현재 지도 요청과 정적 데이터 제공은 DB 장애와 분리되어 있다.
 
 ## 지표 해석 원칙
 
@@ -52,19 +53,25 @@ flowchart LR
     B --> C["data/processed<br/>분석 기준 산출물"]
     C --> D["scripts/prepare_web_data.py<br/>웹 허용 필드·해시 검증"]
     D --> E["public/data<br/>정적 GeoJSON·JSON"]
-    E --> F["브라우저 지도 UI"]
-    F --> G["Vercel"]
+    E --> F["Vercel<br/>프론트+정적 fallback"]
+    E --> G["Docker Node.js 24 API<br/>정적 원본 이미지 번들"]
+    G --> H["Cloud Run"]
+    J["Firestore<br/>향후 가변 AI 리포트·메모"] -. "현재 요청 경로 밖" .-> H
+    F --> I["브라우저 지도 UI"]
+    H -->|"VITE_API_BASE_URL 설정 시 runtime API 우선"| I
+    I -. "API 실패 시 정적 fallback" .-> F
 ```
 
 | 경로 | 역할 |
 | --- | --- |
 | `src/` | 지도, 레이어, 필터, 정보 패널 UI |
+| `backend/` | Node.js 24 읽기 전용 API, 테스트, Dockerfile |
 | `public/data/` | 배포에 포함되는 브라우저용 GeoJSON·JSON |
 | `scripts/prepare_web_data.py` | 검증된 산출물을 결정적으로 웹 자산으로 변환 |
 | `data/raw/` | 다시 받은 공식 원천 보관 |
 | `data/processed/` | 정규화·공간조인·검증 산출물 |
 | `data/metadata/` | 출처, API, 체크섬, 지표 계약 |
-| `.github/workflows/ci-deploy.yml` | Node 24 검증과 Vercel 생산 배포 |
+| `.github/workflows/ci-deploy.yml` | 프론트·API 검증, Vercel·Cloud Run 생산 배포 |
 | `docs/DEPLOYMENT.md` | 일회성 연동·secret·운영 절차 |
 
 ## 로컬 실행
@@ -79,8 +86,23 @@ npm run dev
 배포 전 같은 검증을 로컬에서 실행한다.
 
 ```bash
+npm run validate:data
 npm run typecheck
 npm run build
+```
+
+로컬 API는 다른 터미널에서 실행한다.
+
+```bash
+npm --prefix backend ci
+npm --prefix backend start
+curl http://127.0.0.1:8080/health
+```
+
+로컬 프론트에서 API 경로까지 확인하려면 기본 `npm run dev` 대신 다음을 실행한다.
+
+```bash
+VITE_API_BASE_URL=http://127.0.0.1:8080 npm run dev
 ```
 
 ## 웹 데이터 재생성
@@ -88,19 +110,45 @@ npm run build
 `data/processed/`가 바뀌었을 때만 웹용 자산을 다시 만든다.
 
 ```bash
-python3 scripts/prepare_web_data.py
-python3 scripts/prepare_web_data.py --check
+npm run prepare:data
+npm run validate:data
 ```
 
 `--check`는 임시 디렉터리에서 재생성한 6개 자산을 커밋된 `public/data/`와 바이트 단위로 비교한다. 원천부터 전체 데이터팩을 재생성하는 순서와 Python 의존성은 [`data/README.md`](data/README.md)와 [`data/requirements.txt`](data/requirements.txt)에 있다.
 
+## API
+
+생산 API는 <https://incheon-care-api-vy3v2ludma-du.a.run.app>에서 검증된 정적 자산을 읽기 전용으로 제공한다. 외부 헬스체크의 canonical 경로는 `GET /health`이다.
+
+- `GET /health` — Cloud Run 외부 헬스체크
+- `GET /healthz` — 호환용 alias
+- `GET /api/v1/summary`
+- `GET /api/v1/zones?district=&bbox=&limit=&offset=`
+- `GET /api/v1/zones/:geometryZoneId`
+- `GET /api/v1/facilities?district=&category=&bbox=&limit=&offset=`
+- `GET /api/v1/transit?district=&bbox=&minTotalEvents=&minRouteCount=&limit=&offset=`
+
+API 테스트와 생산 이미지를 로컬에서 같은 계약으로 검증할 수 있다.
+
+```bash
+npm --prefix backend run test:coverage
+docker build -f backend/Dockerfile -t incheon-care-api .
+docker run --rm -p 8080:8080 \
+  -e CORS_ORIGINS=http://localhost:5173 \
+  incheon-care-api
+```
+
+세부 쿼리 제약과 응답 계약은 [`backend/README.md`](backend/README.md)에 있다.
+
 ## CI/CD
 
-- Pull request와 모든 push에서 Node.js 24, `npm ci`, `npm run typecheck`, `npm run build`를 실행한다.
-- `main` push는 검증 성공 후 Vercel Production으로 배포한다.
-- GitHub Actions가 배포의 단일 소유자다. `vercel.json`의 `git.deploymentEnabled=false`로 Vercel Git 자동 배포와의 중복을 막는다.
-- 생산 배포에는 GitHub repository secret `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`가 필요하다.
-- 대용량 `data/`는 Vercel 배포에서 제외하고 `public/data/`만 웹 자산으로 보낸다.
+- Pull request와 모든 push에서 Node.js 24로 웹 데이터 결정성, 프론트 타입·빌드, API 커버리지 게이트, Docker 이미지 빌드를 검증한다.
+- Pull request는 배포하지 않는다. 검증을 통과한 PR이 `main`에 merge되면 프론트와 API 생산 배포를 독립된 병렬 job으로 시작한다.
+- 프론트는 Vercel Production으로, API는 commit SHA 태그의 `linux/amd64` 이미지를 Artifact Registry에 push한 뒤 Cloud Run으로 배포한다.
+- GitHub Actions가 프론트 배포의 단일 소유자다. `vercel.json`의 `git.deploymentEnabled=false`로 Vercel Git 자동 배포와의 중복을 막는다.
+- Cloud Run 배포는 GitHub OIDC와 Workload Identity Federation을 사용하며 서비스 계정 JSON 키를 저장소에 두지 않는다.
+- Firestore `(default)`는 서버 측 가변 리포트용으로만 예약되어 있고 현재 API 경로는 사용하지 않는다. 정적 지도 원천을 DB로 중복 이전하지 않는다.
+- 대용량 `data/`는 배포에서 제외한다. 정적 fallback과 API Docker 이미지 둘 다 검수된 `public/data/`만 번들한다.
 
 설정·secret 등록·장애 대응은 [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)에 정리되어 있다.
 

@@ -81,4 +81,5 @@ export interface DataBundle {
   facilities: FacilityCollection
   transit: TransitCollection
   summary: Summary
+  runtimeSource: 'api' | 'static' | 'static-fallback'
 }
