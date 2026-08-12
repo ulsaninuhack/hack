@@ -34,3 +34,40 @@ hostile follow-up, commit, preview, and blockers. Existing entries are never rew
 - Ralph hostile recheck: frozen hashes PASS; core logic diff zero; diff check and secret
   pattern scan PASS; no test deletion or scope-cut evidence.
 - Morning-only gates remain unchecked exactly as listed in `MORNING_HANDOFF.md`.
+
+## 2026-08-13 01:55 KST — P1 PASS candidate
+
+- Synthetic ContactOps state/API is implemented behind `X-Demo-Session-ID`, with
+  optimistic `expected_revision` conflict protection and immutable source fixtures.
+- Local/test state uses isolated memory overlays. Production is configured for Firestore
+  session overrides; Firestore reads do not create seed documents, writes validate an
+  exact synthetic-record allowlist, and the public map routes remain state-independent.
+- Deterministic vertical slice: today's queue -> contact result -> rule findings ->
+  separate acute/vulnerability triage -> recommendation-only visit handoff -> explicit
+  manager approve/reject. No composite score and no automatic visit approval were added.
+- API coverage includes today's queue, case detail, contact results, triage recalculation,
+  visit recommendations, and manager decisions. The `ai-observations` endpoint remains
+  `501 FEATURE_NOT_AVAILABLE` until P3 by design; returning a fabricated AI candidate in
+  P1 would violate the no-stub and human-approval contracts.
+- Backend verification: 123/123 tests across 24 suites; 96.73% lines, 90.87% branches,
+  and 100% functions, all above the frozen P0 baseline. Production dependency audit has
+  0 vulnerabilities at the configured threshold.
+- Regression: overnight freeze, UI copy 10/10, synthetic data, triage schemas, data
+  hashes, typecheck, frontend build, MapLibre worker emission, and `agent-check` PASS.
+  The existing ContactOps rule/scoring modules are byte-for-byte unchanged from baseline.
+- Docker `linux/amd64` image build PASS. Runtime smoke returned `/health` 200 and a
+  worker-filtered 27-item synthetic queue; the container was healthy and ran as uid 1000.
+- Independent critic accepted the P1/P3 engineering boundary and requested only this
+  explicit progress record before final P1 verdict.
+
+## 2026-08-13 02:00 KST — P1 PASS
+
+- Independent critic: PASS after rerunning the P1/Firestore subset (33/33), full coverage
+  gate (123/123 across 24 suites; 96.73% lines, 90.87% branches, 100% functions),
+  production dependency audit (0 vulnerabilities), frozen-core immutability, and
+  `agent-check`.
+- Ralph hostile recheck: frozen contract hashes and diff check PASS; no composite score,
+  automatic approval, test deletion, silent static-map dependency, or fake AI candidate
+  was introduced.
+- P3 debt remains explicit: `ai-observations` is 501 until the real Planner-Critic
+  candidate and confirmation boundary is implemented.

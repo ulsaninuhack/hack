@@ -1,6 +1,6 @@
 # I5 map API
 
-Read-only Node.js 24 API for the curated map exports in `public/data`. It never creates or returns inferred beneficiary, non-recipient, unserved-person, risk-score, or priority-score fields.
+Node.js 24 API for curated map exports and an isolated synthetic ContactOps demo. Map routes remain read-only and independent of ContactOps state; it never creates or returns inferred beneficiary, non-recipient, unserved-person, risk-score, or priority-score fields.
 
 Facility source normalization preserves 3,394 canonical records. The runtime facility layer conservatively excludes clearly child/youth-only services: 3,115 relevant canonical records, 2,816 served facility points, and 90.401284% coordinate coverage. This is a relevance filter, not a legal eligibility determination.
 
@@ -25,6 +25,17 @@ Optional environment variables are documented in `.env.example`. `CORS_ORIGINS` 
 - `GET /api/v1/facilities?district=&category=&bbox=&limit=&offset=`
 - `GET /api/v1/transit?district=&bbox=&minTotalEvents=&minRouteCount=&limit=&offset=`
 
+Synthetic ContactOps routes:
+
+- `GET /api/v1/contact-ops/today?referenceDate=&workerId=&district=`
+- `GET /api/v1/contact-ops/cases/:caseId`
+- `POST /api/v1/contact-ops/cases/:caseId/contact-results`
+- `POST /api/v1/contact-ops/cases/:caseId/triage/recalculate`
+- `GET /api/v1/contact-ops/visit-recommendations?referenceDate=&workerId=&district=`
+- `POST /api/v1/contact-ops/cases/:caseId/visit-decisions`
+- `POST /api/v1/contact-ops/cases/:caseId/ai-observations` — reserved for P3 and
+  returns `501 FEATURE_NOT_AVAILABLE` until the real Planner-Critic adapter is present
+
 `bbox` uses `minLongitude,minLatitude,maxLongitude,maxLatitude` and is limited to a five-degree span. List endpoints cap `limit` at 500 (`zones` at 200) and `offset` at 100,000. Invalid, duplicate, and unknown query parameters return a versioned JSON error.
 
 ## Test
@@ -38,6 +49,8 @@ npm run test:coverage
 ## ContactOps Text Demo
 
 The backend package also contains the deterministic contact-first vertical slice. It does not call an LLM, voice API, database, or route optimizer.
+
+P1 operations mutations require `X-Demo-Session-ID` (16–128 opaque alphanumeric, `_`, or `-` characters) and optimistic `expected_revision`. Local/default state is deterministic memory; Cloud Run selects Firestore through `CONTACT_OPS_STATE_BACKEND=firestore`, and stores synthetic records only. `POST /api/v1/contact-ops/cases/:caseId/ai-observations` is deliberately `501 FEATURE_NOT_AVAILABLE` until P3.
 
 From the repository root:
 

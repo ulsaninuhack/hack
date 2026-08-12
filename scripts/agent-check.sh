@@ -59,11 +59,18 @@ npm run check:ui-copy
 ok "UI copy invariants and their unit tests pass"
 
 grep -q 'Firestore Standard Native' AGENTS.md || fail "AGENTS.md must record the provisioned Firestore decision"
-grep -q 'Current API routes do not use it' docs/AGENT_HANDOFF.md || fail "handoff must keep Firestore outside current API routes"
-if grep -Rq "@google-cloud/firestore\|firebase-admin" backend/src backend/package.json; then
-  fail "current static API must not depend on Firestore until an explicit report/notes feature is implemented"
+grep -q 'Static health/map/facility/transit/summary routes remain independent of Firestore' docs/AGENT_HANDOFF.md \
+  || fail "handoff must keep curated map routes outside Firestore"
+grep -q '"@google-cloud/firestore"' backend/package.json \
+  || fail "synthetic ContactOps Firestore dependency is missing"
+grep -q "await import('@google-cloud/firestore')" backend/src/server.mjs \
+  || fail "Firestore must be loaded server-side only for the selected ContactOps state backend"
+if grep -Eq "@google-cloud/firestore|firebase-admin" backend/src/app.mjs backend/src/data-store.mjs; then
+  fail "curated map request handlers must not depend on Firestore"
 fi
-ok "Firestore is documented as provisioned but outside the current request path"
+grep -q 'CONTACT_OPS_STATE_BACKEND=firestore' .github/workflows/ci-deploy.yml \
+  || fail "production must select the Firestore ContactOps state adapter"
+ok "Firestore is scoped to synthetic ContactOps state and excluded from curated map request handlers"
 
 grep -q '^/data/' .vercelignore || fail ".vercelignore must exclude root data directory"
 grep -q '^\*.zip filter=lfs' data/.gitattributes || fail "ZIP files must remain declared for Git LFS"
@@ -107,6 +114,7 @@ if [ -d backend ]; then
     fail "backend source files are incomplete"
   fi
   grep -q '^!backend/' .dockerignore || fail "root .dockerignore must include backend for Docker context"
+  grep -q '^!backend/package-lock.json' .dockerignore || fail "Docker context must include backend lockfile"
   grep -q '^!public/data/' .dockerignore || fail "root .dockerignore must include public/data for Docker context"
   ok "backend Docker context boundary is present"
   grep -q "url.pathname === '/health' || url.pathname === '/healthz'" backend/src/app.mjs || fail "backend must keep /health canonical and /healthz alias routing"

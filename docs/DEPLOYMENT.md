@@ -206,12 +206,12 @@ validate only reviewed browser/API exports under `public/data/`.
 ## Firestore demo database
 
 Firestore Standard Native database `(default)` is provisioned in
-`asia-northeast3`. It is intentionally not on the current map, facility,
-transit, summary, or health request path: curated public snapshots remain
-bundled in the container, and a Firestore outage must not take the map down.
-Reserve Firestore for a later server-side implementation of variable AI zone
-reports or operator notes. Do not expose browser-direct writes or store
-personal, household-level, benefit-recipient, or inferred-risk records.
+`asia-northeast3`. Production selects it only for synthetic ContactOps session
+overrides. It is intentionally not on the map, facility, transit, summary, or
+health request path: curated public snapshots remain bundled in the container,
+and a Firestore outage must not take the map down. Do not expose browser-direct
+writes or store real personal, household-level, benefit-recipient, or
+inferred-risk records.
 
 The hackathon cleanup decision is 2026-08-15 KST. Deletion is manual, not an
 automatic TTL. Verify the target before running:
