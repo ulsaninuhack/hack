@@ -20,6 +20,11 @@ const BUBBLE_SOURCE = 'dong-bubbles'
 const FACILITY_SOURCE = 'facilities'
 const TRANSIT_SOURCE = 'transit'
 
+// MapLibre 6 resolves its worker next to the bundled entry at runtime. Vite
+// cannot discover that computed URL, so the build emits the worker and shared
+// module explicitly from vite.config.ts.
+if (import.meta.env.PROD) maplibregl.setWorkerUrl('/assets/maplibre-gl-worker.mjs')
+
 function colorExpression(metric: MetricKey): ExpressionSpecification {
   if (metric === 'one_person_households_age_65_plus') {
     return ['interpolate', ['linear'], ['get', metric], 0, '#f4f1ea', 600, '#dce9c7', 1000, '#a8cf9e', 1500, '#58a68c', 2500, '#14685e']
