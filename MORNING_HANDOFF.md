@@ -12,7 +12,7 @@
 | P5 | pass | Manager transfer/distribution/tuning/13-visit breadth; independent review PASS |
 | P6 | pass | Surveyor daily/repeated-no-answer/overdue/transfer and explicit states; independent review PASS |
 | P7 | pass | 156-zone structural context and separate operations overlay; independent review PASS |
-| P8 | preview pass; delivery pending | Full local gates/evidence and public preview vertical slice PASS; PR, merge, and live `main` recheck pending |
+| P8 | delivery pass | PR #18 merged; `main` CI/CD and live Vercel/Cloud Run/browser verification PASS |
 
 ## Machine-verified overnight
 
@@ -61,11 +61,11 @@
 - Frozen captures: public map, operations overlay, manager review/map at `1440x900`;
   surveyor queue/detail/form and empty/loading/error proof at `390x844`.
 
-## Known blockers and stubs
+## Remaining human gates and stubs
 
-- The public preview is complete, including the real API queue -> acute 62 recommendation
-  -> manager approval path. Draft PR review, merge, and post-merge production verification
-  are not yet complete. Do not treat preview proof as production `main` proof.
+- PR #18 is merged. GitHub Actions run `31632681184` deployed `main` merge commit
+  `6e43bce8b95e91aaa2abb0c5daba39d7c8bbc9fe`; Vercel production and Cloud Run revision
+  `incheon-care-api-00019-qsh` were independently rechecked after deployment.
 - P1 operations routes use Firestore only for synthetic session overrides in production.
   Static health/map/facility/transit/summary routes remain independent of it.
 - `POST /api/v1/contact-ops/cases/:caseId/ai-observations` now supports candidate and

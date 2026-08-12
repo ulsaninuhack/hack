@@ -23,9 +23,12 @@
 - Triage evidence: all scores carry contribution traces, no composite score exists, and the deterministic 5,869-case simulation reports 664 mild-signal accumulation cases among 1,941 priority recommendations. This is a tuning warning from synthetic profiles, not an observed-person result. See `docs/CONTACT_TRIAGE_SCORING.md`.
 - Voice file input: `voice/` supports consented masked text and mock-verified WAV/MP3 transcription. Its adapter emits only a confirmation-required candidate; confirmed canonical observations are applied by the backend while scores and manager approval remain server-owned.
 - UI review contract: all UI milestones follow `docs/UI_UX_REVIEW_RUBRIC.md`; hard-ban copy is CI-gated, and each milestone must record its Vercel Preview URL plus Claude screenshot review in this file and `docs/PROGRESS.md`.
-- Latest P8 review milestone: the public preview completes the real synthetic queue ->
-  acute 62 recommendation -> manager-only approval loop with zero browser console errors.
-  PR/merge and production `main` verification remain separate gates.
+- Latest P8 review milestone: PR #18 is merged and GitHub Actions run `31632681184`
+  successfully deployed merge commit `6e43bce8b95e91aaa2abb0c5daba39d7c8bbc9fe` to
+  Vercel production and Cloud Run revision `incheon-care-api-00019-qsh`. The live browser
+  completes synthetic queue -> acute 62 recommendation -> manager-only approval -> reload
+  persistence, shows the 664 tuning warning and unvalidated structural context, and reports
+  zero console errors.
 
 ## Evidence Files
 
