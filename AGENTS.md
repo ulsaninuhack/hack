@@ -65,7 +65,10 @@ Large raw and processed source files are part of the private reproducibility pac
 
 GitHub Actions owns deployment.
 
-- Every pull request and push runs frontend and synthetic-data validation, backend coverage, the voice-contract golden tests, and the backend Docker build on Node.js 24.
+- Every pull request and push runs frontend and synthetic-data validation, backend coverage,
+  the voice-contract golden tests, and the backend Docker build on Node.js 24. CI also runs
+  the built image as a non-root user and smokes health, manager breadth, and the
+  156-zone/162-dong operations map so container-only data-path regressions fail before merge.
 - A push to `main` deploys frontend production to Vercel and backend production to Cloud Run after the shared validation job passes. These jobs are parallel siblings; neither deploy job should depend on the other.
 - Pull requests do not receive Vercel or Google Cloud credentials and do not deploy.
 - `vercel.json` sets `git.deploymentEnabled=false`; do not re-enable Vercel Git auto-deploy while the Actions deploy job exists.

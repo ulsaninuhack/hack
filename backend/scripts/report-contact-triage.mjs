@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 
 import {
   auditMildSignalEscalations,
@@ -7,7 +8,9 @@ import {
   summarizeTriageDistribution,
 } from '../src/contact-triage-scoring.mjs';
 
-const fixturePath = new URL('../../public/data/synthetic-households.json', import.meta.url);
+const fixturePath = process.env.DATA_DIR
+  ? join(process.env.DATA_DIR, 'synthetic-households.json')
+  : new URL('../../public/data/synthetic-households.json', import.meta.url);
 const fixture = JSON.parse(await readFile(fixturePath, 'utf8'));
 
 const SIGN_KEYS = [

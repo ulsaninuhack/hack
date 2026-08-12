@@ -12,7 +12,7 @@
 | P5 | pass | Manager transfer/distribution/tuning/13-visit breadth; independent review PASS |
 | P6 | pass | Surveyor daily/repeated-no-answer/overdue/transfer and explicit states; independent review PASS |
 | P7 | pass | 156-zone structural context and separate operations overlay; independent review PASS |
-| P8 | machine pass; delivery pending | Full local gates/evidence PASS; preview, PR, merge, and live recheck pending |
+| P8 | preview pass; delivery pending | Full local gates/evidence and public preview vertical slice PASS; PR, merge, and live `main` recheck pending |
 
 ## Machine-verified overnight
 
@@ -41,8 +41,8 @@
 - P8 full browser regression passes P2/P4/P8 3/3 in two consecutive runs. The final
   evidence has 11 screenshots covering all eight frozen surfaces, console/page errors 0,
   axe serious/critical 0, at least 18px mobile text, at least 48px controls, and no
-  horizontal overflow. Backend coverage is 165/165 tests across 33 suites at
-  97.23%/91.93%/100%; frontend is 34/34 plus typecheck/build/copy/worker checks.
+  horizontal overflow. Backend coverage is 166/166 tests across 33 suites at
+  97.43%/92.18%/100%; frontend is 35/35 plus typecheck/build/copy/worker checks.
 
 ## Requires morning human review
 
@@ -55,15 +55,17 @@
 
 ## Preview and screenshots
 
-- Preview URL: pending
+- Preview URL: `https://incheon-care-ops-preview.vercel.app`
+- Preview API: `https://incheon-care-api-preview-vy3v2ludma-du.a.run.app`
 - Screenshot index: `artifacts/screenshots/README.md`
 - Frozen captures: public map, operations overlay, manager review/map at `1440x900`;
   surveyor queue/detail/form and empty/loading/error proof at `390x844`.
 
 ## Known blockers and stubs
 
-- Preview publication, draft PR review, merge, and post-merge production verification are
-  not yet complete. Do not treat the local machine PASS as live deployment proof.
+- The public preview is complete, including the real API queue -> acute 62 recommendation
+  -> manager approval path. Draft PR review, merge, and post-merge production verification
+  are not yet complete. Do not treat preview proof as production `main` proof.
 - P1 operations routes use Firestore only for synthetic session overrides in production.
   Static health/map/facility/transit/summary routes remain independent of it.
 - `POST /api/v1/contact-ops/cases/:caseId/ai-observations` now supports candidate and

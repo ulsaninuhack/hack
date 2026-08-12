@@ -208,3 +208,32 @@ hostile follow-up, commit, preview, and blockers. Existing entries are never rew
 - Independent source-only judges accepted the exclusive evidence and returned PASS for the
   pre-preview gate. Preview, remote PR checks, merge, and live production proof remain
   delivery gates rather than local completion claims.
+
+## 2026-08-13 04:15 KST — Public preview and real runtime vertical slice PASS
+
+- Published the public frontend preview at `https://incheon-care-ops-preview.vercel.app`
+  against the isolated Cloud Run preview API
+  `https://incheon-care-api-preview-vy3v2ludma-du.a.run.app`. The preview service uses
+  min 0 / max 1, a separate synthetic Firestore collection, exact preview-origin CORS,
+  and live AI disabled. Production CORS and production state were restored and left separate.
+- The first real container preview exposed a runtime-only bug: the triage-report process
+  resolved `../../public/data` from the container working directory and ignored `DATA_DIR`.
+  A new isolated-runtime test failed first, then the report process was fixed to resolve
+  `synthetic-households.json` from `DATA_DIR`. Focused tests pass 4/4 and full backend
+  coverage passes 166/166 at 97.43% lines, 92.18% branches, and 100% functions.
+- CI now runs the built backend image as UID 1000 and smokes `/health`, manager breadth,
+  and the 156-zone/162-dong operations map. This prevents a source-only test pass from
+  hiding a broken Docker data path.
+- A real public-preview browser session loaded the 27-item worker queue, submitted a
+  synthetic no-answer + one observation + severe-meal case, obtained acute 62 and a
+  recommendation-only state, then loaded the manager queue, the 664-case tuning warning,
+  the unvalidated four-indicator structural panel, and recorded an explicit manager
+  approval through a 200 response. Console errors and warnings were zero.
+- That run also found a stale manager-summary view after approval. A RED component test
+  now freezes breadth refresh and one-render-per-axis behavior; the minimal refresh fix is
+  GREEN. The corrected Vercel deployment `dpl_6Qfng1L3yTDwdUdTZ3bPGSu53uff` and preview
+  Cloud Run revision `incheon-care-api-preview-00005-wvl` are labeled `769f55d`, retain
+  min 0 / service-and-revision max 1, exact preview CORS, and return the 664-case report.
+  A fresh public-browser rerun reached `승인된 방문 1건` immediately after the manager
+  decision with zero console errors. Remote PR checks, merge, production deploy, and final
+  live `main` verification remain the delivery gates.

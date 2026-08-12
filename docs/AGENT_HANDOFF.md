@@ -5,6 +5,8 @@
 - Project: private hackathon MVP, "I5 도시 돌봄" / Incheon care-context map.
 - Frontend: React 19, TypeScript, Vite 8, MapLibre, static assets from `public/data/`.
 - Frontend production: `https://incheon-care-map.vercel.app` is live.
+- Current public review preview: `https://incheon-care-ops-preview.vercel.app`, backed by
+  the isolated preview API `https://incheon-care-api-preview-vy3v2ludma-du.a.run.app`.
 - Runtime data boundary: Cloud Run API-first loading is merged while `public/data/` remains the outage/local fallback. Production CI verifies both the built bundle and the public Vercel alias reference the API.
 - Deployment owner: GitHub Actions workflow `CI / Production Deploy`.
 - Backend local source: Node 24 API for curated read-only `public/data/` routes plus session-isolated synthetic ContactOps operations, with `src/`, tests, coverage gate, Dockerfile, `.dockerignore`, and README.
@@ -21,6 +23,9 @@
 - Triage evidence: all scores carry contribution traces, no composite score exists, and the deterministic 5,869-case simulation reports 664 mild-signal accumulation cases among 1,941 priority recommendations. This is a tuning warning from synthetic profiles, not an observed-person result. See `docs/CONTACT_TRIAGE_SCORING.md`.
 - Voice file input: `voice/` supports consented masked text and mock-verified WAV/MP3 transcription. Its adapter emits only a confirmation-required candidate; confirmed canonical observations are applied by the backend while scores and manager approval remain server-owned.
 - UI review contract: all UI milestones follow `docs/UI_UX_REVIEW_RUBRIC.md`; hard-ban copy is CI-gated, and each milestone must record its Vercel Preview URL plus Claude screenshot review in this file and `docs/PROGRESS.md`.
+- Latest P8 review milestone: the public preview completes the real synthetic queue ->
+  acute 62 recommendation -> manager-only approval loop with zero browser console errors.
+  PR/merge and production `main` verification remain separate gates.
 
 ## Evidence Files
 

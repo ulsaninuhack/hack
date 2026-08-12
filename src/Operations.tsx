@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { AlertTriangle, CheckCircle2, RefreshCw, Send } from 'lucide-react'
 import MapView from './MapView'
@@ -389,16 +389,18 @@ export function ManagerPage() {
     }
   }
 
-  useEffect(() => { void refresh() }, [])
-  useEffect(() => {
-    let active = true
-    void loadManagerBreadth().then((next) => {
-      if (active) { setBreadth(next); setBreadthError(null) }
-    }).catch((cause: unknown) => {
-      if (active) setBreadthError(errorMessage(cause, '관리자 운영 요약을 불러오지 못했습니다.'))
-    })
-    return () => { active = false }
+  const refreshBreadth = useCallback(async () => {
+    try {
+      const next = await loadManagerBreadth()
+      setBreadth(next)
+      setBreadthError(null)
+    } catch (cause) {
+      setBreadthError(errorMessage(cause, '관리자 운영 요약을 불러오지 못했습니다.'))
+    }
   }, [])
+
+  useEffect(() => { void refresh() }, [])
+  useEffect(() => { void refreshBreadth() }, [refreshBreadth])
   useEffect(() => {
     let active = true
     void Promise.all([loadStructuralContext(), loadOperationsMap()]).then(([context, operations]) => {
@@ -438,7 +440,7 @@ export function ManagerPage() {
       setFeedback(decision === 'approved' ? '담당자 승인을 기록했습니다.' : '담당자 반려를 기록했습니다.')
       setDecision(null)
       setNote('')
-      await refresh()
+      await Promise.all([refresh(), refreshBreadth()])
     } catch (cause) {
       setError(errorMessage(cause, '담당자 결정을 저장하지 못했습니다.'))
     } finally {

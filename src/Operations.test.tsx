@@ -265,6 +265,30 @@ describe('P2 manager flow', () => {
     })))
   })
 
+  it('refreshes the manager breadth after an approval and renders each score axis once', async () => {
+    const user = userEvent.setup()
+    mocks.loadRecommendations
+      .mockResolvedValueOnce({ synthetic: true, displayMarker: '[합성]', items: [detail] })
+      .mockResolvedValueOnce({ synthetic: true, displayMarker: '[합성]', items: [] })
+    mocks.loadManagerBreadth
+      .mockResolvedValueOnce({ ...breadth, approved_visit_hint: { ...breadth.approved_visit_hint, approved_visit_count: 0, items: [] } })
+      .mockResolvedValueOnce({ ...breadth, approved_visit_hint: { ...breadth.approved_visit_hint, approved_visit_count: 1 } })
+    mocks.loadData.mockResolvedValue({})
+    mocks.submitDecision.mockResolvedValue({ ...detail, revision: 4 })
+
+    render(<ManagerPage />)
+
+    const recommendation = await screen.findByRole('option', { name: /SYN-HH-2812551000-0001/ })
+    expect(recommendation.querySelectorAll('[data-score-axis="acute"]')).toHaveLength(1)
+    expect(recommendation.querySelectorAll('[data-score-axis="vulnerability"]')).toHaveLength(1)
+    await user.click(screen.getByLabelText('방문 권고 승인'))
+    await user.type(screen.getByLabelText('결정 사유'), '운영 요약 재조회 검증')
+    await user.click(screen.getByRole('button', { name: '방문 권고 승인 기록' }))
+
+    expect(await screen.findByText('승인된 방문 1건')).toBeInTheDocument()
+    expect(mocks.loadManagerBreadth).toHaveBeenCalledTimes(2)
+  })
+
   it('rejects without distance or worker constraints', async () => {
     const user = userEvent.setup()
     mocks.loadRecommendations.mockResolvedValue({ synthetic: true, displayMarker: '[합성]', items: [detail] })
