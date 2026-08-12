@@ -16,6 +16,7 @@ This repository is a private hackathon MVP for an Incheon public aggregate care-
 - `.github/workflows/ci-deploy.yml`: Node 24 validation for frontend and backend, then parallel `main` production deploy jobs for Vercel and Cloud Run.
 - `docs/DEPLOYMENT.md`: deployment contract, Vercel secrets, and operations.
 - `backend/`: Node 24 read-only API for curated `public/data/` exports. It has `src/`, tests, `package-lock.json`, a Dockerfile, and README. Local tests and Docker verification pass.
+- `voice/`: isolated Node 24 voice-input module. Stage 3a converts masked text to the fixed JSON contract with OpenAI Structured Outputs; audio-file and Realtime stages remain intentionally unimplemented.
 
 The frontend production URL is `https://incheon-care-map.vercel.app`. The Cloud Run production URL is `https://incheon-care-api-vy3v2ludma-du.a.run.app`; `/health` is the canonical external health endpoint. `/healthz` remains a source-level compatibility alias, but the Cloud Run frontend intercepts that path before it reaches the container, so deployment smoke tests must use `/health`. Match the latest successful `main` run, Cloud Run revision label, and deployed digest before claiming that a specific commit is live.
 
@@ -74,6 +75,8 @@ npm run build
 npm run validate:data
 npm --prefix backend ci
 npm --prefix backend run test:coverage
+npm --prefix voice ci
+npm --prefix voice test
 sh scripts/agent-check.sh
 ```
 

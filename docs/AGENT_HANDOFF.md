@@ -10,6 +10,7 @@
 - Backend local source: Node 24 read-only API for curated `public/data/`, with `src/`, 41 tests, coverage gate, Dockerfile, `.dockerignore`, and README.
 - Backend production: `https://incheon-care-api-vy3v2ludma-du.a.run.app/health` is live. Match the successful `main` run, revision commit label, and image digest before claiming an exact commit is deployed.
 - Backend health convention: `/health` is canonical externally. `/healthz` exists in source/tests, but Cloud Run's frontend intercepts that path and returns its own 404, so external smoke tests use `/health`.
+- Voice input: `voice/` stage 3a converts consented, PII-masked text into the fixed JSON contract. Its golden tests are offline; audio-file transcription and Realtime/WebRTC are the next stages and are not yet implemented.
 - Cloud Run CD status: the merged workflow validates pull requests and runs sibling Vercel and Cloud Run deploy jobs after successful `main` validation.
 - GCP auth: use Workload Identity Federation only. Do not add JSON service-account keys.
 - GCP DB: Firestore Standard Native `(default)` is provisioned in `asia-northeast3`; the runtime service account has `roles/datastore.user`. Current API routes do not use it. Keep static map snapshots in `public/data/` and reserve Firestore for future server-side variable AI reports or notes.
@@ -27,6 +28,7 @@
 | Deployment contract | `docs/DEPLOYMENT.md` |
 | CI/CD workflow | `.github/workflows/ci-deploy.yml` |
 | Backend API contract | `backend/README.md`, `backend/test/api.test.mjs` |
+| Voice input contract and stage status | `voice/README.md`, `voice/schema/voice-output.schema.json` |
 | Agent rules | `AGENTS.md` |
 
 ## Current Runtime Counts
@@ -82,6 +84,8 @@ npm run build
 npm run validate:data
 npm --prefix backend ci
 npm --prefix backend run test:coverage
+npm --prefix voice ci
+npm --prefix voice test
 bash scripts/agent-check.sh
 ```
 
