@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://incheon-care-map.example/schemas/contact-triage-queue-item.schema.json",
+  "title": "ContactOps two-axis triage queue item",
+  "description": "Derived synthetic operational queue projection. Acuity and vulnerability stay separate; a composite score is prohibited. A visit threshold creates a recommendation only, never automatic approval.",
+  "$comment": "Manual evidence: p11, p14, p48, and p49. Scoring weights and thresholds are operational contract v0.1.0, not validated personal-risk probabilities.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "계약_버전",
+    "합성_운영데이터",
+    "케이스_id",
+    "급성도_점수",
+    "급성도_원합계",
+    "급성도_클램프_적용",
+    "급성도_등급",
+    "취약도_점수",
+    "점수_기여내역",
+    "권고_액션",
+    "방문_승인_상태",
+    "마지막_연결_후_경과일",
+    "재연락_기한"
+  ],
+  "properties": {
+    "계약_버전": { "const": "contact-triage-queue-item-v0.1.0" },
+    "합성_운영데이터": { "const": true },
+    "케이스_id": {
+      "type": "string",
+      "pattern": "^SYN-HH-\\d{10}-\\d{4}$"
+    },
+    "급성도_점수": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "급성도_원합계": { "type": "integer", "minimum": 0 },
+    "급성도_클램프_적용": { "type": "boolean" },
+    "급성도_등급": {
+      "enum": ["정상", "주시", "방문권고", "방문권고-우선"]
+    },
+    "취약도_점수": { "type": "number", "minimum": 0, "maximum": 100 },
+    "점수_기여내역": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/점수_기여" }
+    },
+    "권고_액션": {
+      "enum": ["재연락_예약", "재연락_기한_단축", "방문권고", "방문권고_우선"]
+    },
+    "방문_승인_상태": {
+      "type": ["string", "null"],
+      "enum": [null, "권고", "승인", "반려"],
+      "$comment": "Pass-through manager workflow state. The scoring function has no authority to create 승인 or 반려."
+    },
+    "마지막_연결_후_경과일": { "type": ["integer", "null"], "minimum": 0 },
+    "재연락_기한": { "$ref": "#/$defs/nullable_date" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "급성도_점수": { "type": "integer", "maximum": 29 } }, "required": ["급성도_점수"] },
+      "then": {
+        "properties": {
+          "급성도_등급": { "const": "정상" },
+          "권고_액션": { "const": "재연락_예약" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "급성도_점수": { "type": "integer", "minimum": 30, "maximum": 54 } }, "required": ["급성도_점수"] },
+      "then": {
+        "properties": {
+          "급성도_등급": { "const": "주시" },
+          "권고_액션": { "const": "재연락_기한_단축" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "급성도_점수": { "type": "integer", "minimum": 55, "maximum": 74 } }, "required": ["급성도_점수"] },
+      "then": {
+        "properties": {
+          "급성도_등급": { "const": "방문권고" },
+          "권고_액션": { "const": "방문권고" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "급성도_점수": { "type": "integer", "minimum": 75 } }, "required": ["급성도_점수"] },
+      "then": {
+        "properties": {
+          "급성도_등급": { "const": "방문권고-우선" },
+          "권고_액션": { "const": "방문권고_우선" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "급성도_원합계": { "type": "integer", "minimum": 101 } }, "required": ["급성도_원합계"] },
+      "then": {
+        "properties": {
+          "급성도_점수": { "const": 100 },
+          "급성도_클램프_적용": { "const": true }
+        }
+      },
+      "else": {
+        "properties": { "급성도_클램프_적용": { "const": false } }
+      }
+    }
+  ],
+  "$defs": {
+    "nullable_date": {
+      "anyOf": [
+        { "type": "null" },
+        { "type": "string", "format": "date" }
+      ]
+    },
+    "점수_기여": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "축",
+        "코드",
+        "근거",
+        "가산점",
+        "상한_적용",
+        "출처",
+        "근거_문서"
+      ],
+      "properties": {
+        "축": { "enum": ["급성도", "취약도"] },
+        "코드": {
+          "enum": [
+            "연속_미응답",
+            "평소_응답률_대비_급락",
+            "관찰_6징후",
+            "식사상태",
+            "위생상태",
+            "공과금_2개월_이상_체납",
+            "최근_건강_정신_괴로움",
+            "동단위_고령비율",
+            "동단위_1인가구비율",
+            "동단위_노후주택",
+            "동단위_기초수급_밀도",
+            "관계망_없음",
+            "사회적_고립"
+          ]
+        },
+        "근거": { "type": "string", "minLength": 1 },
+        "가산점": { "type": "number", "minimum": 0, "maximum": 50 },
+        "상한_적용": { "type": "boolean" },
+        "출처": {
+          "enum": ["연락_이력", "현장_관찰", "공개_동단위_집계"]
+        },
+        "근거_문서": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "매뉴얼_p11",
+              "매뉴얼_p14",
+              "매뉴얼_p48",
+              "매뉴얼_p49",
+              "운영_배점표_v0.1.0"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

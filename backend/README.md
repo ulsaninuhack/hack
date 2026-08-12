@@ -48,8 +48,16 @@ The demo loads `public/data/synthetic-households.json` and prints:
 1. today's contact queue
 2. a dummy `no_answer` contact result
 3. deterministic rule findings
-4. a visit recommendation with no automatic approval
+4. separate acute/vulnerability scores and a visit recommendation with no automatic approval
 5. an explicit manager approval that creates approved-visit route constraints
+
+The score distribution and mild-signal accumulation audit are reproducible:
+
+```bash
+npm --prefix backend run report:contact-triage
+```
+
+This report is a fixed synthetic scenario simulation, not an observed-person result. The scoring and queue contract is documented in `docs/CONTACT_TRIAGE_SCORING.md`.
 
 ## Container
 

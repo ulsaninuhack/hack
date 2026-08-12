@@ -161,13 +161,6 @@ export function evaluateDeterministicRules(household, referenceDate) {
     findings.push(finding('transfer_recommended_after_invalid_contact'));
   }
 
-  if (result === 'no_answer'
-      && contact.consecutive_no_answer_count >= 2
-      && workflow.visit_approval_status === null) {
-    workflow.visit_approval_status = 'recommended';
-    findings.push(finding('visit_recommended_after_repeated_no_answer'));
-  }
-
   if (['required', 'overdue'].includes(workflow.follow_up_status)
       && typeof workflow.follow_up_deadline === 'string'
       && workflow.follow_up_deadline < referenceDate) {
@@ -176,6 +169,58 @@ export function evaluateDeterministicRules(household, referenceDate) {
   }
 
   return { household: updated, findings };
+}
+
+export function applyTriageVisitRecommendation(household, triageItem) {
+  const updated = cloneHousehold(household);
+  if (!triageItem || typeof triageItem !== 'object' || Array.isArray(triageItem)) {
+    throw new TypeError('triageItem must be an object');
+  }
+  if (triageItem.케이스_id !== updated.id) {
+    throw new Error('triage item case does not match household');
+  }
+
+  const score = triageItem.급성도_점수;
+  if (!Number.isInteger(score) || score < 0 || score > 100) {
+    throw new TypeError('triage contract requires 급성도_점수 between 0 and 100');
+  }
+  const expectedGrade = score >= 75
+    ? '방문권고-우선'
+    : score >= 55
+      ? '방문권고'
+      : score >= 30
+        ? '주시'
+        : '정상';
+  const expectedAction = score >= 75
+    ? '방문권고_우선'
+    : score >= 55
+      ? '방문권고'
+      : score >= 30
+        ? '재연락_기한_단축'
+        : '재연락_예약';
+  if (triageItem.급성도_등급 !== expectedGrade) {
+    throw new TypeError('triage contract 급성도_등급 does not match score');
+  }
+  if (triageItem.권고_액션 !== expectedAction) {
+    throw new TypeError('triage contract 권고_액션 does not match score');
+  }
+
+  if (['approved', 'rejected'].includes(updated.workflow.visit_approval_status)) {
+    return updated;
+  }
+
+  const expectedRecommendation = score >= 55 ? '권고' : null;
+  if (updated.workflow.visit_approval_status === null
+      && triageItem.방문_승인_상태 !== expectedRecommendation) {
+    throw new TypeError('triage contract 방문_승인_상태 does not match score');
+  }
+
+  const recommendsVisit = score >= 55 && triageItem.방문_승인_상태 === '권고';
+
+  if (recommendsVisit) {
+    updated.workflow.visit_approval_status = 'recommended';
+  }
+  return updated;
 }
 
 export function applyManagerVisitDecision(household, managerDecision) {
