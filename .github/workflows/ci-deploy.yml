@@ -37,6 +37,9 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Enforce UI copy invariants
+        run: npm run check:ui-copy
+
       - name: Validate curated web data
         run: |
           npm run validate:data

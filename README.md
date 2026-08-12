@@ -5,6 +5,8 @@
 **Live demo:** <https://incheon-care-map.vercel.app><br>
 **Read-only API:** <https://incheon-care-api-vy3v2ludma-du.a.run.app> · [health](https://incheon-care-api-vy3v2ludma-du.a.run.app/health)
 
+UI 변경은 [`docs/UI_UX_REVIEW_RUBRIC.md`](docs/UI_UX_REVIEW_RUBRIC.md)의 조사원 모바일·매니저 웹 심사 기준과 자동 문구 게이트를 따른다. UI 마일스톤의 Preview URL과 독립 리뷰 상태는 [`docs/PROGRESS.md`](docs/PROGRESS.md)에 기록한다.
+
 <!-- SCREENSHOT: 실제 배포 화면을 검증한 뒤 스크린샷과 대체 텍스트를 추가합니다. -->
 
 ## 문제와 가치
@@ -110,6 +112,7 @@ npm run dev
 
 ```bash
 npm run validate:data
+npm run check:ui-copy
 npm run typecheck
 npm run build
 ```
