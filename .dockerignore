@@ -1,0 +1,8 @@
+**
+!backend/
+!backend/package.json
+!backend/src/
+!backend/src/**
+!public/
+!public/data/
+!public/data/**

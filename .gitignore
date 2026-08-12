@@ -4,6 +4,8 @@ coverage/
 .vercel/
 .playwright-cli/
 output/
+.omx/
+gha-creds-*.json
 
 .env
 .env.*

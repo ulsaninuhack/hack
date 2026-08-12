@@ -1,126 +1,261 @@
-# Vercel deployment
+# Production deployment
 
 ## Deployment contract
 
-GitHub Actions is the only deployment owner for this repository:
+GitHub Actions owns both production deployments:
 
-- Every pull request and every push runs `npm ci`, `npm run typecheck`, and
-  `npm run build` on Node.js 24.
-- A push to `main` deploys to the Vercel Production environment only after the
-  validation job passes.
-- Pull requests do not create Vercel Preview deployments under this contract.
-- [`vercel.json`](../vercel.json) sets `git.deploymentEnabled` to `false`, so
-  connecting the GitHub repository in Vercel does not create a second automatic
-  deployment for the same commit.
+- Every pull request and push validates the curated web data, type-checks and
+  builds the frontend, runs the backend coverage gate, and builds the backend
+  Docker image.
+- Pull requests receive no Vercel or Google Cloud credentials and never deploy.
+- A successful push to `main` starts two independent jobs after validation:
+  - frontend → Vercel Production
+  - backend → Artifact Registry → Cloud Run
+- The two production jobs do not depend on each other. A failure in one does not
+  cancel or roll back the other.
+- [`vercel.json`](../vercel.json) disables Vercel Git auto-deployments, preventing
+  a second frontend deployment for the same commit.
+- The backend job never creates IAM bindings or changes public invocation. It
+  only authenticates, pushes an image, and deploys a Cloud Run revision.
 
-Do not re-enable Vercel Git deployments while the Actions deployment job is
-enabled. If the team later chooses Vercel Git deployments, first remove or
-disable the `deploy-production` job, then set `git.deploymentEnabled` to `true`.
+The production jobs run only for a `push` event on `refs/heads/main`.
+`workflow_dispatch` is validation-only under this contract.
 
-## Current Vercel project
+## Pull-request validation
 
-Setup was completed on 2026-08-12:
+The `Validate frontend and backend` job runs on Node.js 24:
+
+```bash
+npm ci
+npm run validate:data
+npm run typecheck
+npm run build
+npm --prefix backend ci
+npm --prefix backend run test:coverage
+docker build --file backend/Dockerfile --tag incheon-care-api:ci .
+```
+
+The backend container uses the repository root as its build context because the
+image includes both `backend/**` and the reviewed exports in `public/data/**`.
+
+## Frontend production
+
+Current Vercel configuration:
 
 - Team: `jjh's projects` (`jjhs-projects-4d22a2fd`)
 - Project: `incheon-care-map`
-- Vercel Node.js version: `24.x`
-- Local checkout: linked through `.vercel/project.json`
-- GitHub repository secrets: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, and
-  `VERCEL_PROJECT_ID` are configured
-- Token: dedicated to this project and expires on 2027-08-13; its value is not
-  stored in this repository
+- Production URL: `https://incheon-care-map.vercel.app`
+- Runtime/build version: Node.js `24.x`
+- GitHub environment: `frontend-production`
+- Vercel CLI: pinned to `58.9.4` in the workflow
 
-The project may stay connected to GitHub for repository metadata; automatic Git
-deployments remain disabled by `vercel.json`.
+The Vercel project is linked locally through ignored
+`.vercel/project.json`. The dedicated project-scoped token expires on
+2027-08-13; its value is never stored in the repository.
 
-## Re-linking or rotating credentials
+Required GitHub repository secrets:
 
-From the repository root:
+| Secret | Purpose |
+| --- | --- |
+| `VERCEL_TOKEN` | Dedicated Vercel project token |
+| `VERCEL_ORG_ID` | Vercel team ID |
+| `VERCEL_PROJECT_ID` | `incheon-care-map` project ID |
+
+To re-link or rotate credentials:
 
 ```bash
 npm install --global vercel@latest
 vercel login
 vercel link --yes --scope jjhs-projects-4d22a2fd --project incheon-care-map
-```
-
-The link command targets the existing `incheon-care-map` project and creates
-`.vercel/project.json`, which contains the required `orgId` and `projectId`.
-`.vercel/` is local state and must not be committed.
-
-When rotating the token, create a new project-scoped Vercel access token at
-<https://vercel.com/account/settings/tokens>, replace the GitHub repository
-secret, verify the next production deployment, and then revoke the old token.
-The workflow uses these GitHub **repository secrets**:
-
-| Secret | Value |
-| --- | --- |
-| `VERCEL_TOKEN` | Vercel access token with access to the selected team/project |
-| `VERCEL_ORG_ID` | `.vercel/project.json` → `orgId` |
-| `VERCEL_PROJECT_ID` | `.vercel/project.json` → `projectId` |
-
-The interactive commands below update them without writing the token into shell
-history:
-
-```bash
-gh auth status
 gh secret set VERCEL_TOKEN --repo ulsaninuhack/hack
 gh secret set VERCEL_ORG_ID --repo ulsaninuhack/hack --body "$(jq -r .orgId .vercel/project.json)"
 gh secret set VERCEL_PROJECT_ID --repo ulsaninuhack/hack --body "$(jq -r .projectId .vercel/project.json)"
-gh secret list --repo ulsaninuhack/hack
 ```
 
-The workflow pins Vercel CLI `58.9.4`, the current release when this deployment
-contract was created. Update that version intentionally in the workflow after
-checking the Vercel CLI release and rerunning CI.
+After rotating the token, verify a production deployment before revoking the
+old token.
 
-The Vercel project's Node.js setting is already `24.x` in **Project Settings →
-Build and Deployment**. Keep it aligned with the Node.js 24 version pinned by
-the Actions runner.
+## Backend production
 
-## Data upload boundary
+Current Google Cloud targets:
 
-The repository can contain the complete source data pack through Git LFS, but
-the deployment checkout explicitly leaves LFS payloads unresolved and
-`.vercelignore` excludes the root `data/` and source-data directories. Only
-curated browser-safe exports under `public/data/` are web-build inputs and are
-served by the deployed application.
+| Setting | Value |
+| --- | --- |
+| Project | `project-53f7b99e-c306-49a7-a7b` |
+| Region | `asia-northeast3` |
+| Artifact Registry repository | `incheon-care` |
+| Image | `asia-northeast3-docker.pkg.dev/project-53f7b99e-c306-49a7-a7b/incheon-care/api:<git-sha>` |
+| Cloud Run service | `incheon-care-api` |
+| Deploy service account | `hack-cloud-run-deployer@project-53f7b99e-c306-49a7-a7b.iam.gserviceaccount.com` |
+| Runtime service account | `incheon-care-api@project-53f7b99e-c306-49a7-a7b.iam.gserviceaccount.com` |
+| WIF provider | `projects/282216427513/locations/global/workloadIdentityPools/github-pool/providers/i5-hack` |
+| GitHub environment | `backend-production` |
 
-Do not import files from root `data/` into application code. Copy only reviewed
-runtime exports to `public/data/` and keep that directory small enough for a web
-deployment.
+The backend job requests `id-token: write` only at job scope and exchanges the
+GitHub OIDC token through Workload Identity Federation. GitHub and Google
+deployment actions are pinned to audited commit SHAs. There is no service
+account JSON key or long-lived Google Cloud secret.
+
+Required GitHub repository variables are already configured:
+
+| Variable | Value |
+| --- | --- |
+| `GCP_PROJECT_ID` | `project-53f7b99e-c306-49a7-a7b` |
+| `GCP_REGION` | `asia-northeast3` |
+| `GCP_ARTIFACT_REPOSITORY` | `incheon-care` |
+| `GCP_CLOUD_RUN_SERVICE` | `incheon-care-api` |
+| `GCP_WORKLOAD_IDENTITY_PROVIDER` | provider resource above |
+| `GCP_SERVICE_ACCOUNT` | deploy service account above |
+| `GCP_RUNTIME_SERVICE_ACCOUNT` | runtime service account above |
+
+The workflow builds `linux/amd64`, verifies the local image architecture, and
+pushes only a commit-SHA tag. It does not publish `latest`. It then resolves
+the tag to Artifact Registry's fully qualified digest and gives Cloud Run the
+`api@sha256:...` reference, making the deployed revision content-addressed even
+though repository-level immutable-tag enforcement is not currently enabled.
+After deployment, the job verifies `/health`, the compatibility `/healthz`
+alias, and `/api/v1/summary` against the returned Cloud Run URL. The summary
+check also requires an exact
+`Access-Control-Allow-Origin: https://incheon-care-map.vercel.app` response.
+
+### Cloud Run revision contract
+
+Every backend production revision applies:
+
+| Setting | Value |
+| --- | --- |
+| CPU / memory | `1` vCPU / `512Mi` |
+| Concurrency | `40` requests per instance |
+| Revision scaling | minimum `0`, maximum `2` instances |
+| Request timeout | `60s` |
+| CPU allocation | throttled outside requests |
+| Startup CPU boost | enabled |
+| Container port | `8080` |
+| Ingress | `all` |
+| Runtime identity | dedicated runtime service account |
+| `CORS_ORIGINS` | `https://incheon-care-map.vercel.app` |
+| `RATE_LIMIT_PER_MINUTE` | `0` |
+
+The deployment uses the Cloud Run action's `overwrite` environment-variable
+strategy. Each revision therefore receives exactly the application variables
+declared by this workflow instead of retaining stale revision-level variables.
+
+`RATE_LIMIT_PER_MINUTE=0` intentionally disables the in-process, per-instance
+limiter for this demo contract. The maximum of two instances is a cost ceiling,
+not an abuse-control layer. Add an edge-level distributed limit before opening
+the API to sustained untrusted traffic.
+
+### Google Cloud prerequisites
+
+The `incheon-care` Docker repository was verified in `asia-northeast3` on
+2026-08-12. The workflow deliberately does not provision infrastructure; use
+this read-only command to recheck it before a production rollout:
+
+```bash
+gcloud artifacts repositories describe incheon-care \
+  --project=project-53f7b99e-c306-49a7-a7b \
+  --location=asia-northeast3
+```
+
+If a replacement environment does not have the repository, a project
+administrator creates it outside CI:
+
+```bash
+gcloud artifacts repositories create incheon-care \
+  --project=project-53f7b99e-c306-49a7-a7b \
+  --location=asia-northeast3 \
+  --repository-format=docker
+```
+
+The administrator must also verify:
+
+- the WIF provider admits only the intended GitHub repository/ref policy;
+- the deploy service account can push to this repository and deploy the service;
+- the deploy service account may act as the dedicated runtime service account;
+- the runtime service account has only application runtime permissions.
+
+The runtime service account currently has `roles/datastore.user` for the
+Firestore demo database described below. It does not need project-wide Cloud
+Run, Artifact Registry, or owner/editor roles.
+
+`--ingress=all` controls network ingress but does not grant unauthenticated
+invocation. If the browser-facing API must be public, an administrator reviews
+and applies the Cloud Run Invoker IAM binding separately. CI contains neither
+`--allow-unauthenticated` nor an IAM policy mutation, so future deployments
+preserve the administrator-controlled invocation policy.
+
+## Data deployment boundary
+
+The complete source-data pack can remain versioned through Git LFS. Deployment
+checkouts do not download LFS payloads. `.vercelignore` excludes source-data
+directories from Vercel, and the root `.dockerignore` allowlists only backend
+code and curated `public/data` exports for the container context.
+
+Application code must not read directly from root `data/`. Regenerate and
+validate only reviewed browser/API exports under `public/data/`.
+
+## Firestore demo database
+
+Firestore Standard Native database `(default)` is provisioned in
+`asia-northeast3`. It is intentionally not on the current map, facility,
+transit, summary, or health request path: curated public snapshots remain
+bundled in the container, and a Firestore outage must not take the map down.
+Reserve Firestore for a later server-side implementation of variable AI zone
+reports or operator notes. Do not expose browser-direct writes or store
+personal, household-level, benefit-recipient, or inferred-risk records.
+
+The hackathon cleanup decision is 2026-08-15 KST. Deletion is manual, not an
+automatic TTL. Verify the target before running:
+
+```bash
+gcloud firestore databases describe \
+  --project=project-53f7b99e-c306-49a7-a7b \
+  --database='(default)'
+
+gcloud firestore databases delete \
+  --project=project-53f7b99e-c306-49a7-a7b \
+  --database='(default)'
+```
 
 ## Verification and operations
 
-Run the same checks locally before pushing:
+Inspect repository configuration before merging:
 
 ```bash
-npm ci
-npm run typecheck
-npm run build
+gh variable list --repo ulsaninuhack/hack
+gh secret list --repo ulsaninuhack/hack
 ```
 
-After the first push to `main`, inspect the workflow and deployment:
+Inspect a run after merging to `main`:
 
 ```bash
-gh run list --repo ulsaninuhack/hack --workflow "CI / Vercel" --limit 5
+gh run list --repo ulsaninuhack/hack --workflow "CI / Production Deploy" --limit 5
+gh workflow view "CI / Production Deploy" --repo ulsaninuhack/hack
 gh run watch --repo ulsaninuhack/hack
-vercel project inspect
 vercel ls --environment=production
+gcloud artifacts docker images list \
+  asia-northeast3-docker.pkg.dev/project-53f7b99e-c306-49a7-a7b/incheon-care/api \
+  --include-tags
+gcloud run services describe incheon-care-api \
+  --project=project-53f7b99e-c306-49a7-a7b \
+  --region=asia-northeast3
 ```
 
-The `Deploy production` job writes the immutable deployment URL to the GitHub
-job summary and registers it as the `production` environment URL. A missing
-secret fails before any Vercel command runs and names only the missing secret,
-never its value.
+Both deploy jobs write their immutable deployment target to the GitHub job
+summary and register the deployed URL on their respective GitHub environment.
 
-Recommended branch protection for `main`: require the status check
-`CI / Vercel / Validate (Node 24)` and require pull requests before merging.
+Recommended `main` branch protection requires pull requests and the
+`Validate frontend and backend` job from the `CI / Production Deploy`
+workflow as a required check. Select the check after it has completed at least
+once in this repository.
 
 ## Official references
 
 - [Vercel GitHub Actions deployment](https://vercel.com/docs/git/vercel-for-github#using-github-actions)
-- [Vercel CLI deployment](https://vercel.com/docs/cli/deploy)
 - [`git.deploymentEnabled`](https://vercel.com/docs/project-configuration/git-configuration#git.deploymentEnabled)
-- [`.vercelignore`](https://vercel.com/docs/deployments/vercel-ignore)
-- [GitHub Node.js workflow](https://docs.github.com/en/actions/tutorials/build-and-test-code/nodejs)
-- [`actions/setup-node`](https://github.com/actions/setup-node)
+- [Google Workload Identity Federation action](https://github.com/google-github-actions/auth)
+- [Google Cloud SDK action](https://github.com/google-github-actions/setup-gcloud)
+- [Artifact Registry Docker authentication](https://cloud.google.com/artifact-registry/docs/docker/authentication)
+- [Artifact Registry Docker images](https://cloud.google.com/artifact-registry/docs/docker/store-docker-container-images)
+- [Cloud Run deployment action](https://github.com/google-github-actions/deploy-cloudrun)
+- [`gcloud run deploy`](https://cloud.google.com/sdk/gcloud/reference/run/deploy)
