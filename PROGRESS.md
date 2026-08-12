@@ -238,3 +238,28 @@ hostile follow-up, commit, preview, and blockers. Existing entries are never rew
   A fresh public-browser rerun reached `승인된 방문 1건` immediately after the manager
   decision with zero console errors. Remote PR checks, merge, production deploy, and final
   live `main` verification remain the delivery gates.
+
+## 2026-08-13 04:36 KST — P8 delivery and production verification PASS
+
+- PR #18 passed two independent GitHub validation runs, received an independent source and
+  safety PASS, was marked ready, and merged as
+  `6e43bce8b95e91aaa2abb0c5daba39d7c8bbc9fe`.
+- Production Actions run `31632681184` completed all three jobs: validation in 2m10s,
+  Vercel production in 40s, and Cloud Run production in 1m26s. The deployed frontend is
+  Vercel deployment `dpl_4is4mseSqNR9snXw1C5tjQS9MYiJ` at
+  `https://incheon-care-map.vercel.app`.
+- Cloud Run revision `incheon-care-api-00019-qsh` receives 100% traffic, carries the exact
+  merge SHA label, and runs image
+  `sha256:d577249792b5e994b4447b471a3baea4d5b30e1d0e628ac2705b0fa7be364595`.
+  Its exact production CORS origin is the Vercel alias; an unapproved origin returns 403,
+  the test-only reset route returns 404, and the API returns 27 queue items, tuning 664,
+  156 geometry zones, 162 current dongs, and 2,816 relevant facility points.
+- A fresh production-browser synthetic session reached acute 62 and recommendation-only
+  status from a no-answer/observation result. Only the manager route approved it; the
+  `승인된 방문 1건` summary survived reload. A second fresh session confirmed the 664
+  tuning warning, separate acute/vulnerability axes, and `[MODEL OUTPUT — UNVALIDATED]`.
+  Both browser runs had zero console errors or warnings.
+- Machine delivery is complete. Remaining work is human-only: real-device Korean audio
+  accuracy, live-model usefulness before enablement, physical-device touch review, final
+  Korean polish, and full judge rehearsal. The temporary min-0/max-1 preview service has a
+  keep/delete decision on 2026-08-15 KST.
