@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://incheon-care-map.example/schemas/synthetic-worker.schema.json",
+  "title": "Incheon CareOps synthetic worker dataset",
+  "description": "ContactOps fixture. Every record is synthetic and must not be treated as a real worker or health record.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "dataset_id",
+    "synthetic",
+    "scenario_reference_date",
+    "seed",
+    "guardrail",
+    "spatial_contract",
+    "workers"
+  ],
+  "properties": {
+    "schema_version": { "const": "2.0.0" },
+    "dataset_id": { "const": "incheon-care-ops-synthetic-workers-v2" },
+    "synthetic": { "const": true },
+    "scenario_reference_date": { "type": "string", "format": "date" },
+    "seed": { "type": "integer" },
+    "guardrail": { "type": "string", "minLength": 1 },
+    "spatial_contract": { "$ref": "#/$defs/spatial_contract" },
+    "workers": {
+      "type": "array",
+      "minItems": 162,
+      "maxItems": 162,
+      "items": { "$ref": "#/$defs/worker" }
+    }
+  },
+  "$defs": {
+    "time_window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["start", "end"],
+      "properties": {
+        "start": { "type": "string", "pattern": "^(?:[01]\\d|2[0-3]):[0-5]\\d$" },
+        "end": { "type": "string", "pattern": "^(?:[01]\\d|2[0-3]):[0-5]\\d$" }
+      }
+    },
+    "spatial_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "current_admin_reference_date",
+        "geometry_reference_date",
+        "current_admin_dong_count",
+        "geometry_zone_count",
+        "note"
+      ],
+      "properties": {
+        "current_admin_reference_date": { "const": "2026-07-01" },
+        "geometry_reference_date": { "const": "2025-06-30" },
+        "current_admin_dong_count": { "const": 162 },
+        "geometry_zone_count": { "const": 156 },
+        "note": { "type": "string", "minLength": 1 }
+      }
+    },
+    "location": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "longitude",
+        "latitude",
+        "geometry_zone_id",
+        "current_admin_dong_code_20260701",
+        "current_admin_dong_name_20260701",
+        "current_district_name_20260701",
+        "geometry_resolution",
+        "mapping_method",
+        "spatial_basis"
+      ],
+      "properties": {
+        "longitude": { "type": "number", "minimum": 124, "maximum": 128 },
+        "latitude": { "type": "number", "minimum": 36, "maximum": 39 },
+        "geometry_zone_id": { "type": "string", "minLength": 1 },
+        "current_admin_dong_code_20260701": { "type": "string", "pattern": "^\\d{10}$" },
+        "current_admin_dong_name_20260701": { "type": "string", "minLength": 1 },
+        "current_district_name_20260701": { "type": "string", "minLength": 1 },
+        "geometry_resolution": {
+          "enum": [
+            "exact_2025_geometry_zone",
+            "shared_pre_reform_2025_geometry_zone",
+            "shared_parent_2025_geometry_zone",
+            "shared_2025_geometry_zone"
+          ]
+        },
+        "mapping_method": { "type": "string", "minLength": 1 },
+        "spatial_basis": { "const": "synthetic_point_within_2025_geometry_zone" }
+      }
+    },
+    "worker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "synthetic",
+        "display_name",
+        "role",
+        "location",
+        "constraints",
+        "matching_profile",
+        "workflow"
+      ],
+      "properties": {
+        "id": { "type": "string", "pattern": "^SYN-W-\\d{10}-01$" },
+        "synthetic": { "const": true },
+        "display_name": { "type": "string", "pattern": "^연결단원 \\d{3}$" },
+        "role": { "const": "neighbor_connector" },
+        "location": { "$ref": "#/$defs/location" },
+        "constraints": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "stairs_allowed",
+            "available_time_window",
+            "max_daily_approved_visits",
+            "assigned_admin_dong_codes_20260701",
+            "travel_modes"
+          ],
+          "properties": {
+            "stairs_allowed": { "type": "boolean" },
+            "available_time_window": { "$ref": "#/$defs/time_window" },
+            "max_daily_approved_visits": { "type": "integer", "minimum": 1 },
+            "assigned_admin_dong_codes_20260701": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": { "type": "string", "pattern": "^\\d{10}$" }
+            },
+            "travel_modes": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": { "enum": ["walking", "public_transit", "car"] }
+            }
+          }
+        },
+        "matching_profile": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["gender_for_preference_matching"],
+          "properties": {
+            "gender_for_preference_matching": {
+              "enum": ["female", "male", "not_specified"]
+            }
+          }
+        },
+        "workflow": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["availability_status"],
+          "properties": {
+            "availability_status": {
+              "enum": ["available", "assigned", "on_visit", "off_shift"]
+            }
+          }
+        }
+      }
+    }
+  }
+}
