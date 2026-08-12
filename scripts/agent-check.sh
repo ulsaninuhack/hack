@@ -69,7 +69,12 @@ const fs = require('node:fs');
 const validation = JSON.parse(fs.readFileSync('public/data/validation.json', 'utf8'));
 if (validation.status !== 'pass') throw new Error('public data validation status is not pass');
 if (validation.counts.adminDongs !== 156) throw new Error('admin-dong validation count changed');
-if (validation.counts.facilities !== 3061) throw new Error('facility validation count changed');
+if (validation.counts.facilitiesSource !== 3061) throw new Error('facility source count changed');
+if (validation.counts.facilitiesExcluded !== 245) throw new Error('facility exclusion count changed');
+if (validation.counts.facilities !== 2816) throw new Error('facility runtime count changed');
+if (validation.counts.facilitiesCanonicalSource !== 3394) throw new Error('canonical facility source count changed');
+if (validation.counts.facilitiesCanonicalExcluded !== 279) throw new Error('canonical facility exclusion count changed');
+if (validation.counts.facilitiesCanonicalRelevant !== 3115) throw new Error('relevant canonical facility count changed');
 if (validation.counts.transitStops !== 6231) throw new Error('transit validation count changed');
 const manifest = JSON.parse(fs.readFileSync('public/data/manifest.json', 'utf8'));
 const caveats = (manifest.caveats || []).join('\n');
@@ -81,8 +86,13 @@ NODE
 ok "public runtime validation snapshot is pass with expected counts"
 ok "data interpretation caveats are present in runtime manifest"
 
+npm run test:facility-data
+ok "65+ relevant facility filtering contract is current"
+
 npm run validate:synthetic-data
 ok "synthetic CareOps fixtures are deterministic and current"
+npm run test:contact-triage-schema
+ok "contact triage schemas match the two-axis scorer and queue output"
 
 if [ -d backend ]; then
   if [ -f backend/src/app.mjs ] && [ -f backend/src/data-store.mjs ] && [ -f backend/src/server.mjs ]; then

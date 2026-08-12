@@ -5,6 +5,7 @@ import { describe, test } from 'node:test';
 import {
   applyManagerVisitDecision,
   applyStructuredContactResult,
+  applyTriageVisitRecommendation,
   buildTodayContactQueue,
   evaluateDeterministicRules,
 } from '../src/contact-ops.mjs';
@@ -191,7 +192,7 @@ describe('structured contact-result application', () => {
 });
 
 describe('deterministic rule graph', () => {
-  test('two no-answers recommend a visit but never approve it', () => {
+  test('two no-answers require follow-up without making a visit recommendation', () => {
     const recorded = applyStructuredContactResult(syntheticHousehold(), {
       contact_date: '2026-08-12',
       contact_result: 'no_answer',
@@ -201,11 +202,10 @@ describe('deterministic rule graph', () => {
 
     assert.deepEqual(evaluation.findings.map((finding) => finding.code), [
       'follow_up_required_after_no_answer',
-      'visit_recommended_after_repeated_no_answer',
     ]);
     assert.equal(evaluation.household.workflow.follow_up_status, 'required');
     assert.equal(evaluation.household.workflow.follow_up_deadline, '2026-08-13');
-    assert.equal(evaluation.household.workflow.visit_approval_status, 'recommended');
+    assert.equal(evaluation.household.workflow.visit_approval_status, null);
     assert.equal(evaluation.household.workflow.visit_decision, null);
     assert.equal(evaluation.household.approved_visit_constraints, null);
   });
@@ -448,6 +448,89 @@ describe('explicit manager visit decision', () => {
   });
 });
 
+describe('triage recommendation handoff', () => {
+  test('applies only a visit recommendation and leaves approval to a manager', () => {
+    const household = syntheticHousehold();
+    const recommended = applyTriageVisitRecommendation(household, {
+      케이스_id: household.id,
+      급성도_점수: 62,
+      급성도_등급: '방문권고',
+      권고_액션: '방문권고',
+      방문_승인_상태: '권고',
+    });
+
+    assert.equal(recommended.workflow.visit_approval_status, 'recommended');
+    assert.equal(recommended.workflow.visit_decision, null);
+    assert.equal(recommended.approved_visit_constraints, null);
+    assert.equal(household.workflow.visit_approval_status, null);
+  });
+
+  test('does not recommend a visit below the scoring threshold', () => {
+    const household = syntheticHousehold();
+    const unchanged = applyTriageVisitRecommendation(household, {
+      케이스_id: household.id,
+      급성도_점수: 45,
+      급성도_등급: '주시',
+      권고_액션: '재연락_기한_단축',
+      방문_승인_상태: null,
+    });
+
+    assert.equal(unchanged.workflow.visit_approval_status, null);
+  });
+
+  test('rejects mismatched cases and never overwrites an existing manager decision', () => {
+    const household = syntheticHousehold();
+    assert.throws(
+      () => applyTriageVisitRecommendation(household, {
+        케이스_id: 'SYN-HH-2812551000-9999',
+        급성도_점수: 62,
+        급성도_등급: '방문권고',
+        권고_액션: '방문권고',
+        방문_승인_상태: '권고',
+      }),
+      /case/i,
+    );
+
+    for (const status of ['approved', 'rejected']) {
+      const decided = syntheticHousehold({
+        workflow: { visit_approval_status: status },
+      });
+      const preserved = applyTriageVisitRecommendation(decided, {
+        케이스_id: decided.id,
+        급성도_점수: 94,
+        급성도_등급: '방문권고-우선',
+        권고_액션: '방문권고_우선',
+        방문_승인_상태: '권고',
+      });
+      assert.equal(preserved.workflow.visit_approval_status, status);
+    }
+  });
+
+  test('rejects a malformed or internally inconsistent triage handoff', () => {
+    const household = syntheticHousehold();
+    assert.throws(
+      () => applyTriageVisitRecommendation(household, {
+        케이스_id: household.id,
+        급성도_점수: 62,
+        급성도_등급: '방문권고',
+        권고_액션: '재연락_예약',
+        방문_승인_상태: '권고',
+      }),
+      /triage.*contract|권고_액션/i,
+    );
+    assert.throws(
+      () => applyTriageVisitRecommendation(household, {
+        케이스_id: household.id,
+        급성도_점수: 62,
+        급성도_등급: '정상',
+        권고_액션: '방문권고',
+        방문_승인_상태: '권고',
+      }),
+      /triage.*contract|급성도_등급/i,
+    );
+  });
+});
+
 describe('text vertical-slice demo', () => {
   test('runs queue through explicit manager approval using the generated fixture', () => {
     const result = spawnSync(process.execPath, ['scripts/demo-contact-ops.mjs'], {
@@ -459,7 +542,7 @@ describe('text vertical-slice demo', () => {
     assert.match(result.stdout, /\[1\] 오늘 연락대상 큐/);
     assert.match(result.stdout, /\[2\] 더미 연락결과: no_answer/);
     assert.match(result.stdout, /\[3\] 규칙 검사/);
-    assert.match(result.stdout, /\[4\] 방문 승격 권고: recommended \(자동 승인 없음\)/);
+    assert.match(result.stdout, /\[4\] 2축 트리아지: 급성도 62, 취약도 0, 방문 승격 권고 recommended/);
     assert.match(result.stdout, /\[5\] 담당자 명시 승인: approved/);
   });
 });

@@ -19,11 +19,11 @@
 | --- | ---: | --- |
 | 행정동 지도 | 2025 경계 156개 구역에 2026 현행 행정동 162개를 정합 | 분리된 최신 동 경계를 임의로 만들지 않음 |
 | 수요 맥락 | 총인구 3,061,002명, 65세 이상 598,793명, 1인세대 559,691세대, 65세 이상 1인세대 172,426세대 | 주민등록 집계 관찰값이며 실제 독거·고립·서비스 적격성을 뜻하지 않음 |
-| 복지시설 | 정규화 3,394개 중 지도 포인트 3,061개, 좌표 커버리지 90.188568% | 주민 위치가 아닌 공식 시설 위치; 일부는 주소 기반 대표점 |
+| 복지시설 | 원천 정규화 3,394개는 보존하고, 65세 이상 관련 runtime 레이어는 관련 canonical 3,115개 중 지도 포인트 2,816개, 좌표 커버리지 90.401284% | 법적 이용자격 판정이 아닌 보수적 관련성 필터; 주민 위치가 아닌 공식 시설 위치 |
 | 대중교통 | 승·하차 지도 포인트 6,231개, 노선 정보 결합 6,157개 | 승·하차 건수이며 고유 이용자 수가 아님 |
 | 주거 노후도 | 정규화 건축물대장 157,049건 중 150,589건 배정, strict 커버리지 95.886634% | 대장 레코드 수이며 고유 건물·주택 호수·가구 수가 아님 |
 
-실행 중인 웹앱은 대용량 원천을 직접 읽지 않고, 검증된 정적 자산만 `public/data/`에서 불러온다. `VITE_API_BASE_URL`이 설정된 runtime에서는 Cloud Run API를 우선 사용하고, 환경변수가 없거나 API 호출이 실패하면 Vercel에 배포된 같은 정적 자산으로 fallback한다.
+실행 중인 웹앱은 대용량 원천을 직접 읽지 않고, 검증된 정적 자산만 `public/data/`에서 불러온다. 복지시설 원천 정규화 3,394개는 보존하되, 현재 시설 runtime 레이어는 명백한 아동·청소년 전용 시설을 제외한 관련 canonical 3,115개와 지도 포인트 2,816개를 소비한다. 이는 법적 이용자격 판정이 아니다. `VITE_API_BASE_URL`이 설정된 runtime에서는 Cloud Run API를 우선 사용하고, 환경변수가 없거나 API 호출이 실패하면 Vercel에 배포된 같은 정적 자산으로 fallback한다.
 
 프론트엔드는 React 19·TypeScript 7·Vite 8·MapLibre GL JS 6으로 구성했고 OpenStreetMap 베이스맵을 사용한다. 백엔드는 Node.js 24로 작성한 읽기 전용 API며, 검증된 `public/data/`를 Docker 이미지에 번들해 Cloud Run에서 제공한다. 지도·API 요청 경로는 개인 데이터나 AI 추론 결과를 생성하지 않는다. 별도 `voice/` 모듈은 동의받고 개인정보를 마스킹한 텍스트를 고정 JSON 계약으로 구조화할 수 있지만 현재 ContactOps나 지도 경로에 연결되어 있지 않다. 같은 GCP 프로젝트의 Firestore는 향후 서버 측 AI 리포트·메모용으로 준비되어 있지만, 현재 지도 요청과 정적 데이터 제공은 DB 장애와 분리되어 있다.
 
@@ -37,16 +37,18 @@
 - `data/schemas/synthetic-worker.schema.json`
 - `data/schemas/synthetic-household.schema.json`
 - `src/syntheticCareOpsTypes.ts`
+- `data/schemas/contact-triage-*.schema.json`
+- `backend/src/contact-triage-scoring.mjs`
 
 모든 레코드는 `synthetic=true`이고 이름·주소·전화번호가 없다. 좌표는 2025 지도구역 안에 생성한 합성 점이며 실제 주거 위치가 아니다. 중심 필드는 `next_contact_date`, `preferred_contact_method`, `consecutive_no_answer_count`, `follow_up_deadline`, `follow_up_status`, `visit_approval_status`, `transfer_status`, `last_contact_result`다. `visit_approval_status`는 규칙 권고 전에는 `null`이며, 방문 제약과 `max_route_distance_km`는 담당자가 명시 승인한 뒤에만 생긴다. UI·규칙 그래프 사용법과 162→156 공간 제약은 [`docs/SYNTHETIC_CARE_OPS_DATA.md`](docs/SYNTHETIC_CARE_OPS_DATA.md)를 따른다.
 
-현재 최소 데모는 LLM 없이 결정론적으로 돈다.
+현재 최소 데모는 LLM 없이 결정론적으로 돈다. 연락·기한 규칙 뒤에 급성도와 취약도를 합치지 않는 2축 트리아지를 적용한다. 모든 점수는 기여내역을 반환하고, 방문 임계값은 권고만 만들며 담당자 승인 전에는 경로 제약이 생기지 않는다. 세부 배점·정렬·역전 감시는 [`docs/CONTACT_TRIAGE_SCORING.md`](docs/CONTACT_TRIAGE_SCORING.md)를 따른다.
 
 ```bash
 npm --prefix backend run demo:contact-ops
 ```
 
-이 명령은 오늘 연락대상 큐 생성, 더미 연락결과 입력, 미응답·후속조치 규칙 검사, 방문 승격 권고, 담당자 명시 승인까지 텍스트로 보여 준다. 이 ContactOps 데모 자체는 LLM·음성·경로 최적화를 호출하지 않는다. 별도 `voice/` 텍스트→JSON 3a 단계는 구현됐지만 ContactOps 어댑터, 오디오 파일·Realtime 입력, 조건부 경로 게이트는 아직 구현하지 않았다.
+이 명령은 오늘 연락대상 큐 생성, 더미 연락결과 입력, 미응답·후속조치 규칙 검사, 2축 점수의 방문 권고, 담당자 명시 승인까지 텍스트로 보여 준다. 미응답 2회만으로 방문을 직접 권고하지 않는다. 이 ContactOps 데모 자체는 LLM·음성·경로 최적화를 호출하지 않는다. 별도 `voice/` 텍스트→JSON 3a 단계는 구현됐지만 ContactOps 음성 어댑터, 오디오 파일·Realtime 입력, 조건부 경로 게이트는 아직 구현하지 않았다.
 
 ## 지표 해석 원칙
 

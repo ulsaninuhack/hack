@@ -38,7 +38,7 @@ const METRICS: Array<{ key: MetricKey; short: string; label: string; description
   },
 ]
 
-const FACILITY_GROUPS = ['전체', '노인복지', '장애인복지', '아동·돌봄', '지역복지', '정신건강복지', '가족·여성복지']
+const FACILITY_GROUPS = ['전체', '노인복지', '장애인복지', '지역복지', '정신건강복지', '가족·여성복지']
 
 export default function App() {
   const [data, setData] = useState<DataBundle | null>(null)

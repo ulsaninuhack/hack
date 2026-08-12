@@ -17,6 +17,7 @@ This repository is a private hackathon MVP for an Incheon public aggregate care-
 - `docs/DEPLOYMENT.md`: deployment contract, Vercel secrets, and operations.
 - `backend/`: Node 24 read-only API for curated `public/data/` exports. It has `src/`, tests, `package-lock.json`, a Dockerfile, and README. Local tests and Docker verification pass.
 - `scripts/generate_synthetic_care_ops.py`, `data/schemas/synthetic-*.schema.json`, `backend/src/contact-ops.mjs`, `backend/scripts/demo-contact-ops.mjs`, and `docs/SYNTHETIC_CARE_OPS_DATA.md`: deterministic contact-first fixtures and rule-graph slice for 162 current dongs. These are synthetic operational tasks, not people or inferred risk.
+- `backend/src/contact-triage-scoring.mjs`, `data/schemas/contact-triage-*.schema.json`, and `docs/CONTACT_TRIAGE_SCORING.md`: separate acute/vulnerability operational scores, contribution traces, queue ordering, recommendation-only handoff, and a deterministic mild-signal accumulation audit. A composite score is prohibited.
 - `voice/`: isolated Node 24 voice-input module. Stage 3a converts consented, PII-masked text to a fixed JSON contract with OpenAI Structured Outputs. Stage 3b adds validated WAV/MP3 file transcription and immediately reuses 3a; its deterministic tests mock transcription. It is not wired into ContactOps, and Realtime remains intentionally unimplemented.
 
 The frontend production URL is `https://incheon-care-map.vercel.app`. The Cloud Run production URL is `https://incheon-care-api-vy3v2ludma-du.a.run.app`; `/health` is the canonical external health endpoint. `/healthz` remains a source-level compatibility alias, but the Cloud Run frontend intercepts that path before it reaches the container, so deployment smoke tests must use `/health`. Match the latest successful `main` run, Cloud Run revision label, and deployed digest before claiming that a specific commit is live.
@@ -30,6 +31,7 @@ Do not overclaim what the public aggregate data can prove.
 - `P1` is the observed count of resident-registration age-65-plus one-person households.
 - `P2` is `age-65-plus one-person households / age-65-plus population`.
 - `P2` combines a 2026-07-31 household numerator with a 2026-06-30 population denominator. Always state that it is a mixed snapshot, not a same-date rate.
+- Facility source normalization preserves 3,394 canonical records. The current 65+ relevant runtime layer consumes 3,115 relevant canonical records, serves 2,816 facility points, and has 90.401284% coordinate coverage within that set. This is not a legal eligibility determination.
 - The map uses 2025-06-30 geometry zones and maps 2026-07-01 current admin-dong statistics onto them. Do not invent 162 current polygons from the 156 geometry zones.
 - Welfare benefit categories can overlap by person. Do not sum benefit categories into a distinct person count, and do not subtract welfare counts from household counts.
 - Utility data is not current Incheon household anomaly data. Jeongeup smart-meter data is model/UX demo only and must be labeled as not Incheon observed data.
@@ -79,9 +81,11 @@ npm run build
 npm run validate:data
 npm run validate:synthetic-data
 npm run test:synthetic-data
+npm run test:contact-triage-schema
 npm --prefix backend ci
 npm --prefix backend run test:coverage
 npm --prefix backend run demo:contact-ops
+npm --prefix backend run report:contact-triage
 npm --prefix voice ci
 npm --prefix voice test
 sh scripts/agent-check.sh
@@ -106,7 +110,7 @@ curl -fsS https://incheon-care-api-vy3v2ludma-du.a.run.app/health
 
 Frontend production and the Cloud Run backend `/health` are live. API-first loading is merged and the Vercel production environment points at Cloud Run; `public/data/` remains the intentional outage and local-development fallback. Firestore exists but is intentionally outside the current request path.
 
-The ContactOps schema conversion and text vertical slice are complete at the deterministic-rule layer: generated fixtures cover 162 current dongs, the reference manifest has 5,869 contact tasks, 3,616 due tasks, 5,291 phone-preferred tasks, 578 visit-preferred tasks, and 0 preapproved visits. `npm --prefix backend run demo:contact-ops` demonstrates queue -> dummy contact result -> rule findings -> visit recommendation -> manager approval. The standalone `voice/` stages 3a and 3b can structure consented, masked text and mock-transcribed files, but no adapter currently applies that output to ContactOps. Actual-device audio accuracy, Realtime input, scoring/triage integration, route optimization, and UI wiring remain unimplemented.
+The ContactOps schema conversion, deterministic rules, and two-axis triage slice are complete: generated fixtures cover 162 current dongs, the reference manifest has 5,869 contact tasks, 3,616 due tasks, 5,291 phone-preferred tasks, 578 visit-preferred tasks, and 0 preapproved visits. `npm --prefix backend run demo:contact-ops` demonstrates queue -> dummy contact result -> follow-up rules -> separate acute/vulnerability scores -> visit recommendation -> manager approval. `npm --prefix backend run report:contact-triage` runs the deterministic 5,869-case synthetic distribution and mild-signal accumulation audit. The standalone `voice/` stages 3a and 3b can structure consented, masked text and mock-transcribed files, but no adapter currently applies that output to ContactOps. Actual-device audio accuracy, Realtime input, route optimization, and UI wiring remain unimplemented.
 
 ## Safety Guardrails
 
@@ -118,6 +122,7 @@ The ContactOps schema conversion and text vertical slice are complete at the det
 - ContactOps records must use safe Korean terms such as `연락업무`, `안부 확인`, `후속조치`, `방문 권고`, `담당자 승인`, and `행정복지센터 이관`. Avoid terms that imply confirmed personal status, such as `고위험자`, `미수혜자`, `위험도`, or `개인 예측`.
 - The standalone voice LLM may structure consented, masked text. `contact_result.risk_score` copies only a number explicitly spoken by the surveyor and otherwise stays `0`; `visit_recommended` mirrors only an explicit request. Neither is a computed triage score nor authority to mutate `workflow.visit_approval_status`.
 - Any future ContactOps adapter may flag contradictions or missing fields and propose visit/transfer candidates with reasons, but it must not approve visits, confirm transfers, or override deterministic no-answer/deadline rules.
+- Triage keeps `급성도_점수` and `취약도_점수` separate, always returns contribution traces, and never emits a composite score. Thresholds may create `recommended` only; only explicit manager action creates `approved` or `rejected`.
 - Route planning is conditional only. Use it after approved same-day visit volume, two-person/public-official accompaniment, time/area/travel-mode conflicts, or reassignment needs justify it. For one to three approved visits, show a simple nearest-order suggestion instead of VRP.
 - Do not turn observation layers into a composite risk score without a documented metric version, data basis, backtest, and fairness review.
 - Do not treat browser screenshots, draft text, or visible chat notes as deployment proof. Re-run commands or inspect CI/deployment records.

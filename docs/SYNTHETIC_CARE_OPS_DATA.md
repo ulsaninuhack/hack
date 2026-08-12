@@ -71,7 +71,7 @@ MapLibre 점 레이어는 각 레코드의 `location.longitude`와 `location.lat
 - `workflow.visit_decision`: 담당자 승인·반려 기록, 권고 전에는 `null`
 - `approved_visit_constraints`: 승인 방문 제약, 담당자 승인 전에는 항상 `null`
 
-생성된 fixture는 모든 `visit_approval_status`, `visit_decision`, `approved_visit_constraints`를 `null`로 시작한다. 규칙 그래프가 방문을 권고할 수는 있지만 자동 승인하지 않는다.
+생성된 fixture는 모든 `visit_approval_status`, `visit_decision`, `approved_visit_constraints`를 `null`로 시작한다. 연락·기한 규칙은 후속조치만 만들고, 별도 2축 트리아지가 방문을 권고할 수는 있지만 자동 승인하지 않는다.
 
 ## 텍스트 수직 슬라이스
 
@@ -86,8 +86,11 @@ npm --prefix backend run demo:contact-ops
 1. `buildTodayContactQueue`: 기준일까지 연락해야 하는 큐 생성
 2. `applyStructuredContactResult`: 더미 연락결과 입력
 3. `evaluateDeterministicRules`: 미응답·후속조치 누락·이관 필요 검사
-4. 반복 미응답이면 `visit_approval_status=recommended`
-5. `applyManagerVisitDecision`: 담당자가 `approved` 또는 `rejected`를 명시
+4. `buildTriageQueue`: 급성도·취약도를 분리해 점수화하고 방문 임계값이면 권고
+5. `applyTriageVisitRecommendation`: 같은 케이스의 권고만 ContactOps에 반영
+6. `applyManagerVisitDecision`: 담당자가 `approved` 또는 `rejected`를 명시
+
+미응답 2회는 급성도 25점으로 정상 구간이며 재연락 후속조치만 만든다. 미응답 3회 단독도 45점으로 주시 구간이다. 관찰값과 합산해 55점 이상이 된 경우에만 방문 권고가 생긴다. 배점과 큐 계약은 [`CONTACT_TRIAGE_SCORING.md`](CONTACT_TRIAGE_SCORING.md)를 따른다.
 
 ## 조건부 경로 입력 규칙
 
@@ -137,6 +140,8 @@ task.approved_visit_constraints !== null
 npm run prepare:synthetic-data
 npm run validate:synthetic-data
 npm run test:synthetic-data
+npm run test:contact-triage-schema
+npm --prefix backend run report:contact-triage
 ```
 
 생성기는 seed `20260812`를 사용하며 동일 입력에서 바이트 단위로 같은 결과를 만든다. 검증기는 다음을 강제한다.

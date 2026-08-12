@@ -38,12 +38,15 @@ jobs:
         run: npm ci
 
       - name: Validate curated web data
-        run: npm run validate:data
+        run: |
+          npm run validate:data
+          npm run test:facility-data
 
       - name: Validate deterministic synthetic CareOps data
         run: |
           npm run validate:synthetic-data
           npm run test:synthetic-data
+          npm run test:contact-triage-schema
 
       - name: Type-check frontend
         run: npm run typecheck
