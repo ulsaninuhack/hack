@@ -119,9 +119,9 @@ pushes only a commit-SHA tag. It does not publish `latest`. It then resolves
 the tag to Artifact Registry's fully qualified digest and gives Cloud Run the
 `api@sha256:...` reference, making the deployed revision content-addressed even
 though repository-level immutable-tag enforcement is not currently enabled.
-After deployment, the job verifies `/health`, the compatibility `/healthz`
-alias, and `/api/v1/summary` against the returned Cloud Run URL. The summary
-check also requires an exact
+After deployment, the job verifies the canonical `/health` endpoint and
+`/api/v1/summary` against the returned Cloud Run URL. The summary check also
+requires an exact
 `Access-Control-Allow-Origin: https://incheon-care-map.vercel.app` response.
 
 ### Cloud Run revision contract
