@@ -37,6 +37,9 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Verify Claude and Codex handoff contract
+        run: npm run test:agent-handoff
+
       - name: Verify frozen overnight contracts
         run: npm run verify:overnight-freeze
 

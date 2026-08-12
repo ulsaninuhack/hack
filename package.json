@@ -7,6 +7,7 @@
     "node": ">=24 <25"
   },
   "scripts": {
+    "agent:check": "sh scripts/agent-check.sh",
     "check:ui-copy": "node --test test/ui-copy-gate.test.mjs && node scripts/check-ui-copy.mjs",
     "verify:overnight-freeze": "node scripts/verify-overnight-freeze.mjs",
     "verify:overnight": "npm run verify:overnight-freeze && npm run check:ui-copy && node scripts/verify-overnight-ui.mjs",
@@ -27,7 +28,8 @@
     "validate:synthetic-schema": "node scripts/validate_synthetic_schemas.mjs",
     "validate:synthetic-data": "python3 scripts/generate_synthetic_care_ops.py --check && npm run validate:synthetic-schema",
     "test:synthetic-data": "python3 -m unittest scripts.test_generate_synthetic_care_ops",
-    "test:contact-triage-schema": "node --test scripts/test_contact_triage_schemas.mjs"
+    "test:contact-triage-schema": "node --test scripts/test_contact_triage_schemas.mjs",
+    "test:agent-handoff": "node --test test/agent-handoff-harness.test.mjs"
   },
   "dependencies": {
     "lucide-react": "1.31.0",

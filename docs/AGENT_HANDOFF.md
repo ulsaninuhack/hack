@@ -2,7 +2,9 @@
 
 ## Current State
 
-- Project: private hackathon MVP, "I5 도시 돌봄" / Incheon care-context map.
+- Project: currently public GitHub hackathon MVP, "I5 도시 돌봄" / Incheon care-context map.
+  `package.json` is private only to block accidental npm publication; it does not describe the
+  repository's GitHub visibility.
 - Frontend: React 19, TypeScript, Vite 8, MapLibre, static assets from `public/data/`.
 - Frontend production: `https://incheon-care-map.vercel.app` is live.
 - Current public review preview: `https://incheon-care-ops-preview.vercel.app`, backed by
@@ -29,6 +31,54 @@
   completes synthetic queue -> acute 62 recommendation -> manager-only approval -> reload
   persistence, shows the 664 tuning warning and unvalidated structural context, and reports
   zero console errors.
+
+## 60-Second Takeover
+
+This handoff is shared by Claude and Codex. `CLAUDE.md` points Claude to the canonical
+`AGENTS.md`; both agents must follow the same data, safety, deployment, and verification rules.
+
+Start from current `origin/main`, not from one of the merged delivery branches:
+
+```sh
+git fetch origin main
+git worktree add ../hack-next-agent -b agent/next-task origin/main
+cd ../hack-next-agent
+git status --short --branch
+npm ci
+npm --prefix backend ci
+npm --prefix voice ci
+npm run agent:check
+```
+
+For UI or cross-layer ContactOps work, also run `npm run test:e2e:ops`. For deployment work,
+read `docs/DEPLOYMENT.md` and inspect the latest GitHub Actions run, Cloud Run revision label,
+and deployed image digest before stating that a commit is live. Never reuse a dirty user
+checkout, silently reset another agent's work, or treat screenshots as deployment proof.
+
+The primary continuation seams are:
+
+| Work area | Start here | Contract to preserve |
+| --- | --- | --- |
+| Public and operations UI | `src/App.tsx`, `src/Operations.tsx`, `src/MapView.tsx` | static outage fallback, 156 zones / 162 current dongs, separate axes |
+| Frontend/API integration | `src/contactOpsClient.ts`, `src/AiObservationClient.ts` | session header, revision conflicts, explicit AI confirmation |
+| ContactOps backend | `backend/src/app.mjs`, `backend/src/contact-ops-service.mjs`, `backend/src/contact-ops-state.mjs` | synthetic-only Firestore state, no browser-direct database access |
+| Deterministic scoring | `backend/src/contact-triage-scoring.mjs`, `docs/CONTACT_TRIAGE_SCORING.md` | acute and vulnerability remain separate with contribution traces |
+| Voice/LLM adapter | `voice/src/contact-ops-adapter.mjs`, `voice/README.md` | candidate-only Planner-Critic output; manager remains decision owner |
+| Deploy and live proof | `.github/workflows/ci-deploy.yml`, `docs/DEPLOYMENT.md` | PR validates only; `main` deploys with WIF and digest-pinned image |
+
+### Last independently verified production baseline
+
+This is historical delivery evidence, not permission to assume a later commit is deployed:
+
+- Final documentation PR: #19, merged to `main` as
+  `3c914d76ff5d51f388ae9d46ed61eb805addd9bf`.
+- Successful production workflow: `31633711778`.
+- Vercel production alias: `https://incheon-care-map.vercel.app`.
+- Cloud Run ready revision: `incheon-care-api-00020-4bq`, 100% traffic.
+- Deployed backend image:
+  `sha256:56a8db8c56df9f8a640528d0144005b4d3afe90b8abe34ab6553463fc844b7a7`.
+- Live contract rechecked after deployment: `/health` pass, exact production CORS, 156
+  geometry zones, 162 current admin dongs, 2,816 facility points, and 6,231 transit points.
 
 ## Evidence Files
 

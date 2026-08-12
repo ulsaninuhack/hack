@@ -63,9 +63,12 @@
 
 ## Remaining human gates and stubs
 
-- PR #18 is merged. GitHub Actions run `31632681184` deployed `main` merge commit
-  `6e43bce8b95e91aaa2abb0c5daba39d7c8bbc9fe`; Vercel production and Cloud Run revision
-  `incheon-care-api-00019-qsh` were independently rechecked after deployment.
+- PR #18 delivered the feature and PR #19 recorded the production proof. The last independently
+  verified delivery baseline before the handoff-harness refresh is GitHub Actions run
+  `31633711778`, which deployed `main` commit
+  `3c914d76ff5d51f388ae9d46ed61eb805addd9bf`; Vercel production and Cloud Run revision
+  `incheon-care-api-00020-4bq` were independently rechecked after deployment. The backend image
+  digest is `sha256:56a8db8c56df9f8a640528d0144005b4d3afe90b8abe34ab6553463fc844b7a7`.
 - P1 operations routes use Firestore only for synthetic session overrides in production.
   Static health/map/facility/transit/summary routes remain independent of it.
 - `POST /api/v1/contact-ops/cases/:caseId/ai-observations` now supports candidate and

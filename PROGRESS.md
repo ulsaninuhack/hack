@@ -263,3 +263,21 @@ hostile follow-up, commit, preview, and blockers. Existing entries are never rew
   accuracy, live-model usefulness before enablement, physical-device touch review, final
   Korean polish, and full judge rehearsal. The temporary min-0/max-1 preview service has a
   keep/delete decision on 2026-08-15 KST.
+
+## 2026-08-13 08:10 KST — Claude/Codex handoff harness refresh PASS
+
+- A clean worktree from `origin/main` reproduced a stale handoff-gate failure before edits:
+  `scripts/agent-check.sh` expected an obsolete `PRODUCTION_ORIGIN` workflow spelling while
+  production uses the equivalent `production_origin` shell variable. The failure was retained
+  as RED evidence rather than bypassed.
+- Added a three-test handoff contract covering the shared `CLAUDE.md` → `AGENTS.md` entry path,
+  clean-worktree bootstrap, the last independently verified production baseline, and the actual
+  production-origin workflow contract. The focused suite is GREEN 3/3 and now runs in CI.
+- `npm run agent:check` is the common next-agent command. On Node 24.19.0 it passes frontend
+  35/35 plus copy/type/build/MapLibre checks, deterministic data/schema gates, backend 166/166
+  with 97.23% lines / 91.85% branches / 100% functions, and voice 49 pass with one explicit
+  live-provider opt-in skip.
+- `docs/AGENT_HANDOFF.md` now has a 60-second clean-worktree takeover, subsystem continuation
+  seams, non-bypass rules, and historical production identifiers. `AGENTS.md` records the same
+  generic Claude/Codex bootstrap. GitHub visibility is stated accurately as public while
+  `package.json` remains private only to prevent accidental npm publication.
