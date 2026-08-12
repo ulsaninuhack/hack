@@ -37,6 +37,9 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Verify frozen overnight contracts
+        run: npm run verify:overnight-freeze
+
       - name: Enforce UI copy invariants
         run: npm run check:ui-copy
 

@@ -8,6 +8,7 @@
   },
   "scripts": {
     "check:ui-copy": "node --test test/ui-copy-gate.test.mjs && node scripts/check-ui-copy.mjs",
+    "verify:overnight-freeze": "node scripts/verify-overnight-freeze.mjs",
     "dev": "vite",
     "build": "tsc -b && vite build && node scripts/verify-map-worker.mjs",
     "typecheck": "tsc -b",

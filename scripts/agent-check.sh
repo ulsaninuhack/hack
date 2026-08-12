@@ -1,6 +1,8 @@
 #!/bin/sh
 set -eu
 
+npm run verify:overnight-freeze
+
 fail() {
   printf 'FAIL: %s\n' "$1" >&2
   exit 1

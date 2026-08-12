@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "frozenAt": "2026-08-13T01:20:00+09:00",
+  "baselineCommit": "1fab6889f0608a3f860137188ec3158d08ed755a",
+  "files": {
+    "OVERNIGHT_SPEC.md": "514ed045b8e7b52f6d3ecde51a9cdaf6b78da2f44646feddc54f67d2645debcd",
+    "UI_UX_RUBRIC.md": "3ffd2616baaaff4cf5fd2b9fa8c6f1a0978a86280895212b866ff40d136f20ed"
+  }
+}
