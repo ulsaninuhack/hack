@@ -18,6 +18,7 @@
 - ContactOps vertical slice: `backend/src/contact-ops.mjs`, `backend/src/contact-triage-scoring.mjs`, and `backend/scripts/demo-contact-ops.mjs` provide queue -> dummy contact result -> follow-up rules -> separate acute/vulnerability scores -> recommendation-only handoff -> manager approval. The standalone voice contract exists, but its output is not yet connected to ContactOps; ContactOps adaptation, route optimization, Realtime input, and UI wiring remain unimplemented.
 - Triage evidence: all scores carry contribution traces, no composite score exists, and the deterministic 5,869-case simulation reports 664 mild-signal accumulation cases among 1,941 priority recommendations. This is a tuning warning from synthetic profiles, not an observed-person result. See `docs/CONTACT_TRIAGE_SCORING.md`.
 - Voice file input: the standalone `voice/` contract now supports both consented masked text and mock-verified WAV/MP3 transcription, but neither output mutates ContactOps without a future adapter.
+- UI review contract: all UI milestones follow `docs/UI_UX_REVIEW_RUBRIC.md`; hard-ban copy is CI-gated, and each milestone must record its Vercel Preview URL plus Claude screenshot review in this file and `docs/PROGRESS.md`.
 
 ## Evidence Files
 
@@ -37,6 +38,7 @@
 | Backend API contract | `backend/README.md`, `backend/test/api.test.mjs` |
 | Voice input contract and stage status | `voice/README.md`, `voice/schema/voice-output.schema.json` |
 | Agent rules | `AGENTS.md` |
+| UI/UX review contract and preview log | `docs/UI_UX_REVIEW_RUBRIC.md`, `docs/PROGRESS.md` |
 
 ## Current Runtime Counts
 
@@ -99,6 +101,7 @@ Run from the repository root.
 
 ```sh
 npm ci
+npm run check:ui-copy
 npm run typecheck
 npm run build
 npm run validate:data

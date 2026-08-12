@@ -271,7 +271,7 @@ function DetailPanel({ dong, onClose, openMobile }: { dong: DongProperties; onCl
         <div><span>전체 1인세대</span><strong>{dong.one_person_households.toLocaleString()}세대</strong></div>
         <div><span>30년+ 대장 비율</span><strong>{dong.housing_age_30_plus_share_valid_pct == null ? '자료 없음' : `${dong.housing_age_30_plus_share_valid_pct.toFixed(1)}%`}</strong></div>
       </div>
-      <div className="detail-note"><Info size={15} /><p>이 수치는 연락·방문 대상자나 복지 미수혜자 수가 아닙니다. 현장 자료와 함께 추가 검토해야 합니다.</p></div>
+      <div className="detail-note"><Info size={15} /><p>이 수치는 연락·방문 대상자 수나 복지 서비스 이용 여부를 나타내지 않습니다. 현장 자료와 함께 추가 검토해야 합니다.</p></div>
       <footer><span>인구 {dong.population_reference_date}</span><span>세대 {dong.household_reference_date}</span><span>주택 유효연령 커버리지 {dong.housing_age_coverage_pct?.toFixed(1) ?? '–'}%</span></footer>
     </article>
   )

@@ -22,6 +22,14 @@ This repository is a private hackathon MVP for an Incheon public aggregate care-
 
 The frontend production URL is `https://incheon-care-map.vercel.app`. The Cloud Run production URL is `https://incheon-care-api-vy3v2ludma-du.a.run.app`; `/health` is the canonical external health endpoint. `/healthz` remains a source-level compatibility alias, but the Cloud Run frontend intercepts that path before it reaches the container, so deployment smoke tests must use `/health`. Match the latest successful `main` run, Cloud Run revision label, and deployed digest before claiming that a specific commit is live.
 
+## UI/UX Review Contract
+
+- Every manager-web UI change must follow `docs/UI_UX_REVIEW_RUBRIC.md`.
+- Run `npm run check:ui-copy` before committing UI copy. A hard-ban match fails the change.
+- UI milestones require automated font-size, touch-target, horizontal-overflow, contrast, axe, icon-label, and non-color-status gates before completion.
+- Record the Vercel Preview URL in `docs/PROGRESS.md` and `docs/AGENT_HANDOFF.md` for every UI milestone.
+- After automated gates pass, Claude independently reviews 390×844 mobile and 1440×900 desktop screenshots and returns a punch-list. Codex fixes it; only the re-review can close the milestone.
+
 ## Data Interpretation Rules
 
 Do not overclaim what the public aggregate data can prove.
@@ -76,6 +84,7 @@ Run from the repository root.
 
 ```sh
 npm ci
+npm run check:ui-copy
 npm run typecheck
 npm run build
 npm run validate:data
