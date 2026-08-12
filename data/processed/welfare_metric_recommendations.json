@@ -1,0 +1,40 @@
+{
+  "reviewed_script": "scripts/build_incheon_base_metrics.py",
+  "overall_verdict": "do_not_use_existing_potential_care_gap_proxy",
+  "findings": [
+    {
+      "severity": "critical",
+      "finding": "The script sums recipient counts across four benefit qualifications.",
+      "risk": "The same person can hold multiple qualifications, so the result is not a distinct recipient count.",
+      "remediation": "Keep living, medical, housing, and education qualification counts separate unless a person-level deduplicated source is obtained."
+    },
+    {
+      "severity": "critical",
+      "finding": "potential_care_gap_proxy subtracts 2024 multi-qualification recipients from 2026 age-65-plus one-person households.",
+      "risk": "The populations, reference dates, and inclusion rules differ; the difference cannot identify non-recipients or a care gap.",
+      "remediation": "Remove this subtraction and the derived rate/top-20 ranking from product decisions and demo claims."
+    },
+    {
+      "severity": "high",
+      "finding": "The welfare join uses 2026 district plus dong names against pre-reform 2024 geography.",
+      "risk": "It misses valid dongs moved from 중구/동구/서구 into 제물포구/영종구/서해구/검단구 and does not express split uncertainty.",
+      "remediation": "Join with welfare_basic_livelihood_2024_current_dong_mapping.csv and keep the four split targets null."
+    },
+    {
+      "severity": "high",
+      "finding": "The proxy name sounds like a measured count of residents who need but do not receive welfare.",
+      "risk": "Public aggregate data does not establish individual eligibility, need, enrollment, or non-receipt.",
+      "remediation": "Label public-data output as a potential care-vulnerability priority score, not non-recipient population or confirmed blind spot."
+    }
+  ],
+  "safe_near_term_use": [
+    "Use qualification-specific age-65-plus counts as contextual demand or existing-support-load indicators.",
+    "Build a separately documented prioritization score from elderly one-person-household share, aging trend, facility/transit access, and old housing.",
+    "Show source date and mapping status in tooltips; suppress current-dong welfare values for 운서1동, 운서2동, 아라1동, and 아라2동."
+  ],
+  "data_needed_for_actual_nonrecipient_count": [
+    "A defined eligible-or-needs-assessed resident universe at person level",
+    "Service enrollment/receipt status for the same people and reference period",
+    "A privacy-preserving linkage key and lawful access/processing basis"
+  ]
+}

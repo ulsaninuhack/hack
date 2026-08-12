@@ -1,0 +1,83 @@
+{
+  "artifact": "juso_building_db_202607.zip",
+  "title_ko": "2026년 7월 건물DB(월전체)",
+  "provider_ko": "행정안전부 주소기반산업지원서비스",
+  "provider_url": "https://business.juso.go.kr/",
+  "dataset_catalog_endpoint": "https://business.juso.go.kr/api/jst/selectBabsRtlDtaDtlList",
+  "dataset_file_listing_endpoint": "https://business.juso.go.kr/api/jst/selectAttrbDBDwldList",
+  "dataset_listing_request": {
+    "rtlDtaDtlSn": "7",
+    "year": "2026",
+    "month": "8",
+    "expand": "Y"
+  },
+  "dataset_id": "7",
+  "dataset_name_ko": "건물DB",
+  "release_kind_ko": "건물DB(월전체)",
+  "release_reference_month": "2026-07",
+  "downloaded_at": "2026-08-12T18:09:00+09:00",
+  "download_url": "https://business.juso.go.kr/api/jst/download?regYmd=2026&reqType=ALLRDNM&ctprvnCd=00&stdde=202607&fileName=202607_%EA%B1%B4%EB%AC%BCDB_%EC%A0%84%EC%B2%B4%EB%B6%84.zip&realFileName=202607ALLRDNM00.zip&intFileNo=0&intNum=0",
+  "access": {
+    "authentication_required_for_bulk_download": false,
+    "retrieval_method": "official_public_bulk_download",
+    "note_ko": "지원되는 공개 월전체 다운로드만 사용했다. 좌표검색 API의 비공개 인증키 우회나 비지원 엔드포인트는 사용하지 않았다."
+  },
+  "integrity": {
+    "byte_size": 149246529,
+    "sha256": "3d6dc01f6cb1bf8a95cff3c5d956dd2d5a87b37647ffb80f621848e5ab4efad9"
+  },
+  "members_used": [
+    {
+      "path": "build_incheon.txt",
+      "purpose": "도로명과 건물번호를 PNU로 연결하는 인천 건물 레코드",
+      "encoding": "ms949",
+      "byte_size": 40177859,
+      "row_count": 250222,
+      "sha256": "5508b71a47db4dd00e4b6f643049c92326547efc553ca139a703dd34fa42aab3"
+    },
+    {
+      "path": "jibun_incheon.txt",
+      "purpose": "보조 지번 레코드; 현재 지오코딩 변환에는 사용하지 않음",
+      "encoding": "ms949",
+      "byte_size": 2381617,
+      "row_count": 31455,
+      "sha256": "9dcb4f50ee6700e5fd9708f909aebcbd6e15c4534210403b852d67c393a4479b"
+    }
+  ],
+  "building_record_schema": [
+    "legal_dong_code",
+    "province_name",
+    "district_name",
+    "legal_dong_name",
+    "legal_ri_name",
+    "mountain_flag",
+    "lot_main_no",
+    "lot_sub_no",
+    "road_code",
+    "road_name",
+    "underground_flag",
+    "road_building_main_no",
+    "road_building_sub_no",
+    "ledger_building_name",
+    "detail_building_name",
+    "building_management_no",
+    "eup_myeon_dong_sequence",
+    "admin_dong_code",
+    "admin_dong_name",
+    "postal_code",
+    "postal_sequence",
+    "bulk_delivery_name",
+    "movement_reason_code",
+    "notification_date",
+    "old_road_address",
+    "sigungu_building_name",
+    "apartment_flag",
+    "basic_zone_no",
+    "detailed_address_flag",
+    "note_1",
+    "note_2"
+  ],
+  "pnu_derivation": "legal_dong_code(10) + mountain_flag(1) + lot_main_no zero-padded to 4 + lot_sub_no zero-padded to 4",
+  "privacy_scope": "source_is_public_bulk_data; derived exact facility points are emitted only to facilities_geocoded_private.csv by this pipeline",
+  "reproducibility_note": "The builder verifies the archive SHA-256 before reading build_incheon.txt directly from the ZIP."
+}

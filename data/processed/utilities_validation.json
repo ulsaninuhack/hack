@@ -1,0 +1,314 @@
+{
+  "generated_at": "2026-08-12T19:00:00+09:00",
+  "status": "pass_with_exclusions",
+  "scope": "Official KEPCO, KPX, K-water, and Incheon Waterworks electricity/water artifacts collected for the I5 hackathon",
+  "open_incheon_household_or_person_level_anomaly_data_available": false,
+  "access_claims": {
+    "accounts_created": false,
+    "api_keys_issued": false,
+    "authenticated_customer_data_called": false,
+    "incheon_resident_meter_rows_obtained": false
+  },
+  "classification_counts": {
+    "INCHON_CONTEXT": 6,
+    "MODEL_DEMO_ONLY": 1,
+    "ACCESS_PATH_ONLY": 4,
+    "REJECT_MAIN_METRIC": 1
+  },
+  "files": {
+    "raw/utilities/incheon_water_billed_usage_by_district_20231231.csv": {
+      "sha256": "b5125fd6cdec2111639ea56c2d5489c6c4ca188fd5f9220a87709e4cc13c37a6",
+      "bytes": 434,
+      "encoding": "cp949",
+      "rows": 12,
+      "columns": 5,
+      "source_id": "15052871",
+      "source_reference_date": "2023-12-31",
+      "source_modified_date": "2024-09-19",
+      "official_provider": "인천광역시 상수도사업본부",
+      "license": "이용허락범위 제한 없음",
+      "grain": "pre-2026 district or waterworks-office x annual billed usage",
+      "classification": "INCHON_CONTEXT",
+      "individual_anomaly_eligible": false
+    },
+    "raw/utilities/incheon_water_revenue_rate_2014_2024.csv": {
+      "sha256": "10cb008fe21409102ea9b6a6f373b7e3b366c17c7b4f1f7744ca398cc8d884ba",
+      "bytes": 323,
+      "encoding": "cp949",
+      "rows": 3,
+      "columns": 12,
+      "source_id": "15102131",
+      "source_reference_date": "2024-12-31",
+      "source_modified_date": "2025-11-28",
+      "official_provider": "인천광역시 상수도사업본부",
+      "license": "이용허락범위 제한 없음",
+      "grain": "Incheon city x year, 2014-2024",
+      "classification": "INCHON_CONTEXT",
+      "individual_anomaly_eligible": false,
+      "observed_2024_revenue_water_rate_percent": 91.5
+    },
+    "raw/utilities/kepco_distribution_outage_stats_20241231.csv": {
+      "sha256": "39dadfd55f0e68fd3b858dfac7fe087f6ca514f137cbef2716db6ab762dd7b53",
+      "bytes": 496,
+      "encoding": "utf-8-sig",
+      "rows": 15,
+      "columns": 4,
+      "source_id": "3068741",
+      "source_reference_date": "2024-12-31",
+      "source_modified_date": "2025-09-03",
+      "official_provider": "한국전력공사",
+      "license": "이용허락범위 제한 없음",
+      "grain": "KEPCO regional headquarters x year",
+      "classification": "INCHON_CONTEXT",
+      "individual_anomaly_eligible": false,
+      "incheon_2024": {
+        "sustained_outages": 72,
+        "momentary_outages": 150
+      },
+      "realtime_false_positive_suppression_eligible": false
+    },
+    "raw/utilities/kepco_eds_common_codes_20260708.csv": {
+      "sha256": "2e9c29376f0fe149a3c166c9107eb00ccd1bf9cefa8cd4699036a653b3758024",
+      "bytes": 730,
+      "encoding": "cp949",
+      "rows": 22,
+      "columns": 4,
+      "source_id": "15131469",
+      "source_reference_date": "2026-07-08",
+      "source_modified_date": "2026-07-13",
+      "official_provider": "한국전력공사",
+      "license": "이용허락범위 제한 없음",
+      "grain": "API code dictionary row",
+      "classification": "ACCESS_PATH_ONLY",
+      "contains_meter_readings": false
+    },
+    "raw/utilities/kepco_eds_openapi_fields_20260708.csv": {
+      "sha256": "3c99c1a91a4c9f1d585200552d82bc8606fd9f7ce345744782f0b6a35c062248",
+      "bytes": 2387,
+      "encoding": "cp949",
+      "rows": 118,
+      "columns": 3,
+      "source_id": "15131515",
+      "source_reference_date": "2026-07-08",
+      "source_modified_date": "2026-07-13",
+      "official_provider": "한국전력공사",
+      "license": "이용허락범위 제한 없음",
+      "grain": "API field dictionary row",
+      "classification": "ACCESS_PATH_ONLY",
+      "contains_meter_readings": false,
+      "relevant_declared_fields": [
+        "고객번호",
+        "고객명",
+        "계기번호",
+        "15분단위 전력소비 데이터(96건)",
+        "15분단위 전력소비 데이터(1건)",
+        "전력소비량"
+      ]
+    },
+    "raw/utilities/kepco_eds_openapi_services_20260708.csv": {
+      "sha256": "ddd03a349e6a65fb45034d6096e8eab0f9130d6a2f832222bb16312efd9e0928",
+      "bytes": 13165,
+      "encoding": "cp949",
+      "rows": 154,
+      "columns": 5,
+      "exact_unique_rows": 24,
+      "source_id": "15131481",
+      "source_reference_date": "2026-07-08",
+      "source_modified_date": "2026-07-13",
+      "official_provider": "한국전력공사",
+      "license": "이용허락범위 제한 없음",
+      "grain": "API service catalog row",
+      "classification": "ACCESS_PATH_ONLY",
+      "contains_meter_readings": false,
+      "relevant_declared_services": [
+        "15분단위 전력소비 데이터",
+        "일단위 전력소비 데이터",
+        "특정고객의 특정시간 전력소비 데이터",
+        "전체고객의 전력소비 데이터"
+      ],
+      "warning": "Service names do not grant public access to citywide customer records. Customer authorization and KEPCO terms require separate confirmation."
+    },
+    "raw/utilities/kepco_hourly_power_by_region_hq_20241231.csv": {
+      "sha256": "d6ee8b70b1c49f6b4f0bdd198992e81b783a0d070447a4153e3101863ee89df1",
+      "bytes": 16755020,
+      "encoding": "utf-8-sig",
+      "rows": 394560,
+      "columns": 5,
+      "source_id": "15151157",
+      "source_reference_date": "2024-12-31",
+      "source_modified_date": "2025-11-07",
+      "official_provider": "한국전력공사",
+      "license": "이용허락범위 제한 없음",
+      "grain": "KEPCO regional headquarters x date x hour",
+      "date_min": "2022-01-01",
+      "date_max": "2024-12-31",
+      "incheon_rows": 26304,
+      "classification": "INCHON_CONTEXT",
+      "individual_anomaly_eligible": false,
+      "warning": "Provider states remote-meter collected totals can differ from official total statistics. KEPCO headquarters geography is not assumed identical to administrative Incheon."
+    },
+    "raw/utilities/kepco_legal_dong_power_20251231_dataid15104908.csv": {
+      "sha256": "26368f7087d2cbfb5d404e531d98e8a51c23f1300588b06cfb679094ad8d7cca",
+      "bytes": 2502970,
+      "encoding": "cp949",
+      "rows": 56983,
+      "columns": 7,
+      "download_entry_source_id": "15104908",
+      "observed_year": 2025,
+      "official_provider": "한국전력공사",
+      "license_from_entry_metadata": "이용허락범위 제한 없음",
+      "grain_observed": "legal dong x month",
+      "incheon_rows": 1656,
+      "incheon_unique_legal_dongs": 138,
+      "incheon_months": 12,
+      "incheon_suppressed_rows": 226,
+      "incheon_observed_district_labels": [
+        "강화군",
+        "검단구",
+        "계양구",
+        "남동구",
+        "미추홀구",
+        "부평구",
+        "서해구",
+        "연수구",
+        "영종구",
+        "옹진군",
+        "제물포구"
+      ],
+      "classification": "REJECT_MAIN_METRIC",
+      "individual_anomaly_eligible": false,
+      "validation_failure": "15104908 metadata declares industry classification and sales fields, but the downloaded file has only 시도/시군구/법정동/년도/월/전체호수/전력사용량. The suppression token '5호미만제거' and schema match data.go.kr 15111712 net-metering customer data semantics. It must not be treated as total legal-dong household electricity."
+    },
+    "raw/utilities/kepco_low_voltage_outage_branch_sample_20241231.csv": {
+      "sha256": "d4d5ee169d7fbeebbe5abc3fbcfe9e35fed0de7c21be53e58a936d729f353b87",
+      "bytes": 547,
+      "encoding": "cp949",
+      "rows": 10,
+      "columns": 11,
+      "source_id": "15150670",
+      "source_reference_date": "2024-12-31",
+      "source_modified_date": "2025-11-06",
+      "official_provider": "한국전력공사",
+      "license": "이용허락범위 제한 없음",
+      "grain": "sample branch x annual outage cause counts",
+      "sample_regions": [
+        "서울",
+        "남서울"
+      ],
+      "classification": "ACCESS_PATH_ONLY",
+      "incheon_rows": 0,
+      "warning": "Full data is available only through KEPCO data safe zones in Seoul or Naju."
+    },
+    "raw/utilities/kpx_admin_area_energy_use_20241231.csv": {
+      "sha256": "7005a7bc74ce394dd58027a5d6a6debe405af9a217acd39fb93169bf4043f18d",
+      "bytes": 154515,
+      "encoding": "cp949",
+      "rows": 2904,
+      "columns": 5,
+      "source_id": "15156136",
+      "source_reference_date": "2024-12-31",
+      "source_modified_date": "2025-12-09",
+      "official_provider": "한국전력거래소",
+      "license": "이용허락범위 제한 없음",
+      "grain": "province x month x energy category x use category",
+      "incheon_rows": 156,
+      "classification": "INCHON_CONTEXT",
+      "individual_anomaly_eligible": false
+    },
+    "raw/utilities/kwater_jeongeup_anonymized_hourly_smart_meter_2023h1.csv": {
+      "sha256": "3c08bb33d5a6046ce7b3d7b8f7afb84bad964cf4f5132743175d1a9e1b1b5338",
+      "bytes": 12804289,
+      "encoding": "utf-8-sig",
+      "rows": 4320,
+      "columns": 397,
+      "source_id": "15121792",
+      "source_reference_date": "2023-06-30",
+      "source_modified_date": "2025-08-14",
+      "official_provider": "한국수자원공사",
+      "license": "이용허락범위 제한 없음",
+      "grain": "hour x anonymized Jeongeup meter",
+      "date_min": "2023-01-01 00:00",
+      "date_max": "2023-06-29 23:00",
+      "anonymous_meter_columns": 396,
+      "value_cells": 1710720,
+      "missing_value_cells": 215530,
+      "missing_value_rate": 0.1259878881,
+      "valid_consecutive_pairs": 1494794,
+      "negative_differences": 1406,
+      "nonnegative_difference_rate": 0.9990594022,
+      "header_typos": [
+        "악명491325"
+      ],
+      "classification": "MODEL_DEMO_ONLY",
+      "is_incheon_observation": false,
+      "individual_anomaly_eligible": false,
+      "preprocessing_policy": "Difference consecutive valid cumulative-looking readings; preserve missing flags; treat negative differences as reset/replacement/data-quality candidates rather than consumption."
+    },
+    "raw/utilities/kwater_national_water_meter_status_dataid15118028.csv": {
+      "sha256": "db9b0894ae0b6f7a3974b93b6cc7c8f47a6110e04031afae2e23f9f83f995d84",
+      "bytes": 791,
+      "encoding": "cp949",
+      "rows": 18,
+      "columns": 7,
+      "source_id": "15118028",
+      "source_reference_date": "2024-12-31",
+      "source_modified_date": "2026-07-24",
+      "official_provider": "한국수자원공사",
+      "license": "이용허락범위 제한 없음",
+      "grain": "province x year",
+      "classification": "INCHON_CONTEXT",
+      "individual_anomaly_eligible": false,
+      "incheon_2024": {
+        "total_water_meters": 444585,
+        "meters_per_distribution_pipe_km": 97,
+        "meters_per_water_pipe_km": 60,
+        "thirteen_mm_meter_installation_rate_percent": 82.4
+      },
+      "warning": "Total water meters are not the count of smart or remotely readable meters."
+    }
+  },
+  "api_specs": {
+    "kepco_household_average_15101404": {
+      "local_metadata": "raw/api_specs/data_go_kr_15101404.json",
+      "access": "KEPCO electricity-data portal membership; development auto approval; production review",
+      "granularity": "household average, not identified household AMI",
+      "mvp_role": "optional aggregate baseline only"
+    },
+    "kwater_realtime_facility_apis": {
+      "source_ids": [
+        "15056653",
+        "15058037",
+        "15057371",
+        "15057290"
+      ],
+      "access": "data.go.kr serviceKey; development and production auto approval; development traffic 10000",
+      "granularity": "water intake/treatment/booster/reservoir facility x hour, not household meter",
+      "incheon_coverage_verified": false,
+      "mvp_role": "optional network-event context after key and facility coverage verification"
+    }
+  },
+  "required_ui_labels": [
+    "정읍 공개표본 기반 시뮬레이션 · 인천 실측 아님",
+    "생활패턴 확인 필요 신호",
+    "공개 집계로 검토 우선 지역을 좁힘"
+  ],
+  "prohibited_claims": [
+    "Open data identifies Incheon households or persons in danger",
+    "Zero utility use proves solitary death or depression",
+    "The Jeongeup smart-meter sample is Incheon data",
+    "The mismatched legal-dong file is total household electricity",
+    "Annual outage aggregates provide realtime outage suppression"
+  ],
+  "recommended_mvp": {
+    "real_incheon_layer": "Use only aggregate neighborhood/city context and the existing care-priority map; no household markers.",
+    "ai_demo_layer": "Run a cumulative-reading difference and sustained-deviation detector on the anonymized Jeongeup sample with explicit DEMO labeling.",
+    "real_pilot_path": "Seek an opt-in or municipality-internal pilot with Incheon Waterworks remote meter users; keep raw readings inside the data controller boundary and use human confirmation before outreach.",
+    "electricity_pilot_path": "Treat KEPCO EDS/i-Smart 15-minute integration as a second-stage customer-authorized partnership, not an available hackathon feed."
+  },
+  "warnings": [
+    "A public-file license does not authorize access to non-public identified customer readings.",
+    "Legal dong, administrative dong, KEPCO headquarters, current districts, and pre-reorganization districts are different spatial grains.",
+    "The 2023 Incheon press release's meter counts conflict in scale with the 2024 national meter-status file; use the release only as evidence that an operational remote-reading program exists.",
+    "This validation is implementation guidance and not legal advice."
+  ]
+}

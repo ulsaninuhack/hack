@@ -1,0 +1,8 @@
+﻿table_name,input_rows,incheon_scope_rows_before_dedup,exact_duplicates_removed,output_rows,exact_entity_keys,rows_with_address,address_coverage_pct,rows_with_phone,phone_coverage_pct,rows_with_capacity,capacity_coverage_pct,rows_with_coordinates,coordinate_coverage_pct,source_date_min,source_date_max,notes
+facilities_incheon_welfare_20250131,653,653,0,653,653,653,100.0,632,96.78,0,0.0,0,0.0,2025-01-31,2025-01-31,
+facilities_incheon_elderly_20260630,3030,3030,4,3026,1975,3026,100.0,2987,98.71,0,0.0,0,0.0,2026-06-30,2026-06-30,
+facilities_incheon_disabled,128,128,0,128,128,128,100.0,85,66.41,126,98.44,17,13.28,2025-06-30,2026-03-09,
+facilities_michuhol_elderly_geocoded_20250620,208,208,0,208,208,208,100.0,204,98.08,81,38.94,208,100.0,2025-06-20,2025-06-20,Coordinate-rich district layer; overlaps with citywide elderly/NHIS sources are retained in observations.
+facilities_nhis_ltc_incheon_20260610,30595,3245,0,3245,1977,3245,100.0,0,0.0,829,25.55,0,0.0,2026-06-10,2026-06-10,1989 unique Incheon institution codes expanded to service-type rows.
+facilities_all_observations,34614,7260,0,7260,3394,7260,100.0,3908,53.83,1036,14.27,225,3.1,2025-01-31,2026-06-30,Union of source observations; cross-source overlap is intentionally preserved.
+facilities_canonical,7260,7260,3866,3394,3394,3394,100.0,2697,79.46,942,27.75,225,6.63,2025-01-31,2026-06-30,"Exact normalized district+name+address only; no fuzzy matching. Capacity is max reported, not summed."

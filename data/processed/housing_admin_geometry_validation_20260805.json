@@ -1,0 +1,207 @@
+{
+  "boundary": {
+    "analysis_crs": "EPSG:5186",
+    "boundary_repairs_after_projection": 0,
+    "feature_count": 156,
+    "is_simplified_2025_snapshot": true,
+    "source_crs": "EPSG:4326",
+    "unique_geometry_zone_ids": 156
+  },
+  "checks": {
+    "age_valid_plus_invalid_equals_assigned": true,
+    "all_30_plus_counts_within_valid_counts": true,
+    "all_40_plus_counts_within_30_plus_counts": true,
+    "all_residential_counts_within_all_records": true,
+    "assigned_plus_excluded_equals_normalized_records": true,
+    "assigned_records_not_double_counted": true,
+    "boundary_validation_status_accepted": true,
+    "boundary_zone_count_is_156": true,
+    "every_integrated_feature_reconciled": true,
+    "integrated_shape_attribute_count_matches_upstream": true,
+    "normalized_age_record_count_matches_upstream": true,
+    "normalized_source_row_count_matches_upstream": true,
+    "official_dictionary_maps_AL_D010_A1_to_gis_building_id": true,
+    "official_dictionary_maps_AL_D010_A22_to_data_date": true,
+    "residential_valid_plus_invalid_equals_residential": true,
+    "strict_linkage_coverage_at_least_95_percent": true,
+    "summary_has_no_nonfinite_shares": true,
+    "summary_total_matches_assignment_total": true
+  },
+  "failed_checks": [],
+  "gis_identifier_linkage": {
+    "excluded_by_reason": {
+      "feature_in_overlapping_boundaries": 18,
+      "feature_outside_156_zone_boundary": 150,
+      "no_integrated_geometry": 37
+    },
+    "gis_ids_shared_by_multiple_normalized_records": 7433,
+    "gis_ids_with_multiple_integrated_geometry_features_all": 13856,
+    "referenced_gis_ids": 156143,
+    "referenced_ids_with_multiple_geometry_features": 7734,
+    "resolved_to_exactly_one_zone": 155938,
+    "rule": "A GIS ID is usable only when every associated integrated-building feature has a representative point in the same one boundary zone and none is missing, outside, overlapping, invalid, or empty."
+  },
+  "inputs": {
+    "age_records": "/Users/coldmans/Documents/Codex/2026-08-06/new-chat/work/i5-data/processed/housing_building_age_records.csv.gz",
+    "age_records_sha256": "19197463f7deb9065cd6ec2dc9f3bed9ae2f0040e342f5651c1d3bd537a0d7b0",
+    "age_validation": "/Users/coldmans/Documents/Codex/2026-08-06/new-chat/work/i5-data/processed/housing_building_age_validation.json",
+    "boundary_geojson": "/Users/coldmans/Documents/Codex/2026-08-06/new-chat/work/i5-data/processed/boundary_incheon_admin_dong_20250630.geojson",
+    "boundary_geojson_sha256": "1ace8ff0d56daacddc60bcbcd85ab4436c02033341cd81738ba188a23ff45a20",
+    "boundary_validation": "/Users/coldmans/Documents/Codex/2026-08-06/new-chat/work/i5-data/processed/boundary_validation.json",
+    "column_dictionary": "/Users/coldmans/Documents/Codex/2026-08-06/new-chat/work/i5-data/raw/housing/vworld_national_key_data_column_dictionary_20260102.xlsx",
+    "integrated_building_archive": "/Users/coldmans/Documents/Codex/2026-08-06/new-chat/work/i5-data/raw/housing/vworld_incheon_building_integrated_20260809.zip",
+    "integrated_building_archive_sha256": "ee899538e64a465bc28cd4bf1937bc9791f98f5a79b80fb3db1fe13120f4f2d3"
+  },
+  "integrated_building_geometry": {
+    "archive": "vworld_incheon_building_integrated_20260809.zip",
+    "archive_bytes": 54720626,
+    "archive_sha256": "ee899538e64a465bc28cd4bf1937bc9791f98f5a79b80fb3db1fe13120f4f2d3",
+    "blank_gis_id_features": 0,
+    "data_as_of_dates": {
+      "2026-08-06": 309851
+    },
+    "geometry_features_repaired": 7,
+    "gis_ids_with_multiple_geometry_features": 13856,
+    "invalid_or_empty_geometry_features": 0,
+    "maximum_geometry_features_per_gis_id": 9,
+    "projection_wkt": "PROJCS[\"Korea_2000_Korea_Central_Belt_2010\", GEOGCS[\"GCS_Korea_2000\", DATUM[\"D_Korea_2000\", SPHEROID[\"GRS_1980\", 6378137.0, 298.257222101]], PRIMEM[\"Greenwich\", 0.0], UNIT[\"degree\", 0.017453292519943295], AXIS[\"Longitude\", EAST], AXIS[\"Latitude\", NORTH]], PROJECTION[\"Transverse_Mercator\"], PARAMETER[\"central_meridian\", 127.0], PARAMETER[\"latitude_of_origin\", 38.0], PARAMETER[\"scale_factor\", 1.0], PARAMETER[\"false_easting\", 200000.0], PARAMETER[\"false_northing\", 600000.0], UNIT[\"m\", 1.0], AXIS[\"x\", EAST], AXIS[\"y\", NORTH], AUTHORITY[\"EPSG\",\"5186\"]]",
+    "representative_points_assigned_once": 309480,
+    "representative_points_in_overlapping_boundaries": 48,
+    "representative_points_outside_boundaries": 323,
+    "shape_attribute_records": 309851,
+    "shape_type_counts": {
+      "5": 309851
+    },
+    "shapefile_fields": [
+      "A0",
+      "A1",
+      "A2",
+      "A3",
+      "A4",
+      "A5",
+      "A6",
+      "A7",
+      "A8",
+      "A9",
+      "A10",
+      "A11",
+      "A12",
+      "A13",
+      "A14",
+      "A15",
+      "A16",
+      "A17",
+      "A18",
+      "A19",
+      "A20",
+      "A21",
+      "A22",
+      "A23",
+      "A24",
+      "A25",
+      "A26",
+      "A27",
+      "A28"
+    ],
+    "source_crs": "EPSG:5186",
+    "unique_nonblank_gis_ids": 295982,
+    "unsupported_geometry_features": 0
+  },
+  "licence_and_redistribution": {
+    "intended_use": "local non-commercial hackathon analysis",
+    "raw_sources_should_not_be_republished": true,
+    "reason": "VWorld material in this data pack carries a CC BY-NC-ND caution. This output is an aggregate derived by filtering, joining, and spatially transforming VWorld sources, so public redistribution must be reviewed before use.",
+    "review_required_before_publication": true,
+    "this_script_is_not_legal_advice": true
+  },
+  "limitations": [
+    "The boundary GeoJSON is a 10-metre-simplified 2025-06-30 snapshot, while building geometry and age data are from August 2026.",
+    "Strictly unresolved GIS IDs and records are excluded rather than nearest-neighbour filled or assigned by legal-dong name.",
+    "One GIS ID may refer to multiple normalized register records and one GIS ID may have multiple integrated polygon features; the validation reports both collision types.",
+    "The residential subset inherits the narrow upstream main-use-code definition and is not a count of homes or housing units.",
+    "No per-building coordinates or geometries are emitted; only 156-zone aggregates are written."
+  ],
+  "metric_semantics": {
+    "grain": "normalized VWorld building-register record",
+    "not_equivalent_to": [
+      "unique physical building",
+      "dwelling unit",
+      "household",
+      "resident",
+      "person needing or missing care"
+    ],
+    "old_housing_thresholds_years": [
+      30,
+      40
+    ],
+    "old_share_denominator": "assigned register records with a valid official building age",
+    "residential_definition_inherited_from_upstream": "is_residential=true only when build_housing.py classified the source main-use code as 01000 (detached house) or 02000 (multi-unit housing)",
+    "spatial_unit": "156 VWorld/SGIS 2025-06-30 geometry zones; no 2026 polygon split is fabricated"
+  },
+  "normalized_age_records": {
+    "data_as_of_dates": {
+      "2026-08-05": 157049
+    },
+    "gis_id_references": 163576,
+    "gis_ids_shared_by_multiple_records": 7433,
+    "maximum_records_per_gis_id": 2,
+    "normalized_record_count": 157049,
+    "normalized_record_keys_unique": true,
+    "records_with_multiple_gis_ids": 6515,
+    "source_rows_represented": 175549,
+    "unique_gis_ids": 156143
+  },
+  "official_field_dictionary": {
+    "sheet": "테이블정의서(전체)",
+    "table": "GIS건물통합정보_AL_D010",
+    "verified_fields": {
+      "A1": {
+        "excel_row": 774,
+        "korean_name": "GIS건물통합식별번호",
+        "required": "필수"
+      },
+      "A22": {
+        "excel_row": 795,
+        "korean_name": "데이터기준일자",
+        "required": "필수"
+      }
+    },
+    "workbook": "vworld_national_key_data_column_dictionary_20260102.xlsx",
+    "workbook_sha256": "46dd29c6ab681c1e34cf00d91f8f2fe68b7e1868a853315eaa292838238ecb0f"
+  },
+  "outputs": {
+    "city_totals": {
+      "age_30_plus_records": 80202,
+      "age_40_plus_records": 36193,
+      "age_building_register_records_assigned": 150589,
+      "age_missing_or_invalid_records": 8062,
+      "age_valid_records": 142527,
+      "integrated_building_geometry_features_assigned_to_zones": 309480,
+      "residential_age_30_plus_records": 57500,
+      "residential_age_40_plus_records": 27749,
+      "residential_age_missing_or_invalid_records": 5890,
+      "residential_age_valid_records": 92390,
+      "residential_records": 98280
+    },
+    "summary": "/Users/coldmans/Documents/Codex/2026-08-06/new-chat/work/i5-data/processed/housing_admin_geometry_summary_20260805.csv",
+    "summary_rows": 156,
+    "summary_sha256": "f0ab09d3d4a74c13b46b9c9eb007cc2410e2224666b5b3275691226f7e7b7ac4"
+  },
+  "record_assignment": {
+    "assigned_normalized_records": 150589,
+    "assigned_record_keys_unique": 150589,
+    "assigned_records_using_gis_id_shared_by_multiple_records": 4778,
+    "assigned_records_with_multiple_gis_ids": 252,
+    "assigned_source_rows_represented": 156016,
+    "excluded_normalized_records": 6460,
+    "excluded_record_reasons": {
+      "multiple_gis_ids_disagree_on_zone": 6251,
+      "one_or_more_gis_ids_not_single_zone": 209
+    },
+    "rule": "A normalized register record is counted once only when all of its listed GIS IDs resolve and agree on one zone. Multiple records sharing one GIS ID each inherit that same zone; they are not collapsed because the metric grain is the normalized building-register record.",
+    "source_normalized_records": 157049,
+    "strict_assignment_coverage_pct": 95.886634
+  },
+  "script_version": 1,
+  "status": "pass_with_documented_exclusions"
+}

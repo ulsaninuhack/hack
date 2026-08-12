@@ -1,0 +1,11 @@
+# Preserve collected source bytes exactly so metadata/checksums.sha256 remains
+# valid after a fresh clone, including CP949 and CRLF source files.
+* -text
+
+# Large geospatial sources and archives belong in Git LFS in the private repo.
+# This file only declares tracking rules; it does not run `git lfs install` or push.
+*.shp filter=lfs diff=lfs merge=lfs -text
+*.dbf filter=lfs diff=lfs merge=lfs -text
+*.shx filter=lfs diff=lfs merge=lfs -text
+*.zip filter=lfs diff=lfs merge=lfs -text
+*.gz filter=lfs diff=lfs merge=lfs -text

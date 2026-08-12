@@ -1,0 +1,1430 @@
+<!doctype html>
+<html lang="ko">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge">
+	<title>브이월드</title>
+
+	<meta property="og:url" content="https://www.vworld.kr"/>
+<meta property="og:type" content="website"/>
+<meta property="og:title" content="브이월드"/>
+<meta property="og:description" content="공간정보 오픈플랫폼은 국가가 보유하고 있는 공개 가능한 공간정보를 모든 국민이 자유롭게 활용할 수 있도록 다양한 방법을 제공합니다."/>
+<meta property="og:image" content="https://www.vworld.kr/img/logo.png">
+<meta name="description" content="공간정보 오픈플랫폼은 국가가 보유하고 있는 공개 가능한 공간정보를 모든 국민이 자유롭게 활용할 수 있도록 다양한 방법을 제공합니다."/>
+<meta name="naver-site-verification" content="1f678c125bac40f073e2a87032b197c87cde5ab0" />
+<link rel="canonical" href="https://www.vworld.kr/v4po_main.do" /> 
+
+<link rel="stylesheet" type="text/css" href="/css/jquery-ui.css" />
+<link rel="stylesheet" type="text/css" href="/css/slick.css" />
+<link rel="stylesheet" type="text/css" href="/css/syntaxhighlighter_3.0.83/shCore.min.css" />
+<link rel="stylesheet" type="text/css" href="/css/syntaxhighlighter_3.0.83/shThemeDefault.min.css" />
+<link rel="stylesheet" type="text/css" href="/css/spectrum.min.css" />
+
+<link rel="stylesheet" type="text/css" href="/css/common.css?ver=2026072401" />
+<link rel="stylesheet" type="text/css" href="/css/content.css" />
+<link rel="stylesheet" type="text/css" href="/css/responsive.css?var=20240710" />
+<script type="text/javascript">
+var cmAppUrl = {
+	po : "https://www.vworld.kr"
+	, data : "https://www.vworld.kr"
+	, dev : "https://www.vworld.kr"
+	, user : "https://www.vworld.kr"
+	, desk : "https://www.vworld.kr"
+	, eng : "https://www.vworld.kr"
+	, map : "https://map.vworld.kr"
+	, apis : "https://apis.vworld.kr"
+	, api : "https://api.vworld.kr"
+}
+</script>
+<script type="text/javascript" src="/js/jquery-3.6.1.min.js"></script>
+<script type="text/javascript" src="/js/jquery-ui.min.js"></script>
+<script type="text/javascript" src="/js/jquery.cookie.js"></script>
+<script type="text/javascript" src="/js/dayjs/dayjs.min.js"></script>
+<script type="text/javascript" src="/js/dayjs/ko.js"></script>
+<script type="text/javascript" src="/js/dayjs/utc.js"></script>
+<script type="text/javascript" src="/js/slick.min.js"></script>
+<script type="text/javascript" src="/js/vue.min.js"></script>
+<script type="text/javascript" src="/js/common.js"></script>
+<script type="text/javascript" src="/js/common_fnc.js?var=20260622"></script>
+<script type="text/javascript" src="/js/common_login.js?var=20260622"></script>
+<script type="text/javascript" src="/js/common_msg.js"></script>
+<script type="text/javascript" src="/js/common_valid_msg.js"></script>
+<script type="text/javascript" src="/js/common_valid.js"></script>
+<script type="text/javascript" src="/js/common_menu.js?var=20260630"></script>
+<script type="text/javascript" src="/js/common_file.js"></script>
+<script type="text/javascript" src="/js/spectrum.min.js"></script>
+
+<script type="text/javascript" src="/js/wcslog.js"></script>
+<script type="text/javascript">
+var depth1=0
+var depth2=0
+var depth3=0
+var depth4=0
+var depth5=0
+
+$(window).on("load",function() {
+	if(!wcs_add) var wcs_add = {}; wcs_add["wa"] = "811b38780a3a60"; wcs_do();
+});
+
+// dayjs 플러그인 적용
+dayjs.extend(window.dayjs_plugin_utc);
+</script>
+
+
+</head>
+
+<body>
+	<div class="blind">
+		<a href="#sitemapMenu">전체메뉴 바로가기</a>
+		<a href="#headerMenu" class="mHide">메인메뉴 바로가기</a>
+		<a href="#section">본문 바로가기</a>
+	</div>
+	<div id="app" class="container">
+		<div class="template sub">
+			<header class="header">
+				﻿﻿<!-- 공장인허가 수정 소스 시작-->
+<!DOCTYPE html>
+<html>
+<head>
+    <script>
+        var anyidAdaptor = anyidAdaptor || {};
+        
+        /*이용기관 수정 영역 Start*/
+        anyidAdaptor.orgLogin = function(data){
+        	urlFnc.goLogin();
+            //window.location.href = "/dtkmap/vworldLogin.do";
+          //정부 통합인증SDK_연계가이드 4.4.1.3 이용기관 로그인(토글 off) 참조
+            //제공되는 라이브러리 메소드로 인증데이터 decrypt 이후 자체 로그인 로직 개발
+        }
+        /*이용기관 수정 영역 End*/
+        
+        
+        /*이용기관 문구수정 영역 Start*/
+        anyidAdaptor.JoinConfirm = function(portalJoinUri, memberData){
+            if(!confirm('Any-ID 사용자등록 하시겠습니까?')) {
+                anyidAdaptor.orgLogin();
+                return;
+            }else{
+                anyidAdaptor.receiveAnyIdJoin(portalJoinUri, memberData);
+            }
+        }
+        /*이용기관 문구수정 영역 End*/
+        
+        
+        anyidAdaptor.portalJoinUri = "null";
+        anyidAdaptor.certData = null;
+        anyidAdaptor.ssoByPass = "0";
+        anyidAdaptor.niRegYn = "null";
+        anyidAdaptor.agencyContextPath = "";
+        anyidAdaptor.anyIdSsoOn ="true";
+        if(!anyidAdaptor.anyIdSsoOn){
+        	anyidAdaptor.ssoByPass = 1;
+        }
+
+        anyidAdaptor.success = function(data){
+            if(anyidAdaptor.ssoByPass != 0 || !data.useSso) {
+                anyidAdaptor.orgLogin(data);
+            } else {
+                anyidAdaptor.certData = data;
+                anyidAdaptor.userCheck();
+            }  
+        }
+        
+        anyidAdaptor.userCheck = function(){
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", anyidAdaptor.agencyContextPath + "/oidc/userCheck", true);
+            xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    var response = JSON.parse(xhr.responseText);
+                    if (response.success) {
+                        anyidAdaptor.ssoLogin();
+                    } else {
+                        setTimeout(function() {
+                            anyidAdaptor.receiveAnyIdJoin(response.uri, response.data);
+                        }, 100);  
+                    }
+                }
+            };
+
+            let jsonObject = new Object();
+            jsonObject.txId = anyidAdaptor.certData.txId;
+            jsonObject.ssob = anyidAdaptor.certData.ssob;
+            jsonObject.userSeCd = anyidAdaptor.certData.userSeCd;
+            
+            let jsonStr = JSON.stringify(jsonObject);
+            let encodedString = btoa(jsonStr);
+            
+            var data = "data=" + encodedString + "&txId=" + anyidAdaptor.certData.txId;
+            xhr.send(data);
+            
+        }
+
+
+      //anyid가입
+        anyidAdaptor.receiveAnyIdJoin = function(portalJoinUri, memberData){
+        
+            var url = portalJoinUri+encodeURIComponent(memberData);
+            anyidAdaptor.popup(url,"openAnyIdRegistUserIdv",700,740);
+
+            window.addEventListener("message", function(event) {
+                var result;
+                try {
+                    result = JSON.parse(event.data);
+                } catch (error) {
+                    console.error("Received message is not valid JSON:", error);
+                    return;
+                }
+                
+                if(!result.funcName || (result.funcName !== "trmsAgreComplete" && result.funcName !== "registUserComplete")) {
+                    return;
+                }
+                if(result.status === "success") {
+                    if(result.trmsAgreYn == "Y"){
+                        anyidAdaptor.ssoLogin();
+                    }else{
+                        anyidAdaptor.orgLogin();
+                    }
+                }else{
+                    
+                    anyidAdaptor.orgLogin();
+                }
+
+            }, false);
+        }
+
+     // 팝업 호출
+        anyidAdaptor.popup = function(url, name, width, height){
+            let left = (screen.width) ? (screen.width-width)/2 : 0;
+            let top = (screen.height) ? (screen.height-height)/2 : 0;
+            let popup=window.open(url, name ,"resizable=yes,toolbar=no,scrollbars=yes,location=no,top="+top+"px,left="+left+"px,width="+width+"px,height="+height+"px");
+            if(popup){
+                popup.focus();
+            }
+        }
+
+        anyidAdaptor.ssoLogin = function(){
+            let jsonObject = new Object();
+            jsonObject.txId = anyidAdaptor.certData.txId;
+            jsonObject.ssob = anyidAdaptor.certData.ssob;
+            jsonObject.userSeCd = anyidAdaptor.certData.userSeCd;
+            jsonObject.afData = anyidAdaptor.certData.afData;
+            let jsonStr = JSON.stringify(jsonObject);
+            let encodedString = btoa(jsonStr);
+            var baseUrl = window.location.origin + anyidAdaptor.agencyContextPath + "/oidc/ssoLogin";
+            var urlWithParams = baseUrl + "?data=" + encodedString;
+            window.location.href = urlWithParams;
+            
+        }
+        
+        anyidAdaptor.ssoLoginPageSub = function(baseUrl, endPoint, acrValues){
+            var subUrl = "";
+            
+            if (endPoint && endPoint.trim() !== "") {
+                subUrl = "?endPoint=" + encodeURIComponent(endPoint);
+            }
+            
+            if (!acrValues && acrValues.trim() == "") {
+            	acrValues = "3";
+            }
+            
+            if (acrValues && acrValues.trim() !== "") {
+                if(subUrl == ""){
+                    subUrl = "?";
+                }else{
+                    subUrl = subUrl + "&";
+                }
+                subUrl = subUrl + "acrValues=" + acrValues;
+            }
+            
+            window.location.replace(baseUrl+subUrl);
+        }
+        
+        /**/
+        anyidAdaptor.ssoLogout = function(endPoint) {
+            var subUrl = "";
+            endPoint = typeof endPoint !== 'undefined' ? endPoint : "/";
+            var baseUrl = window.location.origin + anyidAdaptor.agencyContextPath + "/oidc/ssoLogout";
+            
+            if (endPoint && endPoint.trim() !== "") {
+                subUrl = "?endPoint=" + encodeURIComponent(endPoint);
+            }
+            baseUrl = baseUrl + "?endPoint=" + encodeURIComponent(endPoint);
+			if(baseUrl.includes("%26")){ baseUrl = baseUrl.replaceAll("%26","%2526"); }
+            window.location.replace(baseUrl);
+        }
+        /**/
+        anyidAdaptor.reAuthLevel = function(endPoint, acrValues){
+            endPoint = typeof endPoint !== 'undefined' ? endPoint : "/";
+            var baseUrl = window.location.origin + anyidAdaptor.agencyContextPath + "/oidc/reAuthLevel";
+            anyidAdaptor.ssoLoginPageSub(baseUrl, endPoint, acrValues);
+
+        }
+        /**/
+        anyidAdaptor.ssoLoginPage = function(endPoint, acrValues){
+            endPoint = typeof endPoint !== 'undefined' ? endPoint : "/";
+            var baseUrl = window.location.origin + anyidAdaptor.agencyContextPath + "/oidc/auth";
+            anyidAdaptor.ssoLoginPageSub(baseUrl, endPoint, acrValues);
+        }
+        
+        /**/
+        anyidAdaptor.ssoSvcToSvc = function(url, endPoint){
+            /* var baseUrl = url + "/oidc/svcToSvc?endPoint=" + encodeURIComponent(endPoint);
+            window.open(baseUrl, "_blank"); */
+        	var baseUrl = url + "/oidc/svcToSvc?endPoint=" + encodeURIComponent(endPoint);
+        	var options = 'top=10, left=10, width=500, height=600, status=no, menubar=no, toolbar=no, resizable=no';
+        	window.open(baseUrl, "popup", options);
+        }
+
+
+    </script>
+</head>
+<body>
+
+</body>
+</html>
+<!-- 공장인허가 수정 소스 끝 -->
+<script type="text/javascript">
+$(document).ready(function() {
+// 	2025-04-10 anyId login connect
+	var queryString = window.location.search;
+	var params = new URLSearchParams(queryString);
+	if(params.get('goMap')!=null){
+		var lcode = params.get('goMap');
+		if(lcode == 'Y'){ 
+// 			window.location.replace('http://localhost:8280/map/dtkmap.do');
+			window.location.replace('https://map.vworld.kr/map/dtkmap.do');
+		}
+	}
+	
+	
+	srchFnc.init("header_searchIdw", "header_searchBtn");
+	menuFnc.set();
+});
+</script>
+
+
+<h1 class="logo"><a href="javascript:urlFnc.goMain();" title="메인화면으로 이동" ><strong>V-world</strong>디지털트윈국토</a></h1>
+
+<nav class="gnb mHide" id="headerMenu">
+	
+</nav>			
+
+<div class="btns">
+	<div class="toggle one">
+			<button type="button" class="bt max ico only find" title="통합검색">통합검색</button>
+			<!-- 2023-11-28 -->
+			<div class="overbox rt">
+				<div class="set find">
+					<label for="header_searchIdw" class="blind">통합검색</label>
+					<input type="text" class="input validate[required]" id="header_searchIdw" name="searchIdw" value="" placeholder="통합검색" title="검색어">
+					<a href="javascript:void(0);" class="bt ico only find" id="header_searchBtn" >검색</a>
+					<button type="button" class="bt ico only close">취소</button>
+				</div>
+			</div>
+			<!--// 2023-11-28 -->
+		</div>
+	<div class="toggle one" id="login-before">
+		<button type="button" id="btLogin" class="bt max ico only lock customToggle" title="로그인" onclick="loginFnc.def(undefined,'Y');">로그인/회원가입</button>
+		<div class="dropbox">
+			<div class="headline">
+				<h4 class="title">로그인</h4>
+				<button type="button" class="bt ico only close">닫기</button>
+			</div>
+			<form class="field">
+				<label for="loginUsrIde" class="blind">아이디</label>
+				<input type="text" id="loginUsrIde" class="input validate[required]" placeholder="아이디" title="아이디" maxlength="18">
+				<label for="loginUsrPwd" class="blind">비밀번호</label>
+				<input type="password" id="loginUsrPwd" class="input validate[required]" placeholder="비밀번호" title="비밀번호" autocomplete="on" maxlength="18">
+				<div class="check"><input type="checkbox" id="chkUsrIde"><label for="chkUsrIde">아이디저장</label></div>
+			</form>
+			<div class="btns col">
+				<button type="button" class="bt bg primary" onClick="loginFnc.login('loginUsrIde','loginUsrPwd','chkUsrIde');">로그인</button>
+				<button type="button" class="bt bd primary" onClick="urlFnc.goJoin();">회원가입</button>
+			</div>
+			<div class="btns fs">
+				<a class="linktxt" onClick="urlFnc.goFindId();">아이디찾기</a>
+				<a class="linktxt" onClick="urlFnc.goFindPwd();">비밀번호찾기</a>
+			</div>
+		</div>
+	</div>
+	<button type="button" class="bt max ico only menu" title="전체메뉴" aria-haspopup="dialog" aria-controls="pop-sitemap">전체메뉴열기</button>
+</div>
+</header>
+			<article class="sitemap hide" aria-hidden="true" id="pop-sitemap">
+	<div class="conWrap">
+		<div class="conHead">
+			<h2 class="blind">전체메뉴</h2>
+			<button type="button" class="bt max ico only home" title="메인화면 바로가기" onclick="urlFnc.goMain();">홈</button>
+			<!-- 로그인 전  -->
+			<p class="infotxt">로그인 후 디지털트윈국토의 모든 서비스를 이용해 보세요.</p>
+			<div class="btns ml">
+				<!-- 공장인허가 수정 소스 시작 -->
+<!-- 				 <a class="bt bd" href="javascript:urlFnc.goLogin();">로그인</a>  -->
+				<a class="bt bd" href="javascript:anyidAdaptor.ssoLoginPage(window.location.pathname+window.location.search,'3');">로그인</a>
+				<!-- 공장인허가 수정 소스 끝 -->
+				<a class="bt bd" href="javascript:urlFnc.goJoin();">회원가입</a>
+			</div>
+			<!--// 로그인 전 -->
+			<button type="button" class="bt max ico only close" title="전체메뉴 닫기">전체메뉴 닫기</button>
+		</div>
+		<div class="conBody">
+			<nav class="gnb" id="sitemapMenu">
+				
+			</nav>
+			<div class="note bg">
+				<ul>
+					<li><p class="bt ico bookmark on min">관심메뉴 설정</p> : 클릭 시 관심메뉴로 등록되어 마이포털에서 바로가기를 제공합니다. 지도메뉴의 관심설정은 지도 전체메뉴에서 설정해 주세요.</li>
+					<li><p class="bt ico lock min">회원전용 메뉴</p> : 자물쇠 표시가 있는 메뉴(하위 메뉴 포함)는 로그인 후 이용가능합니다.</li>
+				</ul>
+			</div>
+		</div>
+	</div>
+</article><!--// sitemap --><section class="section" id="section">
+				<nav class="lnb">
+					<script type="text/javascript">
+$(document).ready(function() {
+	menuFnc.locationYn = "Y";
+});
+</script>
+<div class="inner" id="lnbMenu" >
+	
+</div></nav>
+				<aside class="location">
+					<div class="inner">
+	<div class="path" id="locationMenu"><span>홈</span></div>
+</div></aside>
+				<script type="text/javascript">
+
+$(document).ready(function() {
+	
+	//detailFnc.emptyMsg();
+	
+	
+	$("#fileErr").fileUpload({
+		setFile : [
+			{name : "file_err1"}
+		]
+	});
+	
+	qnaFnc.reload();
+	
+	cmFunction.datePickerRange('startDate','endDate');
+	
+	var admType = "2";
+	var fileGbnCdType = "2";
+	var childCo = "1";
+	
+	if(admType == "1"){
+		$("#sidoCd").attr("disabled",true);
+		$("#sigunguCd").attr("disabled",true);
+	}else if(admType == "2"){
+		$("#sidoCd").attr("disabled",false);
+		$("#sigunguCd").attr("disabled",true);
+	}else{
+		$("#sidoCd").attr("disabled",false);
+		$("#sigunguCd").attr("disabled",false);
+	}
+	
+	if(fileGbnCdType == "2"){
+		$("#fileGbnCd").attr("disabled",false);
+	}else{
+		$("#fileGbnCd").attr("disabled",true);
+	}
+	
+	if(childCo == "1"){
+		$("#dataSetNam").attr("disabled",true);
+	}else{
+		$("#dataSetNam").attr("disabled",false);
+	}
+
+	$(".bt.ico.arrow.bg.min").next('.slipbox').css('display','block');
+	
+	if( cmFunction._isMobile() ){
+		$("article.article.space.download .count > .check, article.article.space.download .count > button, article.article.space.download .count > span:eq(0), article.article.space.download .list.box > ul > li .check").css( 'display', 'none' );
+	}
+	
+	let ds = $("#sigunguCd").val();
+	if(ds == '41590'){ $('.sigunguNm1').text('경기도');$('.sigunguNm1').after('<span>화성시</span>');}
+});
+
+$(function(){
+	//질문 제목 클릭시 펼치기 기능
+	$('#qnaDiv').on('click', ".tit", function(){
+// 		$(this).parent().next().trigger("click");
+		if($(this).parents().children().hasClass('lock')){
+			let qDiv = $(this);
+			let brdIde = $(this).parent().parent().find('input[id*=qid_]').val();
+			cmFunction.ajaxSubmit(
+					"/v4po_secret_bod.do"
+					, [{name : "brdIde", value : brdIde}]
+					, function(data){
+						if(data.status == 'false'){
+			 					msgFnc.alert({
+		 						text : "이 게시글은 비밀글입니다."
+		 						, callBackConfirmFnc : function(){}
+		 					});
+						}else{
+							qDiv.parent().next().trigger("click");
+						}
+					}
+				);
+		}else{
+			$(this).parent().next().trigger("click");
+		}
+	});
+	
+	$("#chkDsAll").click(function(){
+		cmFunction.checkAll("chkDs");
+		$("#selNum").html($("input[name=chkDs]:checked").length);
+	});
+	
+	$("input[name=chkDs]").click(function(){
+		cmFunction.check("chkDs");
+		$("#selNum").html($("input[name=chkDs]:checked").length);
+	});
+	
+	$("#searchForm").keypress(function() {
+		if ( window.event.keyCode == 13 ) {
+			listFnc.resSearch();
+		}
+	});
+	
+	//검색조건 시도
+	$('#sidoCd').bind('change' ,function(){
+		$('#sigunguCd > option').remove();
+		$("#sigunguCd").append("<option value=''>시·군·구 전체</option>");
+		if($("#sidoCd").val() != ""){
+			cmFunction.ajaxSubmit(
+				"/dtna/dtna_admCode_a001.do"
+				, {
+					admCd : $("#sidoCd").val()
+				}
+				, function(data){
+					var list = data.admCodeList;
+					if(list != null){
+						for(var i=0;i< list.length ;i++ ){
+					    	$("#sigunguCd").append("<option value='"+list[i].admcd+"'>"+list[i].admnm+"</option>");
+						}
+					}
+				}
+			);		
+		}
+	});
+
+	$("#searchMetaBtn").click(function(){
+		metaFnc.reload();
+	});
+
+	//검색조건 시도
+	//$('#dsId').bind('change',fnMetaDataSearch);
+});
+
+var detailFnc = {
+		// 목록화면으로 이동
+		goList : function(page){
+			if(listFnc.params.find(v => v.name == 'pageIndex') != undefined && listFnc.params.find(v => v.name == 'listPageIndex')){
+				listFnc.params.find(v => v.name == 'pageIndex').value =  listFnc.params.find(v => v.name == 'listPageIndex').value;	
+			}else{
+				listFnc.params.find(v => v.name == 'pageIndex').value = 1;
+			}
+			
+			
+			cmFunction.submit("/dtmk/dtmk_ntads_s001.do", listFnc.params);
+		}
+		//데이터 존재 여부 확인
+		, emptyMsg : function(){
+			msgFnc.alert({text : "해당 데이터는 삭제되었거나 존재하지 않습니다."
+				, callBackConfirmFnc : function(){
+					detailFnc.goList();
+				}
+			});
+		}
+		
+		
+}
+
+//오류신고
+var errFnc = {
+		save : function(type, dsId){
+			if($("#errForm").valid()){
+				cmFunction.ajaxSubmit(
+						"/v4po_badWordsFiltering.do"
+						,"errForm"
+						, function(data){
+							if(data.status == 'false'){
+				 					msgFnc.alert({
+			 						text : "이 게시글에는 금칙어 "+ data.badWrd +"이(가) 포함되어 있습니다."
+			 						, callBackConfirmFnc : function(){}
+			 					});
+							}else{
+								msgFnc.confirm({text : cmMsg.cfm.secretSave
+									, callBackConfirmFnc : function(){
+										msgFnc.confirm({text : cmMsg.cfm.save
+											, callBackConfirmFnc : function(){
+												cmFunction.submit("/dtmk/dtmk_errreport_a001.do","errForm", "post", {svcCde : "NA", dsId : "18"});
+											}
+										});
+									}
+								});
+							}
+					});	
+
+			}
+		}
+		, cancel : function(){
+			cmFunction.formClear("errForm");
+			$("#pop-mistake--add").attr('aria-hidden','true').removeAttr('tabindex').addClass('hide');
+			$("button[aria-controls='pop-mistake--add']").focus();
+			$("#errReportCnt").text("0");
+		}
+}
+
+
+var listFnc = {
+		params : [{ name : 'datIde' , value : ''},{ name : 'dsId' , value : '18'},{ name : 'pageIndex' , value : '1'},{ name : 'pageSize' , value : '10'},{ name : 'pageUnit' , value : '10'},{ name : 'dataSetSeq' , value : '18'},{ name : 'svcCde' , value : 'NA'}]	
+		, resSearch : function(){
+			$("#datPageSize").val($("#pageSize").val());
+			$("#datPageIndex").val(1);
+			
+			cmFunction.submit("/dtmk/dtmk_ntads_s002.do",  listFnc.params, "get", "searchForm");
+		}
+		, setPage : function(page){
+			$("#datPageSize").val($("#pageSize").val());
+			$("#datPageIndex").val(page);
+			
+			cmFunction.submit("/dtmk/dtmk_ntads_s002.do",  listFnc.params, "get", "searchForm");
+		}
+		// 다운로드
+		, download : function(dsId, fileNo, fileSize) {
+			
+			if(menuFnc.loginYn == "N"){
+				msgFnc.alert({
+					text : "로그인 후  이용해주세요."
+				});
+				
+				return;
+			}
+			
+			if(fileSize > 512000) {
+				msgFnc.alert({
+					text : "대용량 데이터(500MB 이상)는 '선택다운로드'기능을 사용해주세요."
+				});
+			} else{
+				$("#downFrame").append("<iframe src='/dtmk/downloadResourceFile.do?ds_id="+dsId+"&fileNo="+fileNo+"'></iframe>");	
+				//$("#downFrame").append("<iframe src='/dtmk/downloadResourceFile2.do?ds_file_sq="+fileNo+"&ds_id="+dsId+"'></iframe>");				
+			}
+		}
+		// 멀티 다운로드
+		, multiDownload : function() {
+			
+			if(menuFnc.loginYn == "N"){
+				msgFnc.alert({
+					text : "로그인 후  이용해주세요."
+				});
+				
+				return;
+			}
+			
+			var dsFileSqList = "";
+			var chkLength = $("input[name=chkDs]:checked").length;
+			
+			for(var i=0; i<chkLength; i++) {
+				var tr = $($("input[name=chkDs]:checked")[i]).parent().parent();
+				dsFileSqList += (i==0?"":",")+tr.find("input[name=dsFileId]").val()+tr.find("input[name=dsFileSq]").val();
+			}
+			
+			if(dsFileSqList.length > 0) {
+				//$("#downFrame").append("<iframe src='/dtmk/downloadResourceFile.do?ds_id=18&fileNo="+dsFileSqList+"'></iframe>");
+				$("#downFrame").append("<iframe src='/dtmk/downloadDtnaResourceFile.do?ds_file_sq="+dsFileSqList+"'></iframe>");
+			} else {
+				msgFnc.alert("선택한 대상이 없습니다.");
+			}
+		}
+}
+
+var metaFnc = {
+		params : [{ name : 'datIde' , value : ''},{ name : 'dsId' , value : '18'},{ name : 'endDate' , value : '2026-08-12'},{ name : 'pageIndex' , value : '1'},{ name : 'pageSize' , value : '10'},{ name : 'pageUnit' , value : '10'},{ name : 'dataSetSeq' , value : '18'},{ name : 'svcCde' , value : 'NA'},{ name : 'startDate' , value : '2025-08-12'}]	
+		, reload : function(){
+			cmFunction.submit("/dtmk/dtmk_ntads_s002.do",  metaFnc.params, "get", {metaPageIndex : 1});
+		}
+		, setPage : function(page){
+			cmFunction.submit("/dtmk/dtmk_ntads_s002.do",  metaFnc.params, "get", {metaPageIndex : page});
+		}
+}
+
+var qnaFnc = {
+		setPage : function(page){
+			cmFunction.ajaxLoad("qnaDiv", "/dtmk/dtmk_qna_s001.do", {svcCde : "NA", dsId : "18", qnaPageIndex : page});			
+		}
+		, reload : function(){
+			cmFunction.ajaxLoad("qnaDiv", "/dtmk/dtmk_qna_s001.do", {svcCde : "NA", dsId : "18"});
+		}
+		// 문의등록
+		, regQna : function(){
+			if($("#qnaForm").valid()){
+				msgFnc.confirm({text : cmMsg.cfm.save
+					, callBackConfirmFnc : function(){
+						cmFunction.submit("/dtmk/dtmk_ntads_a001.do","qnaForm", "post", {svcCde : "NA", dsId : "18"});
+					}
+				});
+			}
+		}
+		// 문의삭제
+		, delQna : function(brdIde) {
+			cmFunction.submit("/dtmk/dtmk_ntads_d001.do",  qnaForm, "get", {svcCde : "NA", dsId : "18", brdIde : brdIde});
+		}
+		// 문의수정
+		, modQna : function(brdIde){
+			var title = document.getElementById("modSub").value;
+			var txtDes = document.getElementById("modDes").value;
+
+			if(title == ''){
+				msgFnc.confirm({text : "데이터 문의 제목을 입력하십시요."
+					, callBackConfirmFnc : function(){
+						document.getElementById("modSub").focus();
+					}
+				});
+				return;
+			}
+			if(txtDes == ''){
+				msgFnc.confirm({text : "데이터 문의 내용을 입력하십시요."
+					, callBackConfirmFnc : function(){
+						document.getElementById("modDes").focus();
+					}
+				});
+				return;
+			}
+			
+			if($("#modForm").valid()){
+				msgFnc.confirm({text : cmMsg.cfm.save
+					, callBackConfirmFnc : function(){
+						cmFunction.submit("/dtmk/dtmk_ntads_u001.do","modForm", "post", {svcCde : "NA", dsId : "18"});
+					}
+				});
+			}
+		}
+}
+
+function fn_insertItrstData(obj){
+	var msg = "관심 공간정보가 등록되었습니다.";
+	var url = "/mypo/mypo_data_i001.do";
+	
+	if(obj.hasClass("on")){
+		msg = "관심 공간정보가 해제되었습니다.";
+		url = "/mypo/mypo_data_d001.do";
+	}
+	
+	cmFunction.ajaxSubmit(
+		url
+		, {'svcCde':'NA','dsId':'18'}
+		, function(data){
+			msgFnc.alert(msg);
+			menuFnc.setItrst();
+		}
+	);
+}
+
+function checkLength(type, obj){
+	var maxlength = 0;
+	var curlength = null;
+	
+	if(type == 'qna'){
+		maxlength = 1500;
+		curlength = $("#brdDes").val().length;
+		
+		document.getElementById("qnaCnt").innerHTML = curlength;
+		
+	}else if(type == 'err'){
+		maxlength = 3000;
+		curlength = $("#errReportDes").val().length;
+		
+		document.getElementById("errReportCnt").innerHTML = curlength;
+	}else if(type == 'mod'){
+		maxlength = 1500;
+		curlength = $("#modDes").val().length;
+		
+		document.getElementById("modCnt").innerHTML = curlength;
+		
+	}
+}
+
+function fn_lyrMapPopup(lyrIde,map){
+	//20140116 이영규 - 미리보기시 map.vworld.kr 에서 로딩 		
+	// 운영서버 반영시.
+	if(map == '2D'){
+		var url = "https://map.vworld.kr/map/dtkmap.do?initTab=layer&initMode=2D&lyrIde=" + lyrIde;
+		var map2DPopup = window.open(url,'_blank');
+		map2DPopup.focus();
+	}else if(map == '3D'){
+		var url = "https://map.vworld.kr/map/dtkmap.do?initTab=layer&initMode=3D&lyrIde=" + lyrIde;
+		var map3DPopup = window.open(url,'_blank');
+		map3DPopup.focus();
+	}
+}
+</script>
+
+<article class="article space download">
+
+	<h3 class="blind">공간정보 다운로드</h3>
+	
+	<div class="headline fix">
+		<div class="inner">
+			<div class="item bd">
+				<div class="path bg"><span>국토관리 지역개발</span><span>건물·시설</span></div>
+				<h4 class="title">
+					GIS건물통합정보</h4>
+				<a href="javascript:detailFnc.goList();" class="bt ico back only ml">이전화면</a>
+			</div>
+		</div>
+	</div>
+
+	<div class="inner">
+		<div class="item bg toggle on">
+			<div class="txt">
+				<span>유형<em>다운로드</em></span>
+				<span>기관<em>국토교통부</em></span>
+				<span>다운로드<em>201,863</em></span>
+				<span>문의<em>77</em></span>
+				<span>조회<em>356,464</em></span>
+<!-- 				<span>기준일 -->
+<!-- 					<em> -->
+<!-- 					</em> -->
+<!-- 				</span> -->
+			</div>
+			<button type="button" class="bt ico arrow bg min on">상세</button>
+			<div class="slipbox">
+				<div class="note">
+					<ul>
+						<li class="dot"><b>설명</b>연속지적도형정보를&nbsp;기반으로&nbsp;건물&nbsp;공간정보와&nbsp;건축행정시스템&#40;세움터&#41;의&nbsp;건축물대장&nbsp;속성정보를&nbsp;건물단위로&nbsp;통합하여&nbsp;구축한&nbsp;공간&#40;토지&#41;기반의&nbsp;건물통합정보</li>
+					</ul>
+					<ul class="half">
+						<li class="dot"><b>업데이트 주기</b>전체-월간, 변동-일간</li>
+					</ul>
+					<ul class="half"> 
+						<li class="dot"><b>컬럼 정의서</b>SHP 파일에 포함된 항목(AO...An으로 표기)에 대한 정의</li>
+					</ul>
+						<!-- 2023-12-11 -->
+					<div class="btns br fe">
+						<a href="https://www.qgis.org/ko/site/" target="_blank" title="새창이동" class="linktxt qgis mr">설치바로가기</a>
+						<a href="/contents/국가중점데이터_컬럼정의서(26.01.02)_배포용.xlsx" class="bt ico down bd min">컬럼 정의서 다운로드</a>
+						<a href="/contents/QGIS_Guide.hwp" class="bt ico down bd min">QGIS사용가이드 다운로드</a>
+						</div>
+				</div>	
+			</div>
+		</div>
+	</div>
+
+	<article class="content">
+		<div class="inner">
+			<div class="headline toggle">
+				<h5 class="title">데이터셋 다운로드</h5>
+				<button type="button" class="bt ico arrow bd min only mr">안내</button>
+				<p class="infotxt">해당 데이터는 정보제공 목적이며 이에 대한 법적효력이 없으니 참고하세요.</p>
+				<div class="slipbox">
+					<div class="note bg">
+						<ul>
+							<li class="dot">고용량의 데이터를 다운로드 제공을 위해 <mark class="marker">라온K 다운로드 솔루션프로그램 설치가 필요</mark>합니다. 멀티 다운로드, 데이터 이어받기 기능을 제공합니다.</li>
+							<li class="dot"><mark class="marker">저장 공간이 부족한 상황에서 파일을 다운로드할 수 없을 수 있으니</mark>, 디스크 공간을 확인해 주시기 바랍니다.</li>
+						</ul>
+						<div class="btns br fs">
+							<a href="/raonkupload/agent/raonkSetup.exe" class="bt ico down bd min">라온K 다운로드 솔루션프로그램 다운로드</a>
+						</div>
+					</div>
+				</div>
+			</div>
+			
+			<form id="searchForm" name='searchForm' action="/dtmk/dtmk_ntads_s002.do" method='post' class="field bg bd">
+				<input type="hidden" id="datPageIndex" name="datPageIndex" value="" />
+				<input type="hidden" id="datPageSize" name="datPageSize" value="" />
+				<ul>
+					<li>
+						<!--span class="label dot">기준일</span-->
+						<label for="startDate" class="blind">기준시작일</label>
+						<input type="text" class="input date" id="startDate" name="startDate" value="2025-08-12" readonly="readonly" placeholder="기준시작일"/>
+						~
+						<label for="endDate" class="blind">기준종료일</label>
+						<input type="text" class="input date" id="endDate" name="endDate" value="2026-08-12" readonly="readonly" placeholder="기준종료일"/>
+					</li>
+					<li>
+						<label for="sidoCd" class="blind">시·도</label>
+						<select class="select" id="sidoCd" name="sidoCd" title="시도 선택">
+							<option value="">시·도 전체</option>
+							<option value="11">서울특별시</option>
+							<option value="26">부산광역시</option>
+							<option value="27">대구광역시</option>
+							<option value="28">인천광역시</option>
+							<option value="30">대전광역시</option>
+							<option value="31">울산광역시</option>
+							<option value="36">세종특별자치시</option>
+							<option value="41">경기도</option>
+							<option value="51">강원특별자치도</option>
+							<option value="43">충청북도</option>
+							<option value="44">충청남도</option>
+							<option value="52">전북특별자치도</option>
+							<option value="12">전남광주통합특별시</option>
+							<option value="47">경상북도</option>
+							<option value="48">경상남도</option>
+							<option value="50">제주특별자치도</option>
+							</select>
+					</li>
+					<li>
+						<label for="sigunguCd" class="blind">시·군·구</label>
+						<select class="select" id="sigunguCd" name="sigunguCd" title="시군구 선택">
+							<option value="">시·군·구 전체</option>
+							</select>
+					</li>
+					<li>
+						<label for="fileGbnCd" class="blind">구분</label>
+						<select class="select" id="fileGbnCd" name="fileGbnCd" title="초기변동구분">
+							<option value="">구분전체</option>
+							<option value="AL">전체데이터</option>
+							<option value="CH">변동데이터</option>
+						</select>
+					</li>
+					<li>
+						<label for="dsNm" class="blind">데이터셋명</label>
+						<input type="text" class="input" id="dsNm" name="dsNm" placeholder="데이터셋 명"  maxlength="100" value="">
+					</li>
+					
+					<li>
+						<label for="formatSelect" class="blind">파일포맷유형</label>
+						<select class="select" id="formatSelect" name="formatSelect" title="파일포맷유형">
+							<option value="">전체</option>
+							<option value="SHP">SHP</option>
+							<option value="CSV">CSV</option>
+						</select>
+					</li>					
+					
+				</ul>
+				<button type="button" class="bt ico find bg secondary" id="searchBtn" onClick="javascript:listFnc.resSearch();">조회</button>
+				<div class="note">
+					<ul>
+						<li class="dot"><b>(구분) 전체데이터</b>일정주기마다 추출 시점의 전체 데이터를, 파일 용량을 고려하여 전국 또는 행정구역별로 제공</li>
+						<li class="dot"><b>(구분) 변동데이터</b>전체 데이터 추출 주기 사이에 발생되는 변동분을 제공</li>
+					</ul>
+				</div>
+			</form>
+			
+			<div class="headline">
+				<div class="count auto">
+					<div class="check min only"><input type="checkbox" id="chkDsAll" ><label for="chkDsAll">전체선택</label></div>
+					<span>선택<b id="selNum">0</b>건</span>
+					<button type="button" class="bt ico down min mr" style="border:var(--color-gray-tint60) 1px solid;" onClick="listFnc.multiDownload('18');">선택다운로드</button>
+					<span>총<b>544</b>건 (<b>1</b>/ 55 page )</span>
+				</div>
+				
+				<form class="sort">
+					<label for="pageSize" class="blind">게시물 개수</label>
+					<select class="select" id="pageSize" onChange="listFnc.resSearch();">
+						<option value="10" >10건씩</option>
+						<option value="25" >25건씩</option>
+						<option value="50" >50건씩</option>
+						<option value="100" >100건씩</option>
+					</select>
+				</form>
+			</div>
+			
+			
+			
+			<div class="list bd box hover">
+				<ul>
+					<li><!--v-for="n in 10"-->
+						<div class="check only"><input type="checkbox" id="chkDs" name="chkDs" value="4427" ><label for="chkDs">선택</label></div>
+						<div class="item row">
+							<input type="hidden" name="dsFileSq" value="4427">
+							<input type="hidden" name="dsFileId" value="20171128DS00010">
+							<div class="format"><span class="shp">SHP</span></div>
+							<div class="less">
+								<div class="path bg min">
+									<span class="sigunguNm1">
+									전국</span>
+									</div>
+								<div class="tit min">GIS건물통합정보</div>
+							</div>
+							<div class="txt">
+								<span>용량<em>
+								232</em>
+								KB</span>
+<span>구분<em>변동데이터</em></span>
+								<span>기준일<em class="xxs">2026-08-11</em></span>
+								<span>갱신일<em class="xxs">2026-08-12</em></span>
+							</div>
+						</div>		
+						<div class="btns"><button type="button" class="bt ico down bg primary" onClick="listFnc.download('20171128DS00010', '4427', '232');">다운로드</button></div>
+					</li>
+					<li><!--v-for="n in 10"-->
+						<div class="check only"><input type="checkbox" id="chkDs" name="chkDs" value="4426" ><label for="chkDs">선택</label></div>
+						<div class="item row">
+							<input type="hidden" name="dsFileSq" value="4426">
+							<input type="hidden" name="dsFileId" value="20171128DS00010">
+							<div class="format"><span class="shp">SHP</span></div>
+							<div class="less">
+								<div class="path bg min">
+									<span class="sigunguNm1">
+									전국</span>
+									</div>
+								<div class="tit min">GIS건물통합정보</div>
+							</div>
+							<div class="txt">
+								<span>용량<em>
+								235</em>
+								KB</span>
+<span>구분<em>변동데이터</em></span>
+								<span>기준일<em class="xxs">2026-08-10</em></span>
+								<span>갱신일<em class="xxs">2026-08-11</em></span>
+							</div>
+						</div>		
+						<div class="btns"><button type="button" class="bt ico down bg primary" onClick="listFnc.download('20171128DS00010', '4426', '235');">다운로드</button></div>
+					</li>
+					<li><!--v-for="n in 10"-->
+						<div class="check only"><input type="checkbox" id="chkDs" name="chkDs" value="4425" ><label for="chkDs">선택</label></div>
+						<div class="item row">
+							<input type="hidden" name="dsFileSq" value="4425">
+							<input type="hidden" name="dsFileId" value="20171128DS00010">
+							<div class="format"><span class="shp">SHP</span></div>
+							<div class="less">
+								<div class="path bg min">
+									<span class="sigunguNm1">
+									전국</span>
+									</div>
+								<div class="tit min">GIS건물통합정보</div>
+							</div>
+							<div class="txt">
+								<span>용량<em>
+								194</em>
+								KB</span>
+<span>구분<em>변동데이터</em></span>
+								<span>기준일<em class="xxs">2026-08-09</em></span>
+								<span>갱신일<em class="xxs">2026-08-10</em></span>
+							</div>
+						</div>		
+						<div class="btns"><button type="button" class="bt ico down bg primary" onClick="listFnc.download('20171128DS00010', '4425', '194');">다운로드</button></div>
+					</li>
+					<li><!--v-for="n in 10"-->
+						<div class="check only"><input type="checkbox" id="chkDs" name="chkDs" value="4407" ><label for="chkDs">선택</label></div>
+						<div class="item row">
+							<input type="hidden" name="dsFileSq" value="4407">
+							<input type="hidden" name="dsFileId" value="20171128DS00010">
+							<div class="format"><span class="shp">SHP</span></div>
+							<div class="less">
+								<div class="path bg min">
+									<span class="sigunguNm1">
+									서울특별시</span>
+									</div>
+								<div class="tit min">GIS건물통합정보</div>
+							</div>
+							<div class="txt">
+								<span>용량<em>
+								129</em>
+								MB</span>
+<span>구분<em>전체데이터</em></span>
+								<span>기준일<em class="xxs">2026-08-09</em></span>
+								<span>갱신일<em class="xxs">2026-08-10</em></span>
+							</div>
+						</div>		
+						<div class="btns"><button type="button" class="bt ico down bg primary" onClick="listFnc.download('20171128DS00010', '4407', '132495');">다운로드</button></div>
+					</li>
+					<li><!--v-for="n in 10"-->
+						<div class="check only"><input type="checkbox" id="chkDs" name="chkDs" value="4408" ><label for="chkDs">선택</label></div>
+						<div class="item row">
+							<input type="hidden" name="dsFileSq" value="4408">
+							<input type="hidden" name="dsFileId" value="20171128DS00010">
+							<div class="format"><span class="shp">SHP</span></div>
+							<div class="less">
+								<div class="path bg min">
+									<span class="sigunguNm1">
+									전남광주통합특별시</span>
+									</div>
+								<div class="tit min">GIS건물통합정보</div>
+							</div>
+							<div class="txt">
+								<span>용량<em>
+								259</em>
+								MB</span>
+<span>구분<em>전체데이터</em></span>
+								<span>기준일<em class="xxs">2026-08-09</em></span>
+								<span>갱신일<em class="xxs">2026-08-10</em></span>
+							</div>
+						</div>		
+						<div class="btns"><button type="button" class="bt ico down bg primary" onClick="listFnc.download('20171128DS00010', '4408', '265267');">다운로드</button></div>
+					</li>
+					<li><!--v-for="n in 10"-->
+						<div class="check only"><input type="checkbox" id="chkDs" name="chkDs" value="4409" ><label for="chkDs">선택</label></div>
+						<div class="item row">
+							<input type="hidden" name="dsFileSq" value="4409">
+							<input type="hidden" name="dsFileId" value="20171128DS00010">
+							<div class="format"><span class="shp">SHP</span></div>
+							<div class="less">
+								<div class="path bg min">
+									<span class="sigunguNm1">
+									부산광역시</span>
+									</div>
+								<div class="tit min">GIS건물통합정보</div>
+							</div>
+							<div class="txt">
+								<span>용량<em>
+								80</em>
+								MB</span>
+<span>구분<em>전체데이터</em></span>
+								<span>기준일<em class="xxs">2026-08-09</em></span>
+								<span>갱신일<em class="xxs">2026-08-10</em></span>
+							</div>
+						</div>		
+						<div class="btns"><button type="button" class="bt ico down bg primary" onClick="listFnc.download('20171128DS00010', '4409', '81799');">다운로드</button></div>
+					</li>
+					<li><!--v-for="n in 10"-->
+						<div class="check only"><input type="checkbox" id="chkDs" name="chkDs" value="4410" ><label for="chkDs">선택</label></div>
+						<div class="item row">
+							<input type="hidden" name="dsFileSq" value="4410">
+							<input type="hidden" name="dsFileId" value="20171128DS00010">
+							<div class="format"><span class="shp">SHP</span></div>
+							<div class="less">
+								<div class="path bg min">
+									<span class="sigunguNm1">
+									대구광역시</span>
+									</div>
+								<div class="tit min">GIS건물통합정보</div>
+							</div>
+							<div class="txt">
+								<span>용량<em>
+								64</em>
+								MB</span>
+<span>구분<em>전체데이터</em></span>
+								<span>기준일<em class="xxs">2026-08-09</em></span>
+								<span>갱신일<em class="xxs">2026-08-10</em></span>
+							</div>
+						</div>		
+						<div class="btns"><button type="button" class="bt ico down bg primary" onClick="listFnc.download('20171128DS00010', '4410', '65405');">다운로드</button></div>
+					</li>
+					<li><!--v-for="n in 10"-->
+						<div class="check only"><input type="checkbox" id="chkDs" name="chkDs" value="4411" ><label for="chkDs">선택</label></div>
+						<div class="item row">
+							<input type="hidden" name="dsFileSq" value="4411">
+							<input type="hidden" name="dsFileId" value="20171128DS00010">
+							<div class="format"><span class="shp">SHP</span></div>
+							<div class="less">
+								<div class="path bg min">
+									<span class="sigunguNm1">
+									인천광역시</span>
+									</div>
+								<div class="tit min">GIS건물통합정보</div>
+							</div>
+							<div class="txt">
+								<span>용량<em>
+								52</em>
+								MB</span>
+<span>구분<em>전체데이터</em></span>
+								<span>기준일<em class="xxs">2026-08-09</em></span>
+								<span>갱신일<em class="xxs">2026-08-10</em></span>
+							</div>
+						</div>		
+						<div class="btns"><button type="button" class="bt ico down bg primary" onClick="listFnc.download('20171128DS00010', '4411', '53438');">다운로드</button></div>
+					</li>
+					<li><!--v-for="n in 10"-->
+						<div class="check only"><input type="checkbox" id="chkDs" name="chkDs" value="4412" ><label for="chkDs">선택</label></div>
+						<div class="item row">
+							<input type="hidden" name="dsFileSq" value="4412">
+							<input type="hidden" name="dsFileId" value="20171128DS00010">
+							<div class="format"><span class="shp">SHP</span></div>
+							<div class="less">
+								<div class="path bg min">
+									<span class="sigunguNm1">
+									대전광역시</span>
+									</div>
+								<div class="tit min">GIS건물통합정보</div>
+							</div>
+							<div class="txt">
+								<span>용량<em>
+								31</em>
+								MB</span>
+<span>구분<em>전체데이터</em></span>
+								<span>기준일<em class="xxs">2026-08-09</em></span>
+								<span>갱신일<em class="xxs">2026-08-10</em></span>
+							</div>
+						</div>		
+						<div class="btns"><button type="button" class="bt ico down bg primary" onClick="listFnc.download('20171128DS00010', '4412', '32208');">다운로드</button></div>
+					</li>
+					<li><!--v-for="n in 10"-->
+						<div class="check only"><input type="checkbox" id="chkDs" name="chkDs" value="4413" ><label for="chkDs">선택</label></div>
+						<div class="item row">
+							<input type="hidden" name="dsFileSq" value="4413">
+							<input type="hidden" name="dsFileId" value="20171128DS00010">
+							<div class="format"><span class="shp">SHP</span></div>
+							<div class="less">
+								<div class="path bg min">
+									<span class="sigunguNm1">
+									울산광역시</span>
+									</div>
+								<div class="tit min">GIS건물통합정보</div>
+							</div>
+							<div class="txt">
+								<span>용량<em>
+								43</em>
+								MB</span>
+<span>구분<em>전체데이터</em></span>
+								<span>기준일<em class="xxs">2026-08-09</em></span>
+								<span>갱신일<em class="xxs">2026-08-10</em></span>
+							</div>
+						</div>		
+						<div class="btns"><button type="button" class="bt ico down bg primary" onClick="listFnc.download('20171128DS00010', '4413', '44402');">다운로드</button></div>
+					</li>
+					</ul>
+			</div>
+			<div class="pages"><button type="button" class="bt ico prev end only" onclick="listFnc.setPage(1); return false">처음</button><button type="button" class="bt ico prev only" onclick="listFnc.setPage(1); return false">이전</button><button type="button" class="pg on">1</button><button type="button" class="pg" onclick="listFnc.setPage(2); return false;">2</button><button type="button" class="pg" onclick="listFnc.setPage(3); return false;">3</button><button type="button" class="pg" onclick="listFnc.setPage(4); return false;">4</button><button type="button" class="pg" onclick="listFnc.setPage(5); return false;">5</button><button type="button" class="pg" onclick="listFnc.setPage(6); return false;">6</button><button type="button" class="pg" onclick="listFnc.setPage(7); return false;">7</button><button type="button" class="pg" onclick="listFnc.setPage(8); return false;">8</button><button type="button" class="pg" onclick="listFnc.setPage(9); return false;">9</button><button type="button" class="pg" onclick="listFnc.setPage(10); return false">10</button><button type="button" class="bt ico next only" onclick="listFnc.setPage(11); return false;">다음</button><button type="button" class="bt ico next end only" onclick="listFnc.setPage(55); return false;">맨끝</button></div>
+<div class="headline">
+				<h5 class="title">구축 레이어 정보</h5>
+				<div class="count"><span>총<b>0</b>건</span></div>
+			</div>
+			<div class="list card">
+				<p class="infotxt pg">검색된 레이어 정보가 없습니다.</p>
+				</div>
+			
+			<div id="downFrame" style="display:none;"></div>
+			
+			<div class="headline">
+				<h5 class="title">메타데이터 정보</h5>
+				<div class="count"><span>총<b>1</b>건</span></div>				
+				<form class="sort" id="metaForm" name='metaForm' action="/dtmk/dtmk_ntads_s002.do" method='post'>
+					<input type="hidden" id="metaPageIndex" name="metaPageIndex" value="1" />
+					<input type="hidden" id="dsId" name="dsId" value="18" />
+					<input type="hidden" id="svcCde" name="svcCde" value="NA" />
+					</form>
+			</div>
+			
+			<div class="list bd hover">
+				<ul>
+					<li class="toggle one on">
+						<div class="item">
+							<div class="tag"><span class="badge min">공간</span></div>
+							<div class="tit fix">GIS건물통합정보</div>
+							<div class="con br">연속지적도형정보를&nbsp;기반으로&nbsp;건물&nbsp;공간정보와&nbsp;건축행정시스템&#40;세움터&#41;의&nbsp;건축물대장&nbsp;속성정보를&nbsp;건물단위로&nbsp;통합하여&nbsp;구축한&nbsp;공간&#40;토지&#41;기반의&nbsp;건물통합정보</div>
+							<div class="txt"><span>데이터 수<em>14,422,486</em>건</span><span>데이터 용량<em>6,605</em>MB</span></div>
+						</div>
+						<button type="button" class="bt ico arrow only on">상세보기</button>
+						<div class="slipbox bg" style="display: block;" tabindex="0">
+							<h6 class="blind">GIS건물통합정보</h6>
+							<div class="field">
+								<div class="headline">
+									<p class="title">생산주체</p>
+								</div>
+								<dl class="bd bg">
+									<dt>관리기관/부서</dt>
+									<dd class="min">국토교통부 / 국토교통부</dd>
+									<dt>시스템명</dt>
+									<dd class="min">K-Geo플랫폼</dd>
+									<dt>생산기관/부서</dt>
+									<dd class="min">시군구 / 지자체</dd>
+									<dt>갱신주기</dt>
+									<dd class="min">매월(일)</dd>
+								</dl>
+								<div class="headline">
+									<p class="title">공간정보</p>
+								</div>
+								<dl class="bd bg">
+									<dt>타원체</dt>
+									<dd class="min">Bessel</dd>
+									<dt>투영법</dt>
+									<dd class="min">횡메르카토르투영법(TM proj.)</dd>
+									<dt>좌표계</dt>
+									<dd class="min">평면직각좌표계</dd>
+									<dt>객체형태</dt>
+									<dd class="min">면</dd>
+								</dl>
+								<div class="headline">
+									<p class="title">취합주체</p>
+								</div>
+								<dl class="bd bg">
+									<dt>관리기관/부서</dt>
+									<dd class="min">국토교통부 / 국가공간정보센터</dd>
+									<dt>시스템명</dt>
+									<dd class="min">국토정보시스템</dd>
+									<dt>수집주기</dt>
+									<dd class="min">변경발생시</dd>
+									<dt>수집방법</dt>
+									<dd class="min">연계</dd>
+								</dl>
+								<div class="headline">
+									<p class="title">구축</p>
+								</div>
+								<dl class="bd bg">
+									<dt>지리적 범위</dt>
+									<dd class="min">전국</dd>
+									<dt>시간적 범위</dt>
+									<dd class="min">최종버전(갱신일 기준)</dd>
+								</dl>
+								<div class="headline">
+									<p class="title">공개</p>
+								</div>
+								<dl class="bd bg">
+									<dt>개방시스템</dt>
+									<dd></dd>
+									<dt>배포 데이터 좌표계</dt>
+									<dd class="min">GRS80, EPSG:5186(기준일: 2023-08-08~)/BESSEL, EPSG:5174(~기준일: 2023-08-05)</dd>
+									<dt>배포 데이터 포맷</dt>
+									<dd class="min">SHP</dd>
+								</dl>
+								<div class="headline">
+									<p class="title">유통</p>
+								</div>
+								<dl class="bd bg">
+									<dt>가격정책</dt>
+									<dd class="min">무상공급</dd>
+									<dt>판매방법</dt>
+									<dd class="min">웹 다운로드 서비스, API 서비스</dd>
+								</dl>
+								<dl class="headline">
+									<p class="title">비고</p>
+									<dd class="min"><p class="infotxt"></p></dd>
+								</dl>
+							</div>
+						</div>
+					</li>
+					</ul>
+			</div>
+			<div class="pages"><button type="button" class="pg on">1</button></div>
+<div id="qnaDiv"></div>
+
+			<div class="btns fe">
+				<a href="javascript:detailFnc.goList();" class="bt bd ml">목록</a>
+			</div>
+
+		</div>
+	</article><!--// content -->
+	
+	<!-- [popup] 오류신고 -->
+	<article class="popup hide" aria-hidden="true" id="pop-mistake--add">
+		<div class="conWrap">
+			<div class="conHead">
+				<h5 class="title">오류신고</h5>
+				<button type="button" class="bt ico close only">닫기</button>
+
+			</div>
+			<div class="conBody">
+			<div class="note bg">
+				<ul class="bd">
+					<li class="dot">운영에 부적합하다고 판단되는 글은 임의로 삭제처리 되며, 게시글 내용에 따라 삭제처리 될 수 있음을 알려 드립니다.</li>
+					<li class="dot">게시글 내용 입력 시 주민등록번호, 연락처 등 개인정보가 노출되지 않도록 주의하시기 바랍니다.</li>
+				</ul>
+			</div>
+				<form class="field br" id="errForm" name="errForm">
+					<ul>
+						<li>
+							<label class="blind" for="errReportTit">제목</label>
+							<input type="text" class="input validate[required, maxSize[80]]" placeholder="제목" value="" id="errReportTit" name="errReportTit" title="오류신고 제목">
+							<dd>
+							<div class="set radio">
+								<div class="check"><input type="radio" name="sctChk" id="sctChk1" value="Y" checked=""><label for="sctChk1">공개</label></div>
+								<div class="check"><input type="radio" name="sctChk" id="sctChk2" value="N"><label for="sctChk2">비공개</label></div>
+							</div>
+							</dd>
+						</li>
+						<li>
+							<div class="set text">
+								<label class="blind" for="errReportDes">내용</label>
+								<textarea class="textarea validate[required, maxSize[3000]]" placeholder="3,000자 이내 내용입력" id="errReportDes" name="errReportDes" maxlength="3000" onkeyup="javascript:checkLength('err', this);" title="요류신고 내용"></textarea>
+								<span class="byte"><b id="errReportCnt">0</b>/3000</span>
+							</div>
+						</li>
+						<li>
+							<div class="attach">
+								<label class="blind" for="file_1">첨부파일</label>
+								<dd id="fileErr">
+								
+								</dd>
+							</div>
+						</li>
+					</ul>
+				</form>
+			</div>
+			<div class="conFoot">
+				<div class="btns">
+					<a href="javascript:errFnc.cancel();" class="bt bg max">취소</a>
+					<a href="javascript:errFnc.save('NA', '18');" class="bt bg primary max">저장</a>
+				</div>
+			</div>
+		</div>
+	</article>
+	<!--// [popup] 오류신고 -->
+	
+	 <!-- [popup] 데이터셋 이미지 -->
+	 </article><!--// article --></section>
+			<footer class="footer">
+				<script type="text/javascript">
+var footerObj = {
+		move : function(){
+			if($("#footerPageMove").val() == ""){
+				msgFnc.alert({text : "이동할 사이트를 선택해주세요."
+					, callBackConfirmFnc : function(){
+						$("#footerPageMove").focus();
+					}
+				});
+				return;
+			}
+			window.open($("#footerPageMove").val(), '_blank');
+		}
+}
+</script>
+
+<nav class="nav">
+	<ul>
+		<li><a href="javascript:urlFnc.goAgree();" class="menu">이용약관</a></li>
+		<li><a href="javascript:urlFnc.goPrivacy();" class="menu"><strong>개인정보처리방침</strong></a></li>
+		<li><a href="javascript:urlFnc.goUnauthEmail();" class="menu">이메일무단수집거부</a></li>
+		<li><a href="javascript:urlFnc.goCpyrht();" class="menu">저작권정책</a></li>
+		<li><a href="javascript:urlFnc.goIntrcn();" class="menu">브이월드소개</a></li>
+		<li><a href="https://data.molit.go.kr/systemQuality/list?system_id=S0023" onclick="window.open(this.href, '품질오류신고 및 확인'); return false;" class="menu">품질오류신고 및 확인</a></li>
+	</ul>
+</nav>
+<div class="cscenter">
+<!-- 2024-08-30 국토부 요청으로  footer style 변경 -->
+<!-- 	<h6 class="title">고객센터<em>평일 09:00 ~ 18:00 (중식 12:00 ~ 13:00) / 주말 및 공휴일 휴무</em></h6> -->
+<!-- 	<p class="infotxt">※ 공간정보 오픈플랫폼(V-World) 서비스 관련 궁금한 사항은 공간정보산업진흥원 고객센터로 문의해주시기 바랍니다.</p> -->
+<!-- 	<div class="btns"> -->
+<!-- 		<a href="tel:16610115" class="bt ico call bg">1661 - 0115</a> -->
+<!-- 		<a href="mailto:vworld@spacen.or.kr" class="bt ico mail bg">vworld@spacen.or.kr</a> -->
+<!-- 	</div> -->
+	<h6 class="title">고객센터
+	<em>
+		<div class="btns">
+			<a href="tel:16610115" class="bt ico call bg">1661 - 0115</a>
+			<a href="mailto:vworld@spacen.or.kr" class="bt ico mail bg">vworld@spacen.or.kr</a>
+		</div>
+	</em>
+	</h6>
+	<div class="btns"><em>평일 09:00 ~ 18:00 (중식 12:00 ~ 13:00) / 주말 및 공휴일 휴무</em></div>
+	<div class="spacen">
+		<div class="logo"><strong>공간정보산업진흥원</strong></div>
+		<p class="address">[14055] 경기도 안양시 동안구 부림로170번길 41-4(디에스세미콘) 3층 공간정보산업진흥원</p>
+	</div>
+<!-- 2024-08-30 국토부 요청으로  footer style 변경 -->
+</div>
+<div class="organizer">
+	<div class="logo"><strong>V-world</strong>디지털트윈국토</div>
+	<p class="address">[30103] 세종특별자치시 도움6로 11 국토교통부</p>
+	<p class="copyright">Copyright (C) Ministry of Land, Infrastructure and Transport 2023. All Rights Reserved.</p>
+</div>
+<div class="set">
+	<label for="footerPageMove" class="blind">사이트 바로가기</label>
+	<select class="select" id="footerPageMove">
+		<option value="" selected>사이트 바로가기</option>
+		<option value="https://www.molit.go.kr/">국토교통부</option>
+		<option value="https://www.ngii.go.kr/">국토지리정보원</option>
+		<!-- option value="https://www.nsdi.go.kr/">국가공간정보포털</option-->
+		<option value="http://spacen.or.kr/">공간정보산업진흥원</option>
+		<option value="https://www.spacein.kr/">공간정보교육포털</option>
+		<option value="https://www.lx.or.kr/kor.do">한국국토정보공사</option>
+		<option value="http://www.siqms.or.kr">공간정보품질관리원</option>
+		<option value="https://www.kasm.or.kr">공간정보산업협회</option>
+		<option value="https://gsqm.lx.or.kr/index.do">공간정보표준통합지원시스템</option>
+	</select>
+	<button class="bt bg" onclick="footerObj.move();">이동</button>
+</div>
+<a href="#top" class="bt ico go only">맨위로 이동</a>
+</footer>
+		</div><!--//template-->
+	</div><!--//container-->
+</body>
+</html>

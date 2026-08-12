@@ -1,0 +1,63 @@
+{
+  "source_file": "raw/welfare/incheon_basic_livelihood_recipients_by_age_dong_20241231.csv",
+  "source_reference_date": "2024-12-31",
+  "raw_row_count": 8773,
+  "raw_column_count": 5,
+  "raw_duplicate_grain_count": 0,
+  "raw_null_cell_count": 0,
+  "raw_nonpositive_value_count": 0,
+  "source_distinct_geography_row_count": 171,
+  "source_admin_dong_snapshot_count": 161,
+  "source_district_named_non_admin_record_count": 10,
+  "source_to_current_one_to_one_count": 158,
+  "source_to_current_one_to_one_rate": 0.981366,
+  "current_admin_dong_count": 162,
+  "current_one_to_one_covered_count": 158,
+  "current_one_to_one_coverage_rate": 0.975309,
+  "current_split_unresolved_count": 4,
+  "mapping_status_counts_source_units": {
+    "one_to_one_mapped": 158,
+    "excluded_district_named_record": 10,
+    "one_to_many_split_unresolved": 2,
+    "retired_legacy_unit_unresolved": 1
+  },
+  "mapping_status_counts_current_dongs": {
+    "one_to_one_mapped": 158,
+    "one_to_many_split_unresolved": 4
+  },
+  "raw_recipient_count_by_qualification_all_ages": {
+    "기초교육급여": 3631,
+    "기초생계급여": 115929,
+    "기초의료급여": 9999,
+    "기초주거급여": 54701
+  },
+  "raw_recipient_count_by_qualification_age_65_plus": {
+    "기초교육급여": 3,
+    "기초생계급여": 52279,
+    "기초의료급여": 3525,
+    "기초주거급여": 19195
+  },
+  "one_to_one_mapped_recipient_count_by_qualification_age_65_plus": {
+    "기초교육급여": 3,
+    "기초생계급여": 48348,
+    "기초의료급여": 3190,
+    "기초주거급여": 18769
+  },
+  "unresolved_admin_source_recipient_count_by_qualification_age_65_plus": {
+    "기초생계급여": 788,
+    "기초의료급여": 67,
+    "기초주거급여": 417
+  },
+  "district_named_non_admin_recipient_count_by_qualification_age_65_plus": {
+    "기초생계급여": 3143,
+    "기초의료급여": 268,
+    "기초주거급여": 9
+  },
+  "important_quality_notes": [
+    "Qualification counts are not summed into a distinct-person count because benefit qualifications may overlap for one person.",
+    "The source contains positive cells only; absent qualification-age cells are represented as zero in source-dong summaries.",
+    "2024 운서동 and 아라동 values are retained at their pre-split grain and are not allocated to 2026 child dongs.",
+    "Rows whose 읍면동 label repeats the district are retained as non-admin records and are not distributed to dongs.",
+    "2024 검단4동 has no asserted 2026 equivalent; its sole raw observation is medical-benefit age 60-64 count 1, so its age-65-plus counts are zero."
+  ]
+}

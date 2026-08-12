@@ -1,0 +1,395 @@
+{
+  "generated_at_utc": "2026-08-12T08:49:03.296763+00:00",
+  "dataset": "Incheon administrative dong resident-registration annual December trends",
+  "grain": "one row per source administrative dong code and reference year",
+  "input_encoding": "CP949",
+  "output_encoding": "UTF-8",
+  "province_filter": "source admin name starts with 인천광역시",
+  "aggregate_filter": "exclude 10-digit codes whose last five digits are 00000",
+  "age_65_plus_policy": {
+    "calculated": false,
+    "reason": "All trend age sources aggregate ages 60-69 in one band, so ages 65-69 cannot be isolated exactly.",
+    "published_exact_alternatives": [
+      "age_60_plus_exact",
+      "age_70_plus_exact"
+    ],
+    "prohibited_interpretation": "Neither exact alternative is an age-65-plus estimate."
+  },
+  "boundary_harmonization_policy": {
+    "source_codes_and_names_preserved": true,
+    "reform_effective_date": "2026-07-01",
+    "requires_crosswalk_source_districts": [
+      "동구",
+      "서구",
+      "중구"
+    ],
+    "warning": "Do not aggregate pre-reform source codes into 2026 districts until the official crosswalk is applied."
+  },
+  "output_row_counts": {
+    "population": 798,
+    "households": 798,
+    "one_person_age": 480,
+    "combined": 798
+  },
+  "temporal_admin_code_transitions": [
+    {
+      "from_year": 2021,
+      "to_year": 2022,
+      "added": [],
+      "removed": [],
+      "renamed_same_code": []
+    },
+    {
+      "from_year": 2022,
+      "to_year": 2023,
+      "added": [],
+      "removed": [],
+      "renamed_same_code": []
+    },
+    {
+      "from_year": 2023,
+      "to_year": 2024,
+      "added": [
+        {
+          "source_admin_code": "2811062300",
+          "source_admin_name": "인천광역시 중구 영종2동"
+        }
+      ],
+      "removed": [],
+      "renamed_same_code": []
+    },
+    {
+      "from_year": 2024,
+      "to_year": 2025,
+      "added": [
+        {
+          "source_admin_code": "2826075000",
+          "source_admin_name": "인천광역시 서구 아라1동"
+        },
+        {
+          "source_admin_code": "2826076000",
+          "source_admin_name": "인천광역시 서구 아라2동"
+        }
+      ],
+      "removed": [
+        {
+          "source_admin_code": "2826074000",
+          "source_admin_name": "인천광역시 서구 아라동"
+        }
+      ],
+      "renamed_same_code": []
+    }
+  ],
+  "population_checks": {
+    "2021": {
+      "source_file": "jumin_population_age_202112.csv",
+      "sha256": "65650bc000cbc4b9d0cef100fb2af91f688a95a3791d343845472cca35155b85",
+      "source_column_count": 40,
+      "source_row_count": 3859,
+      "incheon_row_count_including_aggregates": 173,
+      "excluded_province_district_branch_aggregate_rows": 14,
+      "output_dong_row_count": 159,
+      "age_band_sum_mismatch_count": 0,
+      "age_band_sum_mismatch_codes": [],
+      "sex_sum_mismatch_count": 0,
+      "sex_sum_mismatch_codes": [],
+      "source_province_total": 2948375,
+      "output_dong_total": 2948375,
+      "province_total_mismatch_count": 0
+    },
+    "2022": {
+      "source_file": "jumin_population_age_202212.csv",
+      "sha256": "1acf495b0a5efeac56cf4501a8c38b5bdef6d36146e9ce0f66bec0bae1381dc9",
+      "source_column_count": 40,
+      "source_row_count": 3868,
+      "incheon_row_count_including_aggregates": 173,
+      "excluded_province_district_branch_aggregate_rows": 14,
+      "output_dong_row_count": 159,
+      "age_band_sum_mismatch_count": 0,
+      "age_band_sum_mismatch_codes": [],
+      "sex_sum_mismatch_count": 0,
+      "sex_sum_mismatch_codes": [],
+      "source_province_total": 2967314,
+      "output_dong_total": 2967314,
+      "province_total_mismatch_count": 0
+    },
+    "2023": {
+      "source_file": "jumin_population_age_202312.csv",
+      "sha256": "910c5632e2a9a40da58787b12967f8d344e211ce57c1d2fc66685df294d6b828",
+      "source_column_count": 40,
+      "source_row_count": 3878,
+      "incheon_row_count_including_aggregates": 173,
+      "excluded_province_district_branch_aggregate_rows": 14,
+      "output_dong_row_count": 159,
+      "age_band_sum_mismatch_count": 0,
+      "age_band_sum_mismatch_codes": [],
+      "sex_sum_mismatch_count": 0,
+      "sex_sum_mismatch_codes": [],
+      "source_province_total": 2997410,
+      "output_dong_total": 2997410,
+      "province_total_mismatch_count": 0
+    },
+    "2024": {
+      "source_file": "jumin_population_age_202412.csv",
+      "sha256": "f974dcf8a2ef20681f709746a4d19503142f4b726b2730e7eb48644fc58be64a",
+      "source_column_count": 40,
+      "source_row_count": 3910,
+      "incheon_row_count_including_aggregates": 174,
+      "excluded_province_district_branch_aggregate_rows": 14,
+      "output_dong_row_count": 160,
+      "age_band_sum_mismatch_count": 0,
+      "age_band_sum_mismatch_codes": [],
+      "sex_sum_mismatch_count": 0,
+      "sex_sum_mismatch_codes": [],
+      "source_province_total": 3021010,
+      "output_dong_total": 3021010,
+      "province_total_mismatch_count": 0
+    },
+    "2025": {
+      "source_file": "jumin_population_age_202512.csv",
+      "sha256": "3394cc25c9902d969d1e23dd5e7ddc50dee5f0813c9638003d3a997ebd05209e",
+      "source_column_count": 40,
+      "source_row_count": 3914,
+      "incheon_row_count_including_aggregates": 175,
+      "excluded_province_district_branch_aggregate_rows": 14,
+      "output_dong_row_count": 161,
+      "age_band_sum_mismatch_count": 0,
+      "age_band_sum_mismatch_codes": [],
+      "sex_sum_mismatch_count": 0,
+      "sex_sum_mismatch_codes": [],
+      "source_province_total": 3051961,
+      "output_dong_total": 3051961,
+      "province_total_mismatch_count": 0
+    }
+  },
+  "household_checks": {
+    "2021": {
+      "source_file": "jumin_households_size_202112.csv",
+      "sha256": "a7c525d5316399d8a4d2677c5dfbdcb7210972697d2a0486b107fd4319d3a11b",
+      "source_column_count": 12,
+      "source_row_count": 3845,
+      "incheon_row_count_including_aggregates": 170,
+      "excluded_province_district_aggregate_rows": 11,
+      "output_dong_row_count": 159,
+      "household_size_sum_mismatch_count": 0,
+      "household_size_sum_mismatch_codes": [],
+      "source_province_households_total": 1298647,
+      "output_dong_households_total": 1298647,
+      "source_province_one_person_total": 487849,
+      "output_dong_one_person_total": 487849,
+      "province_total_mismatch_count": 0
+    },
+    "2022": {
+      "source_file": "jumin_households_size_202212.csv",
+      "sha256": "5e6427cd4162910821771fd478e823ea26ab217bb5d4b1243add0ab9555a3961",
+      "source_column_count": 12,
+      "source_row_count": 3855,
+      "incheon_row_count_including_aggregates": 170,
+      "excluded_province_district_aggregate_rows": 11,
+      "output_dong_row_count": 159,
+      "household_size_sum_mismatch_count": 0,
+      "household_size_sum_mismatch_codes": [],
+      "source_province_households_total": 1322632,
+      "output_dong_households_total": 1322632,
+      "source_province_one_person_total": 503860,
+      "output_dong_one_person_total": 503860,
+      "province_total_mismatch_count": 0
+    },
+    "2023": {
+      "source_file": "jumin_households_size_202312.csv",
+      "sha256": "0ac1e7b4dd7e91ffe6d1bff694b4d7eedb03156b8ade70af2a855b06075a1adf",
+      "source_column_count": 12,
+      "source_row_count": 3864,
+      "incheon_row_count_including_aggregates": 170,
+      "excluded_province_district_aggregate_rows": 11,
+      "output_dong_row_count": 159,
+      "household_size_sum_mismatch_count": 0,
+      "household_size_sum_mismatch_codes": [],
+      "source_province_households_total": 1350912,
+      "output_dong_households_total": 1350912,
+      "source_province_one_person_total": 520954,
+      "output_dong_one_person_total": 520954,
+      "province_total_mismatch_count": 0
+    },
+    "2024": {
+      "source_file": "jumin_households_size_202412.csv",
+      "sha256": "607e9e296c382a49e6a457ebd8b9b07ac7de5071859fe735231a55cdcba4f827",
+      "source_column_count": 12,
+      "source_row_count": 3896,
+      "incheon_row_count_including_aggregates": 171,
+      "excluded_province_district_aggregate_rows": 11,
+      "output_dong_row_count": 160,
+      "household_size_sum_mismatch_count": 0,
+      "household_size_sum_mismatch_codes": [],
+      "source_province_households_total": 1373827,
+      "output_dong_households_total": 1373827,
+      "source_province_one_person_total": 534083,
+      "output_dong_one_person_total": 534083,
+      "province_total_mismatch_count": 0
+    },
+    "2025": {
+      "source_file": "jumin_households_size_202512.csv",
+      "sha256": "35c9e96bc8798b62f4f51baad649712369e4426d5ceb9a0a58205cdb166e9b1e",
+      "source_column_count": 12,
+      "source_row_count": 3899,
+      "incheon_row_count_including_aggregates": 172,
+      "excluded_province_district_aggregate_rows": 11,
+      "output_dong_row_count": 161,
+      "household_size_sum_mismatch_count": 0,
+      "household_size_sum_mismatch_codes": [],
+      "source_province_households_total": 1400788,
+      "output_dong_households_total": 1400788,
+      "source_province_one_person_total": 549049,
+      "output_dong_one_person_total": 549049,
+      "province_total_mismatch_count": 0
+    }
+  },
+  "one_person_age_checks": {
+    "2023": {
+      "source_file": "jumin_one_person_age_202312.csv",
+      "sha256": "308f9c78651ea7cd5e2b455667de091316dd11777bce46943180ba7bef100f8c",
+      "source_column_count": 40,
+      "source_row_count": 3870,
+      "incheon_row_count_including_aggregates": 170,
+      "excluded_province_district_aggregate_rows": 11,
+      "output_dong_row_count": 159,
+      "age_band_sum_mismatch_count": 0,
+      "age_band_sum_mismatch_codes": [],
+      "sex_sum_mismatch_count": 0,
+      "sex_sum_mismatch_codes": [],
+      "source_province_total": 520954,
+      "output_dong_total": 520954,
+      "province_total_mismatch_count": 0
+    },
+    "2024": {
+      "source_file": "jumin_one_person_age_202412.csv",
+      "sha256": "7182caf4d39b4d21b195b0dc4462f0baad62208751ef9c02d80d9d2953610e3c",
+      "source_column_count": 40,
+      "source_row_count": 3902,
+      "incheon_row_count_including_aggregates": 171,
+      "excluded_province_district_aggregate_rows": 11,
+      "output_dong_row_count": 160,
+      "age_band_sum_mismatch_count": 0,
+      "age_band_sum_mismatch_codes": [],
+      "sex_sum_mismatch_count": 0,
+      "sex_sum_mismatch_codes": [],
+      "source_province_total": 534083,
+      "output_dong_total": 534083,
+      "province_total_mismatch_count": 0
+    },
+    "2025": {
+      "source_file": "jumin_one_person_age_202512.csv",
+      "sha256": "9da022536c63782c47badc668ac1496bbe327fdb8ad09632a092c0eacbe7b4fb",
+      "source_column_count": 40,
+      "source_row_count": 3906,
+      "incheon_row_count_including_aggregates": 172,
+      "excluded_province_district_aggregate_rows": 11,
+      "output_dong_row_count": 161,
+      "age_band_sum_mismatch_count": 0,
+      "age_band_sum_mismatch_codes": [],
+      "sex_sum_mismatch_count": 0,
+      "sex_sum_mismatch_codes": [],
+      "source_province_total": 549049,
+      "output_dong_total": 549049,
+      "province_total_mismatch_count": 0
+    }
+  },
+  "cross_source_alignment": {
+    "2021": {
+      "population_code_count": 159,
+      "household_code_count": 159,
+      "one_person_age_code_count": 0,
+      "population_only_codes": [],
+      "household_only_codes": [],
+      "one_person_age_missing_codes": [],
+      "one_person_age_extra_codes": [],
+      "one_person_count_cross_source_mismatch_count": 0,
+      "one_person_count_cross_source_mismatches": [],
+      "source_name_cross_source_mismatch_count": 0,
+      "source_name_cross_source_mismatches": []
+    },
+    "2022": {
+      "population_code_count": 159,
+      "household_code_count": 159,
+      "one_person_age_code_count": 0,
+      "population_only_codes": [],
+      "household_only_codes": [],
+      "one_person_age_missing_codes": [],
+      "one_person_age_extra_codes": [],
+      "one_person_count_cross_source_mismatch_count": 0,
+      "one_person_count_cross_source_mismatches": [],
+      "source_name_cross_source_mismatch_count": 0,
+      "source_name_cross_source_mismatches": []
+    },
+    "2023": {
+      "population_code_count": 159,
+      "household_code_count": 159,
+      "one_person_age_code_count": 159,
+      "population_only_codes": [],
+      "household_only_codes": [],
+      "one_person_age_missing_codes": [],
+      "one_person_age_extra_codes": [],
+      "one_person_count_cross_source_mismatch_count": 0,
+      "one_person_count_cross_source_mismatches": [],
+      "source_name_cross_source_mismatch_count": 0,
+      "source_name_cross_source_mismatches": []
+    },
+    "2024": {
+      "population_code_count": 160,
+      "household_code_count": 160,
+      "one_person_age_code_count": 160,
+      "population_only_codes": [],
+      "household_only_codes": [],
+      "one_person_age_missing_codes": [],
+      "one_person_age_extra_codes": [],
+      "one_person_count_cross_source_mismatch_count": 0,
+      "one_person_count_cross_source_mismatches": [],
+      "source_name_cross_source_mismatch_count": 0,
+      "source_name_cross_source_mismatches": []
+    },
+    "2025": {
+      "population_code_count": 161,
+      "household_code_count": 161,
+      "one_person_age_code_count": 161,
+      "population_only_codes": [],
+      "household_only_codes": [],
+      "one_person_age_missing_codes": [],
+      "one_person_age_extra_codes": [],
+      "one_person_count_cross_source_mismatch_count": 0,
+      "one_person_count_cross_source_mismatches": [],
+      "source_name_cross_source_mismatch_count": 0,
+      "source_name_cross_source_mismatches": []
+    }
+  },
+  "aggregate_sanity_totals": {
+    "population_total_by_year": {
+      "2021": 2948375,
+      "2022": 2967314,
+      "2023": 2997410,
+      "2024": 3021010,
+      "2025": 3051961
+    },
+    "households_total_by_year": {
+      "2021": 1298647,
+      "2022": 1322632,
+      "2023": 1350912,
+      "2024": 1373827,
+      "2025": 1400788
+    },
+    "one_person_households_by_year": {
+      "2021": 487849,
+      "2022": 503860,
+      "2023": 520954,
+      "2024": 534083,
+      "2025": 549049
+    },
+    "one_person_age_total_by_year": {
+      "2023": 520954,
+      "2024": 534083,
+      "2025": 549049
+    }
+  },
+  "critical_failure_count": 0,
+  "critical_failures": [],
+  "status": "pass"
+}

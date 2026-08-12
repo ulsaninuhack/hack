@@ -1,0 +1,79 @@
+{
+  "checks": {
+    "all_emitted_coordinates_in_broad_incheon_envelope": true,
+    "ambiguous_pnu_never_received_geocoded_coordinate": true,
+    "archive_sha256_matches_provenance": true,
+    "every_row_marked_private_analysis_only": true,
+    "every_row_requires_public_export_review": true,
+    "facility_ids_unique": true,
+    "input_output_row_count_equal": true,
+    "no_public_exact_point_output_created_by_this_pipeline": true
+  },
+  "coordinate_source_counts": {
+    "juso_pnu_vworld_representative_point": 2836,
+    "none": 333,
+    "source_dataset_coordinate": 225
+  },
+  "counts": {
+    "best_coordinate_available": 3061,
+    "best_coordinate_missing": 333,
+    "canonical_facilities": 3394,
+    "existing_source_coordinate": 225,
+    "invalid_best_coordinates": 0,
+    "new_offline_coordinate_used": 2836,
+    "unique_facility_ids": 3394,
+    "unique_juso_pnu_matches": 3319,
+    "vworld_geocoded": 3049
+  },
+  "existing_vs_geocoded_distance_meters": {
+    "comparison_count": 213,
+    "max": 1106.046,
+    "median": 6.797,
+    "over_1000m": 1,
+    "p95": 100.405
+  },
+  "geocode_status_counts": {
+    "ambiguous_juso_pnu": 4,
+    "building_number_not_parsed": 8,
+    "matched_juso_pnu_no_vworld_geometry": 270,
+    "matched_vworld_pnu": 3049,
+    "no_juso_address_match": 21,
+    "road_not_parsed": 42
+  },
+  "inputs": {
+    "canonical": "processed/facilities_canonical.csv",
+    "juso_archive_sha256": "3d6dc01f6cb1bf8a95cff3c5d956dd2d5a87b37647ffb80f621848e5ab4efad9",
+    "juso_building_db": "raw/address/juso_building_db_202607.zip",
+    "juso_building_rows_read": 250222,
+    "vworld_building_polygons_read": 309851,
+    "vworld_integrated_buildings": "raw/housing/vworld_incheon_building_integrated_20260809.zip"
+  },
+  "outputs": {
+    "coverage_json": "processed/facilities_geocoding_coverage_by_district.json",
+    "private_csv": "processed/facilities_geocoded_private.csv",
+    "public_exact_point_outputs": []
+  },
+  "pipeline": "juso_unique_pnu_to_vworld_building_representative_point",
+  "pipeline_version": 1,
+  "privacy_scope": "private_analysis_only",
+  "public_export_contract": {
+    "coordinate_fields": [
+      "best_latitude",
+      "best_longitude"
+    ],
+    "excluded_from_this_private_output": [
+      "phone",
+      "capacity_max_reported",
+      "current_occupancy_max_reported",
+      "staff_count_max_reported",
+      "source_facility_codes"
+    ],
+    "join_key": "facility_id",
+    "required_action": "A separate exporter must affirmatively select allowed fields/categories. Do not copy this private CSV wholesale."
+  },
+  "rates": {
+    "best_coordinate_available_pct": 90.1886,
+    "vworld_geocoded_pct": 89.835
+  },
+  "status": "pass"
+}

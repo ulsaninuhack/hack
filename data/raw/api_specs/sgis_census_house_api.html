@@ -1,0 +1,2432 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../../../resource/css/base.css">
+    <link rel="stylesheet" href="../../../resource/css/layout.css">
+    <link rel="stylesheet" href="../../../resource/css/common.css">
+    <link rel="stylesheet" href="../../../resource/css/content.css">
+    <script type="text/javascript" src="../../../resource/JS/jqueryMin.js"></script>
+	<script src="../../../../js/common/includeHead.js"></script>
+	<script src="../../../../js/common/common.js"></script>
+	<script type="text/javascript" src="../../../../js/bookmark/bookMark.js"></script>
+    <script type="text/javascript" src="../../../resource/JS/plugins/jquery.highlight.js"></script>
+
+    <link rel="shortcut icon" href="../../../resource/images/favicon.ico">
+    <title>개발지원센터</title> 
+</head>
+<body>
+    <header></header>
+    <div class="sub">
+        <aside>
+            <ul class="depth01">
+                <li><a href="../dataApi/ready.html">준비하기</a></li>
+                <!-- 해당 페이지 addClass : on -->
+				<li><a href="../dataApi/authAndUseApi.html">인증 및 API 사용방법</a></li>
+				<li><a href="../dataApi/introMajorApi.html">주요 API 소개</a></li>
+				<li class=""><a href="../dataApi/basics.html">API 정의 및 사용예제</a><!-- 하위 depth 페이지일때 상위 depth는 addClass : on -->
+                    <!-- depth가 있을때만 버튼이 생성되며, 버튼 클릭시 부모 li에 addClass : hide (접음) -->
+                    <button type="button" class="btnFold"></button>
+                    <ul class="depth02">
+                        <li class=""><strong>기본사항</strong><!-- 하위 depth 페이지일때 상위 depth는 addClass : on -->
+                            <button type="button" class="btnFold"></button>
+                            <ul class="depth03">
+                                <li><a href="../dataApi/basics.html">인증</a></li>
+								<li><a href="../dataApi/basics.html#javascriptAuth">JavaScript제공</a></li>
+                            </ul>
+                        </li>
+                        <li><strong>좌표</strong>
+                            <button type="button" class="btnFold"></button>
+                            <ul class="depth03">
+                                <li><a href="../dataApi/coord.html">좌표변환</a></li>
+                            </ul>
+                        </li>
+                        <li><strong>센서스 통계</strong>
+                            <button type="button" class="btnFold"></button>
+                            <ul class="depth03">
+                                <li style="font-weight: bold;" class="on"><a href="javascript:logWriteAndMove('A0', '07', '04', '03', '총조사 주요지표', '', '../dataApi/census.html#population', false);">총조사 주요지표</a></li>
+								<li><a href="javascript:logWriteAndMove('A0', '07', '04', '03', '인구통계 조건검색', '', '../dataApi/census.html#searchPopulation', false);">인구통계</a></li>
+								<li><a href="javascript:logWriteAndMove('A0', '07', '04', '03', '가구통계', '', '../dataApi/census.html#household', false);">가구통계</a></li>
+								<li><a href="javascript:logWriteAndMove('A0', '07', '04', '03', '주택통계', '', '../dataApi/census.html#house', false);">주택통계</a></li>
+								<li><a href="javascript:logWriteAndMove('A0', '07', '04', '03', '사업체통계', '', '../dataApi/census.html#company', false);">사업체통계</a></li>
+								<li><a href="javascript:logWriteAndMove('A0', '07', '04', '03', '산업분류', '', '../dataApi/census.html#industryCode', false);">산업분류</a></li>
+								<li><a href="javascript:logWriteAndMove('A0', '07', '04', '03', '농가통계', '', '../dataApi/census.html#farmhousehold', false);">농가통계</a></li>
+								<li><a href="javascript:logWriteAndMove('A0', '07', '04', '03', '임가통계', '', '../dataApi/census.html#forestryhousehold', false);">임가통계</a></li>
+								<li><a href="javascript:logWriteAndMove('A0', '07', '04', '03', '어가통계', '', '../dataApi/census.html#fisheryhousehold', false);">어가통계</a></li>
+								<li><a href="javascript:logWriteAndMove('A0', '07', '04', '03', '가구원통계', '', '../dataApi/census.html#householdmember', false);">가구원통계</a></li>
+                            </ul>
+                        </li>
+                        <li><strong>검색</strong>
+                            <button type="button" class="btnFold"></button>
+                            <ul class="depth03">
+                                <li><a href="../dataApi/search.html" onclick="setScroll();">연관어검색</a></li>
+								<li><a href="../dataApi/search.html#sop" onclick="setScroll();">SOP검색</a></li>
+							<!--mng_s 20230915 이태헌 kosis 검색 서비스 중단으로 인해 주석처리  -->	
+								<!-- <li><a href="../dataApi/search.html#kosis" onclick="setScroll();">KOSIS검색</a></li> -->
+							<!-- mng_e 20230915 이태헌 -->	
+                            </ul>
+                        </li>
+                        <li><strong>우리동네 생활업종</strong>
+                            <button type="button" class="btnFold"></button>
+                            <ul class="depth03">
+                                <li><a href="../dataApi/lifeBizStatsMap.html" onclick="setScroll();">생활업종 후보지검색</a></li>
+		                        <li><a href="../dataApi/lifeBizStatsMap.html#pplsummary" onclick="setScroll();">거주인구 요약정보</a></li>
+		                        <li><a href="../dataApi/lifeBizStatsMap.html#mfratiosummary" onclick="setScroll();">성별인구비율 요약정보</a></li>
+		                        <li><a href="../dataApi/lifeBizStatsMap.html#housesummary" onclick="setScroll();">거처종류 요약정보</a></li>
+								<!-- <li><a href="../dataApi/lifeBizStatsMap.html#ocptnsummary" onclick="setScroll();">점유형태 요약정보</a></li> -->
+		                        <li><a href="../dataApi/lifeBizStatsMap.html#corpdistsummary" onclick="setScroll();">소상공인 업종별 사업체비율</a></li>
+		                        <li><a href="../dataApi/lifeBizStatsMap.html#corpindecrease" onclick="setScroll();">소상공인 업종별 사업체증감</a></li>
+		                        <li><a href="../dataApi/lifeBizStatsMap.html#regiontotal" onclick="setScroll();">생활업종 후보지 정보</a></li>
+		                        <li><a href="../dataApi/lifeBizStatsMap.html#sidotobrank" onclick="setScroll();">시도별 생활업종 순위</a></li>
+		                        <li><a href="../dataApi/lifeBizStatsMap.html#sidotobinfo" onclick="setScroll();">시도별 생활업종 정보</a></li>
+		                        <li><a href="../dataApi/lifeBizStatsMap.html#sidotobgroup" onclick="setScroll();">시도별 생활업종 속성</a></li>
+		                        <li><a href="../dataApi/lifeBizStatsMap.html#sggtobcorpcount" onclick="setScroll();">시군구별 생활업종 사업체수</a></li>
+		                        <li><a href="../dataApi/lifeBizStatsMap.html#sggtobinfo" onclick="setScroll();">시군구별 생활업종 정보</a></li>
+		                        <li><a href="../dataApi/lifeBizStatsMap.html#sggtobrank" onclick="setScroll();">생활업종별 시군구 순위</a></li>
+		                        <li><a href="../dataApi/lifeBizStatsMap.html#compareregiontotal" onclick="setScroll();">생활업종 후보지 비교</a></li>
+                            </ul>
+                        </li>
+                        <li><strong>주소경계</strong>
+                            <button type="button" class="btnFold"></button>
+                            <ul class="depth03">
+                                <li><a href="../dataApi/addressBoundary.html" onclick="setScroll();">단계별 주소 조회</a></li>
+		                        <li><a href="../dataApi/addressBoundary.html#geocode" onclick="setScroll();">지오코딩</a></li>
+		                        <li><a href="../dataApi/addressBoundary.html#geocodewgs84" onclick="setScroll();">지오코딩(WGS84)</a></li><!-- mng_20231113 김도영 지오코딩(WGS84)추가 -->
+		                        <li><a href="../dataApi/addressBoundary.html#rgeocode" onclick="setScroll();">리버스 지오코딩</a></li>
+		                        <li><a href="../dataApi/addressBoundary.html#rgeocodewgs84" onclick="setScroll();">리버스 지오코딩(WGS84)</a></li><!-- mng_20231113 김도영 리버스 지오코딩(WGS84)추가 -->
+		                        <li><a href="../dataApi/addressBoundary.html#hadmarea" onclick="setScroll();">행정구역경계</a></li>
+		                        <li><a href="../dataApi/addressBoundary.html#statsarea" onclick="setScroll();">집계구경계</a></li>
+		                        <li><a href="../dataApi/addressBoundary.html#userarea" onclick="setScroll();">영역내경계</a></li>
+                            </ul>
+                        </li>
+                        <li><strong>사업체 전개도</strong>
+                            <button type="button" class="btnFold"></button>
+                            <ul class="depth03">
+                                <li><a href="../dataApi/deploymentChart.html" onclick="setScroll();">전개도 건물정보</a></li>
+		                        <!-- mng_s 20220920 이진호 -->
+								<!-- <li><a href="../dataApi/deploymentChart.html#buildingattribute" onclick="setScroll();">건물 층정보</a></li> -->
+								<li><a href="../dataApi/deploymentChart.html#buildingattribute" onclick="setScroll();">건물 정보</a></li>
+								<!-- mng_e 20220920 이진호 -->
+		                        <li><a href="../dataApi/deploymentChart.html#floorboundary" onclick="setScroll();">층별 최외각 공간속성</a></li>
+		                        <li><a href="../dataApi/deploymentChart.html#floorcompany" onclick="setScroll();">층별 사업체 공간속성</a></li>
+		                        <li><a href="../dataApi/deploymentChart.html#flooretcfacility" onclick="setScroll();">층별 시설물 공간속성</a></li>
+		                        <li><a href="../dataApi/deploymentChart.html#floorcompanyinfo" onclick="setScroll();">건물층별 사업체정보</a></li>
+                            </ul>
+                        </li>
+                        <li><strong>지역현안 소통지도</strong>
+                            <button type="button" class="btnFold"></button>
+                            <ul class="depth03">
+                                <li><a href="../dataApi/community.html" onclick="setScroll();">지역현안 소통지도 목록</a></li>
+								<!-- <li><a href="javascript:logWriteAndMove('A0', '07', '04', '08', '지역현안 소통지도 상세', '', '#72">지역현안 소통지도 상세</a></li> -->
+                            </ul>
+                        </li>
+                        <li><strong>기술업종 통계</strong>
+                            <button type="button" class="btnFold"></button>
+                            <ul class="depth03">
+                                <li><a href="../dataApi/techBizStatsMap.html" onclick="setScroll();">전국 기술업종 정보</a></li>
+                        		<li><a href="../dataApi/techBizStatsMap.html#sidocompanyinfo" onclick="setScroll();">시도별 기술업종 정보</a></li>
+                        		<li><a href="../dataApi/techBizStatsMap.html#sggcompanyinfo" onclick="setScroll();">시군구별 기술업종 정보</a></li>
+                            </ul>
+                        </li>
+                        <li><strong>통계주제도</strong>
+                            <button type="button" class="btnFold"></button>
+                            <ul class="depth03">
+                                <li><a href="../dataApi/thematicMapCTGR.html" onclick="setScroll();">인구와 가구 목록</a></li>
+		                        <li><a href="../dataApi/thematicMapCTGR.html#CTGR001Data" onclick="setScroll();">인구와 가구 상세</a></li>
+		                        <li><a href="../dataApi/thematicMapCTGR.html#CTGR002List" onclick="setScroll();">주거와 교통 목록</a></li>
+		                        <li><a href="../dataApi/thematicMapCTGR.html#CTGR002Data" onclick="setScroll();">주거와 교통 상세</a></li>
+		                        <li><a href="../dataApi/thematicMapCTGR.html#CTGR003List" onclick="setScroll();">복지와 문화 목록</a></li>
+		                        <li><a href="../dataApi/thematicMapCTGR.html#CTGR003Data" onclick="setScroll();">복지와 문화 상세</a></li>
+		                        <li><a href="../dataApi/thematicMapCTGR.html#CTGR004List" onclick="setScroll();">노동과 경제 목록</a></li>
+		                        <li><a href="../dataApi/thematicMapCTGR.html#CTGR004Data" onclick="setScroll();">노동과 경제 상세</a></li>
+                            </ul>
+                        </li>
+                        <li><strong>지방의 변화보기</strong>
+                            <button type="button" class="btnFold"></button>
+                            <ul class="depth03">
+                                <li><a href="../dataApi/jibang.html" onclick="setScroll();">가구/인구비율 목록</a></li>
+		                        <li><a href="../dataApi/jibang.html#jibangAData" onclick="setScroll();">가구/인구비율 상세</a></li>
+		                        <li><a href="../dataApi/jibang.html#jibangBList" onclick="setScroll();">사회비율 목록</a></li>
+		                        <li><a href="../dataApi/jibang.html#jibangBData" onclick="setScroll();">사회비율 상세</a></li>
+		                        <li><a href="../dataApi/jibang.html#jibangCList" onclick="setScroll();">주택비율 목록</a></li>
+		                        <li><a href="../dataApi/jibang.html#jibangCData" onclick="setScroll();">주택비율 상세</a></li>
+		                        <li><a href="../dataApi/jibang.html#jibangDList" onclick="setScroll();">교통비율 목록</a></li>
+		                        <li><a href="../dataApi/jibang.html#jibangDData" onclick="setScroll();">교통비율 상세</a></li>
+		                        <li><a href="../dataApi/jibang.html#jibangEList" onclick="setScroll();">종교비율 목록</a></li>
+		                        <li><a href="../dataApi/jibang.html#jibangEData" onclick="setScroll();">종교비율 상세</a></li>
+		                        <li><a href="../dataApi/jibang.html#jibangFList" onclick="setScroll();">사업체비율 목록</a></li>
+		                        <li><a href="../dataApi/jibang.html#jibangFData" onclick="setScroll();">사업체비율 상세</a></li>
+                            </ul>
+                        </li>
+                        <li><strong>도시화 분석지도</strong>
+                            <button type="button" class="btnFold"></button>
+                            <ul class="depth03">
+                                <li><a href="../dataApi/urban.html" onclick="setScroll();">도시권 목록</a></li>
+		                        <li><a href="../dataApi/urban.html#urbanList" onclick="setScroll();">도시/준도시 목록</a></li>
+		                        <li><a href="../dataApi/urban.html#urbanArea" onclick="setScroll();">도시/준도시 경계</a></li>
+		                        <li><a href="../dataApi/urban.html#urbanInguData" onclick="setScroll();">도시별 인구 통계</a></li>
+		                        <li><a href="../dataApi/urban.html#urbanGaguData" onclick="setScroll();">도시별 가구 통계</a></li>
+		                        <li><a href="../dataApi/urban.html#urbanHouseData" onclick="setScroll();">도시별 주택 통계</a></li>
+		                        <li><a href="../dataApi/urban.html#urbanCorpData" onclick="setScroll();">사업체 통계</a></li>
+		                        <li><a href="../dataApi/urban.html#urbanIdxData" onclick="setScroll();">주요지표 통계</a></li>
+		                        <li><a href="../dataApi/urban.html#urbanFacData" onclick="setScroll();">도시별 생활시설 통계</a></li><!--mng_20231113 김도영 도시별 생활시설 통계 추가-->
+                            </ul>
+                        </li>
+                        <li><strong>개인화</strong>
+                            <button type="button" class="btnFold"></button>
+                            <ul class="depth03">
+                                <!--<li><a href="#91">소지역 코드찾기</a></li> -->
+                        		<li><a href="../dataApi/personal.html" onclick="setScroll();">소지역 코드찾기</a></li>
+                        		<li><a href="../dataApi/personal.html#dataYearInfo" onclick="setScroll();">최신/전체 기준년도 조회</a></li>
+                            </ul>
+                        </li>
+                        <li><strong>자연재해</strong>
+                            <button type="button" class="btnFold"></button>
+                            <ul class="depth03">
+                        		<li><a href="../dataApi/naturalCalamity.html" onclick="setScroll();">년도별 태풍정보 목록</a></li>
+                        		<li><a href="../dataApi/naturalCalamity.html#typInfoAdmCdList" onclick="setScroll();">태풍별 영향범위 목록</a></li>
+                        		<li><a href="../dataApi/naturalCalamity.html#typDataBoard" onclick="setScroll();">태풍별 통계정보 상세</a></li>
+                        		<li><a href="../dataApi/naturalCalamity.html#floodRiskAdmCdList" onclick="setScroll();">홍수위험지도 영향범위 목록</a></li>
+                        		<li><a href="../dataApi/naturalCalamity.html#floodRiskDataBoard" onclick="setScroll();">홍수위험지도 통계정보 상세</a></li>
+                        		<li><a href="../dataApi/naturalCalamity.html#lndsldWarnAdmCdList" onclick="setScroll();">산사태위험지도 영향범위 목록</a></li>
+                        		<li><a href="../dataApi/naturalCalamity.html#lndsldWarnDataBoard" onclick="setScroll();">산사태위험지도 통계정보 상세</a></li>
+                        		<li><a href="../dataApi/naturalCalamity.html#prevHwSpcnwsList" onclick="setScroll();">과거 폭염특보 목록</a></li>
+                        		<li><a href="../dataApi/naturalCalamity.html#prevHwImpctFrcstList" onclick="setScroll();">과거 폭염 영향예보 목록</a></li>
+                        		<li><a href="../dataApi/naturalCalamity.html#hwDataBoard" onclick="setScroll();">폭염 통계정보 상세</a></li>
+                            </ul>
+                        </li>
+                        <li><strong>격자경계</strong>
+                            <button type="button" class="btnFold"></button>
+                            <ul class="depth03">
+                        		<li><a href="../dataApi/admGrid.html">행정구역 격자경계</a></li>
+                            </ul>
+                        </li>
+                        <!-- mng_s 20251110 이진호 -->
+                        <li><strong>성씨분포</strong>
+                            <button type="button" class="btnFold"></button>
+                            <ul class="depth03">
+                        		<li><a href="../dataApi/lastName.html">50대 성씨 목록</a></li>
+                        		<li><a href="../dataApi/lastName.html#lastNamePopulation">50대 성씨 시군구별 인구수</a></li>
+                            </ul>
+                        </li>
+                        <!-- mng_e 20251110 이진호 -->
+                    </ul>
+                </li>
+            </ul>
+        </aside>
+        
+        <main>
+            <ul class="navigation">
+                <li>Home</li>
+                <li>데이터 API</li>
+                <li>API 정의 및 사용예제</li>
+                <li>센서스 통계</li>
+            </ul>
+            <div class="openMark"><img src="../../../resource/images/img_openMark.png"> </div>
+
+            <div class="content" id="population">
+                <article class="title">
+                    <h2>총조사 주요지표
+                        <div class="bookmark">
+                            <button type="button" title="즐겨찾기 등록" onclick="$bookMark.bookMark_add('dataAPI','센서스 통계','총조사 주요지표','/html/newOpenApi/api/dataApi/census.html#');"class="btnBmk">즐겨찾기 등록</button>
+                            <div class="popMsg">즐겨찾기</div>
+                        </div>
+                    </h2>
+                    <p>총조사 주요지표 조회 API</p>
+                </article>
+                <article class="detail">
+                    <h3>요청주소</h3>
+                    <p><span class="guideUrl">https://sgisapi.mods.go.kr/OpenAPI3/stats/population.json</span></p>
+                </article>
+                <article class="detail">
+                    <h3>요청정보(Body)</h3>
+                    <div class="tbl">
+                        <table>
+                            <colgroup>
+                                <col>
+                                <col>
+                                <col>
+                                <col>
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th><span>요청변수</span></th>
+                                    <th><span>값</span></th>
+                                    <th><span>Optional</span></th>
+                                    <th><span>설명</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">accessToken</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>필수</span></td>
+                                    <td><span>액세스토큰</span></td>
+                                </tr>
+                                
+                                <!-- mng_s 20241106 이진호, 센서스 반영 -->
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">year</em></span></td>
+                                    <td>
+                                    	<span>
+                                    		*인구/주택 관련 데이터 인 경우<br />
+											<!-- mng_s 20251125 양은채, 센서스 반영 -->
+											&nbsp;&nbsp;2015년(2015) ~ 2024년(2024) 
+											<!-- mng_e 20250328 양은채, 센서스 반영 -->
+											<br /><br />
+											<!-- mng_s 20260402 양은채, 2024 사업체 반영에 따른 수정 -->
+											*사업체 관련 데이터 인 경우<br />
+											&nbsp;&nbsp;2000년(2000) ~ 2024년(2024)
+											<!-- mng_e 20260402 양은채, 2024 사업체 반영에 따른 수정 -->
+											<br /><br />
+											*농가/임가/어가 관련 데이터 인 경우<br />
+											&nbsp;&nbsp;2000년 : 2000<br />
+											&nbsp;&nbsp;2005년 : 2005<br />
+											&nbsp;&nbsp;2010년 : 2010<br />
+											&nbsp;&nbsp;2015년 : 2015<br />
+											&nbsp;&nbsp;2020년 : 2020
+										</span></td>
+                                    <td><span>필수</span></td>
+                                    <td><span>기준연도</span></td>
+                                </tr>
+                                <!-- mng_e 20241106 이진호 -->
+                                
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">adm_cd</em></span></td>
+                                    <td>
+                                    	<span>
+		                                   	non   : 전국 시도 리스트<br />
+											2자리 : 해당 시도    <br />
+											5자리 : 해당 시군구  <br />
+											
+											<!-- mng_s 20220929 이진호 -->
+											<!-- 읍면동이 코드가 기존 7자리에서 8자리로 변경됨에 따라 수정 -->
+											<!-- 7자리 : 해당 읍면동  <br /> -->
+											8자리 : 해당 읍면동  <br />
+											<!-- mng_e 20220929 이진호 -->
+											
+										</span></td>
+                                    <td><span>선택</span></td>
+                                    <td><span>행정구역코드</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">low_search</em></span></td>
+                                    <td>
+                                    	<span>
+		                                   	행정구역코드에 해당하는 정보만 요청 : 0<br />
+											1단계 하위 행정구역 정보 요청 : 1<br />
+											2단계 하위 행정구역 정보 요청 : 2<br />
+											(default : 1)
+										</span></td>
+                                    <td><span>선택</span></td>
+                                    <td><span>하위 통계 정보 유무</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+                <article class="detail">
+                    <h3>응답정보</h3>
+                    <div class="tbl">
+                        <table>
+                            <colgroup>
+                                <col>
+                                <col>
+                                <col>
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th><span>출력변수</span></th>
+                                    <th><span>값</span></th>
+                                    <th><span>설명</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span><em class="guideResponse">adm_cd</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>행정구역코드</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideResponse">adm_nm</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>행정구역명<br/>
+									* 집계구에서는 나오지 않음	</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideResponse">tot_ppltn</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>총인구</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideResponse">avg_age</em></span></td>
+                                    <td><span>소수점 한자리</span></td>
+                                    <td><span>평균나이(세)</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideResponse">ppltn_dnsty</em></span></td>
+                                    <td><span>소수점 두자리</span></td>
+                                    <td><span>인구밀도(명/㎢)</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideResponse">aged_child_idx</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>노령화지수(일백명당 명)</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideResponse">oldage_suprt_per</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>노년부양비(일백명당 명)</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideResponse">juv_suprt_per</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>유년부양비(일백명당 명)</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideResponse">tot_family</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>총가구</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideResponse">avg_fmember_cnt</em></span></td>
+                                    <td><span>소수점 한자리</span></td>
+                                    <td><span>평균가구원수</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideResponse">tot_house</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>총주택</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideResponse">nongga_cnt</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>농가(가구)</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideResponse">nongga_ppltn</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>농가 인구</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideResponse">imga_cnt</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>임가(가구)</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideResponse">imga_ppltn</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>임가 인구</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideResponse">naesuoga_cnt</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>내수면 어가(가구)</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideResponse">naesuoga_ppltn</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>내수면 어가 인구</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideResponse">haesuoga_cnt</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>해수면 어가(가구)</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideResponse">haesuoga_ppltn</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>해수면 어가인구</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideResponse">employee_cnt</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>종업원수(전체 사업체)</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideResponse">corp_cnt</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>사업체수(전체 사업체)</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+                <article class="detail">
+                
+                    <h3>호출결과 예제 <button type="button" class="btn btn03" onclick="javascript:logWriteAndMove('A0', '07', '04', '19', '소스예제 실행 > 총조사 주요지표', '', '../../../newOpenApi/api/develop/dvp.html?type1=03&type2=01&seq=1', false);">&#60;&#47;&#62; 소스 예제 실행</button></h3>
+                    <div class="exmpMaker" style="max-height:500px;">
+                        <pre class="code" >
+                        	{
+	                            "id": "API_0301",
+								 "result": [
+								    {
+								      "imga_ppltn": "N/A",
+								      "adm_cd": "11010",
+								      "tot_house": "39727",
+								      "ppltn_dnsty": "6237",
+								      "tot_ppltn": "148920",
+								      "aged_child_idx": "106.8",
+								      "corp_cnt": "36779",
+								      "imga_cnt": "N/A",
+								      "employee_cnt": "236758",
+								      "haesuoga_cnt": "N/A",
+								      "juv_suprt_per": "16.2",
+								      "haesuoga_ppltn": "N/A",
+								      "tot_family": "57807",
+								      "adm_nm": "종로구",
+								      "nongga_cnt": "49",
+								      "naesuoga_ppltn": "N/A",
+								      "avg_age": "39.2",
+								      "avg_fmember_cnt": "2.5",
+								      "nongga_ppltn": "156",
+								      "naesuoga_cnt": "N/A",
+								      "oldage_suprt_per": "17.3"
+								    }
+								  ],
+								  "errMsg": "Success",
+								  "errCd": 0,
+								  "trId": "pqOr_API_0301_1461634087803"
+							}
+						</pre>
+                    </div>
+                </article>
+            </div>
+            
+            <div class="content" id="searchPopulation">
+                <article class="title">
+                    <h2>인구통계
+                        <div class="bookmark">
+                            <button type="button" title="즐겨찾기 등록" onclick="$bookMark.bookMark_add('dataAPI','센서스 통계','인구통계','/html/newOpenApi/api/dataApi/census.html#searchPopulation');"class="btnBmk">즐겨찾기 등록</button>
+                            <div class="popMsg">즐겨찾기</div>
+                        </div>
+                    </h2>
+                    <p>(인구주택총조사) 인구 통계 제공 API</p>
+                </article>
+                <article class="detail">
+                    <h3>요청주소</h3>
+                    <p><span class="guideUrl">https://sgisapi.mods.go.kr/OpenAPI3/stats/searchpopulation.json</span></p>
+                </article>
+                <article class="detail">
+                    <h3>요청정보(Body)</h3>
+                    <div class="tbl">
+                        <table>
+                            <colgroup>
+                                <col>
+                                <col>
+                                <col>
+                                <col>
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th><span>요청변수</span></th>
+                                    <th><span>값</span></th>
+                                    <th><span>Optional</span></th>
+                                    <th><span>설명</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">accessToken</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>필수</span></td>
+                                    <td><span>액세스토큰</span></td>
+                                </tr>
+                                <!-- mng_s 20241106 이진호, 센서스 반영 년도 추가  -->
+                                <!-- mng_s 20251125 양은채, 센서스 반영 년도 추가-->
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">year</em></span></td>
+                                    <td>
+                                    	<span>
+											2015년 : 2015<br />
+											2016년 : 2016<br />
+											2017년 : 2017<br />
+											2018년 : 2018<br />
+											2019년 : 2019<br />
+											2020년 : 2020<br />
+											2021년 : 2021<br />
+											2022년 : 2022<br />
+											2023년 : 2023<br />
+											2024년 : 2024
+										</span></td>
+                                    <td><span>필수</span></td>
+                                    <td><span>기준연도</span></td>
+                                </tr>
+                                <!-- mng_e 20251125 양은채, 센서스 반영 년도 추가-->
+                                <!-- mng_e 20241106 이진호 -->
+                                
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">gender</em></span></td>
+                                    <td>
+                                    	<span>
+		                                   	0   : 전체<br />
+											1	: 남자<br />
+											2	: 여자<br />
+											(default : 0)<br />
+										</span></td>
+                                    <td><span>선택</span></td>
+                                    <td><span>성별</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">adm_cd</em></span></td>
+                                    <td>
+                                    	<span>
+		                                   	non   : 전국 시도 리스트<br />
+											2자리 : 해당 시도    <br />
+											5자리 : 해당 시군구  <br />
+											
+											<!-- mng_s 20220929 이진호 -->
+											<!-- 읍면동이 코드가 기존 7자리에서 8자리로 변경됨에 따라 수정 -->
+											<!-- 7자리 : 해당 읍면동  <br /> -->
+											8자리 : 해당 읍면동  <br />
+											<!-- mng_e 20220929 이진호 -->
+											
+										</span></td>
+                                    <td><span>선택</span></td>
+                                    <td><span>행정구역코드 <br /> 
+                                    	"영역검색유무"가 행정구역일 경우</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">low_search</em></span></td>
+                                    <td>
+                                    	<span>
+		                                   	행정구역코드에 해당하는 정보만 요청 : 0<br />
+											1단계 하위 행정구역 정보 요청 : 1<br />
+											2단계 하위 행정구역 정보 요청 : 2<br />
+											(default : 1)
+										</span></td>
+                                    <td><span>선택</span></td>
+                                    <td><span>하위 통계 정보 유무<br/>
+                                    	"영역검색유무"가 행정구역일 경우</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">age_type</em></span></td>
+                                    <td>
+                                    	<span>
+		                                   <a onclick = "popup('PplAgeCode',400,720)" style = "cursor: pointer;">연령타입코드표 참고 <img src="../../../../images/api/searchbox_button.png" alt="연령타입코드표 참고" /> </a>
+										</span></td>
+                                    <td><span>선택</span></td>
+                                    <td><span>연령타입</span></td>
+                                </tr>
+                                 <!-- mng_s 20260618 양은채, 데이터 미제공에 따른 삭제 처리 -->
+<!--                                 <tr> -->
+<!--                                     <td><span><em class="guideImportant guideParam">edu_level</em></span></td> -->
+<!--                                     <td> -->
+<!--                                     	<span> -->
+<!-- 		                                   <a onclick = "popup('EduLevelCode',400,720)" style = "cursor: pointer;">교육정보코드표 참고 <img src="../../../../images/api/searchbox_button.png" alt="연령타입코드표 참고" /> </a> -->
+<!-- 										</span></td> -->
+<!--                                     <td><span>선택</span></td> -->
+<!--                                     <td><span>교육정도 <br/> -->
+<!--                                     	* 2010년까지 제공, 2015년도 이후는 제공하지 않음</span></td> -->
+<!--                                 </tr> -->
+<!--                                 <tr> -->
+<!--                                     <td><span><em class="guideImportant guideParam">mrg_state</em></span></td> -->
+<!--                                     <td> -->
+<!--                                     	<span> -->
+<!-- 		                                   	1  : 미혼 <br /> -->
+<!-- 											2  : 배우자 있음 <br /> -->
+<!-- 											3  : 사별 <br /> -->
+<!-- 											4  : 이혼 <br /> -->
+<!-- 											5  : 미상 <br /> -->
+<!-- 										</span></td> -->
+<!--                                     <td><span>선택</span></td> -->
+<!--                                     <td><span>혼인상태<br/> -->
+<!--                                     	* 2010년까지 제공,  2015년도 이후는 제공하지 않음</span></td> -->
+<!--                                 </tr> -->
+								<!-- mng_e 20260618 양은채, 데이터 미제공에 따른 삭제 처리 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+                <article class="detail">
+                    <h3>응답정보</h3>
+                    <div class="tbl">
+                        <table>
+                            <colgroup>
+                                <col>
+                                <col>
+                                <col>
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th><span>출력변수</span></th>
+                                    <th><span>값</span></th>
+                                    <th><span>설명</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span><em class="guideResponse">adm_cd</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>행정구역코드</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideResponse">adm_nm</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>행정구역명<br/>
+									* 집계구에서는 나오지 않음	</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideResponse">population</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>인구수</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+                <article class="detail">
+                    <h3>호출결과 예제 <button type="button" class="btn btn03" onclick="javascript:logWriteAndMove('A0', '07', '04', '19', '소스예제 실행 > 인구통계', '', '../../../newOpenApi/api/develop/dvp.html?type1=03&type2=02&seq=1', false);">&#60;&#47;&#62; 소스 예제 실행</button></h3>
+                    <!-- mng_s 20220929 이진호 -->
+                    <!-- 읍면동코드가 기존 7자리에서 8자리로 변경됨에 따른 예제 수정, adm_cd를 8자리로 -->
+                    <div class="exmpMaker" style="max-height:500px;">
+                        <pre class="code" >
+                        {
+							"id": "API_0302",
+							"result": [
+								{
+									"adm_cd": "11040550",
+									"adm_nm": "사근동",
+									"population": 3
+								},
+								{
+									"adm_cd": "11040680",
+									"adm_nm": "성수2가3동",
+									"population": 2
+								}
+							],
+							"errMsg": "Success",
+							"errCd": 0,
+							"trId": "O3*b_API_0302_1419229378262"
+						}
+                        </pre>
+                    </div>
+                    <!-- mng_e 20220929 이진호 -->
+                </article>
+            </div>
+            
+            <div class="content" id="household">
+                <article class="title">
+                    <h2>가구통계
+                        <div class="bookmark">
+                            <button type="button" title="즐겨찾기 등록" onclick="$bookMark.bookMark_add('dataAPI','센서스 통계','가구통계','/html/newOpenApi/api/dataApi/census.html#household');"class="btnBmk">즐겨찾기 등록</button>
+                            <div class="popMsg">즐겨찾기</div>
+                        </div>
+                    </h2>
+                    <p>(인구주택총조사) 가구 통계 제공 API</p>
+                </article>
+                <article class="detail">
+                    <h3>요청주소</h3>
+                    <p><span class="guideUrl">https://sgisapi.mods.go.kr/OpenAPI3/stats/household.json</span></p>
+                </article>
+                <article class="detail">
+                    <h3>요청정보(Body)</h3>
+                    <div class="tbl">
+                        <table>
+                            <colgroup>
+                                <col>
+                                <col>
+                                <col>
+                                <col>
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th><span>요청변수</span></th>
+                                    <th><span>값</span></th>
+                                    <th><span>Optional</span></th>
+                                    <th><span>설명</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">accessToken</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>필수</span></td>
+                                    <td><span>액세스토큰</span></td>
+                                </tr>
+                                
+                                <!-- mng_s 20241106 이진호, 센서스 반영 -->
+                                <!-- mng_s 20251125 양은채, 센서스 반영 -->
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">year</em></span></td>
+                                    <td>
+                                    	<span>
+											2015년 : 2015<br />
+											2016년 : 2016<br />
+											2017년 : 2017<br />
+											2018년 : 2018<br />
+											2019년 : 2019<br />
+											2020년 : 2020<br />
+											2021년 : 2021<br />
+											2022년 : 2022<br />
+											2023년 : 2023<br />
+											2024년 : 2024
+										</span></td>
+                                    <td><span>필수</span></td>
+                                    <td><span>기준연도</span></td>
+                                </tr>
+                                <!-- mng_e 20251125 양은채, 센서스 반영 -->
+                                <!-- mng_e 20241106 이진호 -->
+                                
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">adm_cd</em></span></td>
+                                    <td>
+                                    	<span>
+		                                   	non   : 전국 시도 리스트<br />
+											2자리 : 해당 시도    <br />
+											5자리 : 해당 시군구  <br />
+											
+											<!-- mng_s 20220929 이진호 -->
+											<!-- 읍면동이 코드가 기존 7자리에서 8자리로 변경됨에 따라 수정 -->
+											<!-- 7자리 : 해당 읍면동  <br /> -->
+											8자리 : 해당 읍면동  <br />
+											<!-- mng_e 20220929 이진호 -->
+											
+										</span></td>
+                                    <td><span>선택</span></td>
+                                    <td><span>행정구역코드 <br /> 
+                                    	"영역검색유무"가 행정구역일 경우</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">low_search</em></span></td>
+                                    <td>
+                                    	<span>
+		                                   	행정구역코드에 해당하는 정보만 요청 : 0<br />
+											1단계 하위 행정구역 정보 요청 : 1<br />
+											2단계 하위 행정구역 정보 요청 : 2<br />
+											(default : 1)
+										</span></td>
+                                    <td><span>선택</span></td>
+                                    <td><span>하위 통계 정보 유무<br/>
+                                    	"영역검색유무"가 행정구역일 경우</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">household_type</em></span></td>
+                                    <td>
+                                    	<span>
+		                                   <a onclick = "popup('HouseHoldCode',300,350)" style = "cursor: pointer;">세대구성코드표 참고  <img src="../../../../images/api/searchbox_button.png" alt="코드표 참고" /> </a>
+										</span></td>
+                                    <td><span>선택</span></td>
+                                    <td><span>세대구성별<br/>
+                                    		다중선택 시 1,2,3 형태로 작성</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">ocptn_type</em></span></td>
+                                    <td>
+                                    	<span>
+		                                   <a onclick = "popup('OcptnCode',300,350)" style = "cursor: pointer;">점유형태코드 참고  <img src="../../../../images/api/searchbox_button.png" alt="코드표 참고" /> </a>
+										</span></td>
+                                    <td><span>선택</span></td>
+                                    <td><span>점유형태<br/>
+                                    	다중선택 시 1,2,3 형태로 작성<br/>
+                                    	* 2010년까지 제공,  2015년도 이후는 제공하지 않음</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+                <article class="detail">
+                    <h3>응답정보</h3>
+                    <div class="tbl">
+                        <table>
+                            <colgroup>
+                                <col>
+                                <col>
+                                <col>
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th><span>출력변수</span></th>
+                                    <th><span>값</span></th>
+                                    <th><span>설명</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span><em class="guideResponse">adm_cd</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>행정구역코드</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideResponse">adm_nm</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>행정구역명<br/>
+									* 집계구에서는 나오지 않음	</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideResponse">household_cnt</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>가구수</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideResponse">family_member_cnt</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>총 가구원 수</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideResponse">avg_family_member_cnt</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>평균가구원수</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+                <article class="detail">
+                    <h3>호출결과 예제 <button type="button" class="btn btn03" onclick="javascript:logWriteAndMove('A0', '07', '04', '19', '소스예제 실행 > 가구통계', '', '../../../newOpenApi/api/develop/dvp.html?type1=03&type2=03&seq=1', false);">&#60;&#47;&#62; 소스 예제 실행</button></h3>
+                    
+                    <!-- mng_s 20220929 이진호 -->
+                    <!-- 읍면동 코드가 기존 7자리에서 8자리로 변경됨에 따라 예제에 adm_cd 부분도 8자리로 변경 -->
+                    <div class="exmpMaker" style="max-height:500px;">
+                        <pre class="code" >
+	                        {
+								"id": "API_0305",
+								"result": [
+									{
+										"family_member_cnt": 2518,
+										"adm_cd": "11040520",
+										"adm_nm": "왕십리2동",
+										"avg_family_member_cnt": "2",
+										"household_cnt": "1248"
+									},
+									{
+										"family_member_cnt": 3345,
+										"adm_cd": "11040540",
+										"adm_nm": "마장동",
+										"avg_family_member_cnt": "2",
+										"household_cnt": "1660"
+									},
+									{
+										"family_member_cnt": 1420,
+										"adm_cd": "11040550",
+										"adm_nm": "사근동",
+										"avg_family_member_cnt": "2",
+										"household_cnt": "705"
+									},
+									{
+										"family_member_cnt": 2071,
+										"adm_cd": "11040560",
+										"adm_nm": "행당1동",
+										"avg_family_member_cnt": "2",
+										"household_cnt": "1028"
+									},
+									{
+										"family_member_cnt": 3598,
+										"adm_cd": "11040570",
+										"adm_nm": "행당2동",
+										"avg_family_member_cnt": "2",
+										"household_cnt": "1784"
+									},
+									{
+										"family_member_cnt": 1954,
+										"adm_cd": "11040580",
+										"adm_nm": "응봉동",
+										"avg_family_member_cnt": "2",
+										"household_cnt": "963"
+									},
+									{
+										"family_member_cnt": 2329,
+										"adm_cd": "11040590",
+										"adm_nm": "금호1가동",
+										"avg_family_member_cnt": "2",
+										"household_cnt": "1162"
+									},
+									{
+										"family_member_cnt": 2285,
+										"adm_cd": "11040620",
+										"adm_nm": "금호4가동",
+										"avg_family_member_cnt": "2",
+										"household_cnt": "1136"
+									},
+									{
+										"family_member_cnt": 2504,
+										"adm_cd": "11040650",
+										"adm_nm": "성수1가1동",
+										"avg_family_member_cnt": "2",
+										"household_cnt": "1244"
+									},
+									{
+										"family_member_cnt": 2038,
+										"adm_cd": "11040660",
+										"adm_nm": "성수1가2동",
+										"avg_family_member_cnt": "2",
+										"household_cnt": "1021"
+									},
+									{
+										"family_member_cnt": 2595,
+										"adm_cd": "11040670",
+										"adm_nm": "성수2가1동",
+										"avg_family_member_cnt": "2",
+										"household_cnt": "1296"
+									},
+									{
+										"family_member_cnt": 1664,
+										"adm_cd": "11040680",
+										"adm_nm": "성수2가3동",
+										"avg_family_member_cnt": "2",
+										"household_cnt": "827"
+									},
+									{
+										"family_member_cnt": 1513,
+										"adm_cd": "11040690",
+										"adm_nm": "송정동",
+										"avg_family_member_cnt": "2",
+										"household_cnt": "753"
+									},
+									{
+										"family_member_cnt": 1538,
+										"adm_cd": "11040700",
+										"adm_nm": "용답동",
+										"avg_family_member_cnt": "2",
+										"household_cnt": "776"
+									},
+									{
+										"family_member_cnt": 3605,
+										"adm_cd": "11040710",
+										"adm_nm": "왕십리도선동",
+										"avg_family_member_cnt": "2",
+										"household_cnt": "1795"
+									},
+									{
+										"family_member_cnt": 3583,
+										"adm_cd": "11040720",
+										"adm_nm": "금호2·3가동",
+										"avg_family_member_cnt": "2",
+										"household_cnt": "1774"
+									},
+									{
+										"family_member_cnt": 4297,
+										"adm_cd": "11040730",
+										"adm_nm": "옥수동",
+										"avg_family_member_cnt": "2",
+										"household_cnt": "2139"
+									}
+								],
+								"errMsg": "Success",
+								"errCd": 0,
+								"trId": "8EeN_API_0305_1650327391243"
+							}
+                        </pre>
+                    </div>
+                    <!-- mng_e 20220929 이진호 -->
+                    
+                </article>
+            </div>
+            
+            <!-- 주택통계 START -->
+            <div class="content" id="house">
+                <article class="title">
+                    <h2>주택통계
+                        <div class="bookmark">
+                            <button type="button" title="즐겨찾기 등록" onclick="$bookMark.bookMark_add('dataAPI','센서스 통계','주택통계','/html/newOpenApi/api/dataApi/census.html#house');"class="btnBmk">즐겨찾기 등록</button>
+                            <div class="popMsg">즐겨찾기</div>
+                        </div>
+                    </h2>
+                    <p>(인구주택총조사) 주택 통계 제공 API</p>
+                </article>
+                <article class="detail">
+                    <h3>요청주소</h3>
+                    <p><span class="guideUrl">https://sgisapi.mods.go.kr/OpenAPI3/stats/house.json</span></p>
+                </article>
+                <article class="detail">
+                    <h3>요청정보(Body)</h3>
+                    <div class="tbl">
+                        <table>
+                            <colgroup>
+                                <col>
+                                <col>
+                                <col>
+                                <col>
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th><span>요청변수</span></th>
+                                    <th><span>값</span></th>
+                                    <th><span>Optional</span></th>
+                                    <th><span>설명</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">accessToken</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>필수</span></td>
+                                    <td><span>액세스토큰</span></td>
+                                </tr>
+                                
+                                <!-- mng_s 20241106 이진호, 센서스 반영 -->
+                                <!-- mng_s 20251125 양은채, 센서스 반영 -->
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">year</em></span></td>
+                                    <td>
+                                    	<span>
+											2015년 : 2015<br />
+											2016년 : 2016<br />
+											2017년 : 2017<br />
+											2018년 : 2018<br />
+											2019년 : 2019<br />
+											2020년 : 2020<br />
+											2021년 : 2021<br />
+											2022년 : 2022<br />
+											2023년 : 2023<br />
+											2024년 : 2024
+										</span></td>
+                                    <td><span>필수</span></td>
+                                    <td><span>기준연도</span></td>
+                                </tr>
+                                <!-- mng_e 20251125 양은채, 센서스 반영 -->
+                                <!-- mng_e 20241106 이진호 -->
+                                
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">adm_cd</em></span></td>
+                                    <td>
+                                    	<span>
+		                                   	non   : 전국 시도 리스트<br />
+											2자리 : 해당 시도    <br />
+											5자리 : 해당 시군구  <br />
+											
+											<!-- mng_s 20220929 이진호 -->
+											<!-- 읍면동이 코드가 기존 7자리에서 8자리로 변경됨에 따라 수정 -->
+											<!-- 7자리 : 해당 읍면동  <br /> -->
+											8자리 : 해당 읍면동  <br />
+											<!-- mng_e 20220929 이진호 -->
+											
+										</span></td>
+                                    <td><span>선택</span></td>
+                                    <td><span>행정구역코드 <br /> 
+                                    	"영역검색유무"가 행정구역일 경우</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">low_search</em></span></td>
+                                    <td>
+                                    	<span>
+		                                   	행정구역코드에 해당하는 정보만 요청 : 0<br />
+											1단계 하위 행정구역 정보 요청 : 1<br />
+											2단계 하위 행정구역 정보 요청 : 2<br />
+											(default : 1)
+										</span></td>
+                                    <td><span>선택</span></td>
+                                    <td><span>하위 통계 정보 유무<br/>
+                                    	"영역검색유무"가 행정구역일 경우</span></td>
+                                </tr>
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">house_type</em></span></td>
+                                    <td>
+                                    	<span>
+		                                   <a onclick = "popup('HouseCode',300,350)" style = "cursor: pointer;">주택유형 코드 참고  <img src="../../../../images/api/searchbox_button.png" alt="코드표 참고" /> </a>
+										</span>
+									</td>
+                                    <td><span>선택</span></td>
+                                    <td><span>주택유형</span></td>
+                                </tr>
+                                
+                                 <tr>
+                                    <td><span><em class="guideImportant guideParam">const_year</em></span></td>
+                                    <td>
+                                    	<span>
+		                                   <a onclick = "popup('ConstYearCode',500,700)" style = "cursor: pointer;">건축연도 코드 참고  <img src="../../../../images/api/searchbox_button.png" alt="코드표 참고" /> </a>
+										</span>
+									</td>
+                                    <td><span>선택</span></td>
+                                    <td><span>건축연도(from)<br/>
+<!-- 									* 2010년까지 제공, 2015연도는 제공하지 않음<br/> -->
+<!-- 									* 주택사용기간과 동시에 사용할 수 없음	 -->
+									</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">house_area_cd</em></span></td>
+                                    <td>
+                                    	<span>
+		                                   <a onclick = "popup('HouseAreaCode',300,350)" style = "cursor: pointer;">주택면적 코드 참고  <img src="../../../../images/api/searchbox_button.png" alt="코드표 참고" /> </a>
+										</span></td>
+                                    <td><span>선택</span></td>
+                                    <td><span>주택면적코드</span></td>
+                                </tr>
+<!--                                 <tr> -->
+<!--                                     <td><span><em class="guideImportant guideParam">house_use_prid_cd</em></span></td> -->
+<!--                                     <td> -->
+<!--                                     	<span> -->
+<!-- 		                                   <a onclick = "popup('HouseUsePridCode',300,350)" style = "cursor: pointer;">주택사용기간 코드 참고  <img src="../../../../images/api/searchbox_button.png" alt="코드표 참고" /> </a> -->
+<!-- 										</span> -->
+<!-- 									</td> -->
+<!-- 									<td><span>선택</span></td> -->
+<!--                                     <td><span>노후연수코드<br/> -->
+<!-- 									* 2015,2016,2017년만 제공<br/> -->
+<!-- 									* 건축연도와 동시에 사용할 수 없음 -->
+<!-- 									</span></td> -->
+<!--                                 </tr> -->
+                                
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+                <article class="detail">
+                    <h3>응답정보</h3>
+                    <div class="tbl">
+                        <table>
+                            <colgroup>
+                                <col>
+                                <col>
+                                <col>
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th><span>출력변수</span></th>
+                                    <th><span>값</span></th>
+                                    <th><span>설명</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span><em class="guideResponse">adm_cd</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>행정구역코드</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideResponse">adm_nm</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>행정구역명<br/>
+									* 집계구에서는 나오지 않음	</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideResponse">house_cnt</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>주택수(호)</span></td>
+                                </tr>
+                                
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+                <article class="detail">
+                    <h3>호출결과 예제 <button type="button" class="btn btn03" onclick="javascript:logWriteAndMove('A0', '07', '04', '19', '소스예제 실행 > 주택통계', '', '../../../newOpenApi/api/develop/dvp.html?type1=03&type2=04&seq=1', false);">&#60;&#47;&#62; 소스 예제 실행</button></h3>
+                    <div class="exmpMaker" style="max-height:500px;">
+                        <pre class="code" >
+                        	{
+								"id": "API_0306",
+								"result": [
+									{
+										"house_cnt": 1,
+										"adm_cd": "11050",
+										"adm_nm": "광진구"
+									},
+									{
+										"house_cnt": 1,
+										"adm_cd": "11060",
+										"adm_nm": "동대문구"
+									}
+								],
+								"errMsg": "Success",
+								"errCd": 0,
+								"trId": "*SaP_API_0306_1419238053496"
+							}
+                        </pre>
+                    </div>
+                </article>
+            </div>
+            
+            
+            <!-- 사업체 통계 START -->
+            <div class="content" id="company">
+                <article class="title">
+                    <h2>사업체통계
+                        <div class="bookmark">
+                            <button type="button" title="즐겨찾기 등록" onclick="$bookMark.bookMark_add('dataAPI','센서스 통계','사업체통계','/html/newOpenApi/api/dataApi/census.html#company');"class="btnBmk">즐겨찾기 등록</button>
+                            <div class="popMsg">즐겨찾기</div>
+                        </div>
+                    </h2>
+                    <p>(전국사업체조사) 사업체 통계 조회 API</p>
+                </article>
+                <article class="detail">
+                    <h3>요청주소</h3>
+                    <p><span class="guideUrl">https://sgisapi.mods.go.kr/OpenAPI3/stats/company.json</span></p>
+                </article>
+                <article class="detail">
+                    <h3>요청정보(Body)</h3>
+                    <div class="tbl">
+                        <table>
+                            <colgroup>
+                                <col>
+                                <col>
+                                <col>
+                                <col>
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th><span>요청변수</span></th>
+                                    <th><span>값</span></th>
+                                    <th><span>Optional</span></th>
+                                    <th><span>설명</span></th>
+                                </tr>
+                            </thead>
+                            
+                            <tbody>
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">accessToken</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>필수</span></td>
+                                    <td><span>액세스토큰</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">year</em></span></td>
+                                    <td>
+                                    	<!-- mng_s 20260402 양은채, 2024 사업체 반영에 따른 수정 -->
+                                    	<span>
+		                                   2000년 ~ 2024년
+										</span>
+										<!-- mng_e 20260402 양은채, 2024 사업체 반영에 따른 수정 -->
+									</td>
+                                    <td><span>필수</span></td>
+                                    <td><span>기준연도</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">adm_cd</em></span></td>
+                                    <td>
+                                    	<span>
+		                                   	non   : 전국 시도 리스트<br />
+											2자리 : 해당 시도    <br />
+											5자리 : 해당 시군구  <br />
+											
+											<!-- mng_s 20220929 이진호 -->
+											<!-- 읍면동이 코드가 기존 7자리에서 8자리로 변경됨에 따라 수정 -->
+											<!-- 7자리 : 해당 읍면동  <br /> -->
+											8자리 : 해당 읍면동  <br />
+											<!-- mng_e 20220929 이진호 -->
+											
+										</span></td>
+                                    <td><span>선택</span></td>
+                                    <td><span>행정구역코드 <br /> 
+                                    	"영역검색유무"가 행정구역일 경우</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">low_search</em></span></td>
+                                    <td>
+                                    	<span>
+		                                   	행정구역코드에 해당하는 정보만 요청 : 0<br />
+											1단계 하위 행정구역 정보 요청 : 1<br />
+											2단계 하위 행정구역 정보 요청 : 2<br />
+											(default : 1)
+										</span></td>
+                                    <td><span>선택</span></td>
+                                    <td><span>하위 통계 정보 유무<br/>
+                                    	"영역검색유무"가 행정구역일 경우</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">class_code</em></span></td>
+                                    <td>
+                                    	<span>
+		                                   "산업분류 API"의 조회 항목
+										</span>
+									</td>
+                                    <td><span>선택</span></td>
+                                    <td><span>산업분류코드 <br/>
+                                    테마코드, 산업체 코드는 같이 사용할 수 없음
+                                    </span></td>
+                                </tr>
+                                
+                                 <tr>
+                                    <td><span><em class="guideImportant guideParam">theme_cd</em></span></td>
+                                    <td>
+                                    	<span>
+		                                   <a onclick = "popup('ThemeCode',300,350)" style = "cursor: pointer;">테마코드표 참고  <img src="../../../../images/api/searchbox_button.png" alt="코드표 참고" /> </a>
+										</span>
+									</td>
+                                    <td><span>선택</span></td>
+                                    <td><span>테마코드<br />
+									테마코드, 산업체코드는 같이 사용할 수 없음<br />
+									 -신규 테마코드(영문자가 앞에 있는 코드)는 <br /> 2019년부터 ~  조회가능<br />
+									 -구 테마코드(숫자로만 이루어진 코드)는 <br /> 2017년부터 ~ 조회가능  <!-- mng 20260421 양은채, 조회 년도 변경-->
+									</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+                <article class="detail">
+                    <h3>응답정보</h3>
+                    <div class="tbl">
+                        <table>
+                            <colgroup>
+                                <col>
+                                <col>
+                                <col>
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th><span>출력변수</span></th>
+                                    <th><span>값</span></th>
+                                    <th><span>설명</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span><em class="guideResponse">adm_cd</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>행정구역코드</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideResponse">adm_nm</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>행정구역명<br/>
+									* 집계구에서는 나오지 않음	</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideResponse">corp_cnt</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>사업체수(개)</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideResponse">tot_worker</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>종사자수(명)</span></td>
+                                </tr>
+                                
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+                <article class="detail">
+                    <h3>호출결과 예제 <button type="button" class="btn btn03" onclick="javascript:logWriteAndMove('A0', '07', '04', '19', '소스예제 실행 > 사업체통계', '', '../../../newOpenApi/api/develop/dvp.html?type1=03&type2=05&seq=1', false);">&#60;&#47;&#62; 소스 예제 실행</button></h3>
+                    
+                    <!-- mng_s 20220929 이진호 -->
+                    <!-- 읍면동 코드가 7자리에서 8자리로 변경됨에 따른 호출결과 예제 수정 -->
+                    <div class="exmpMaker" style="max-height:500px;">
+                        <pre class="code" >
+                        	{
+								"id": "API_0304",
+								"result": [
+									{
+										"adm_cd": "11010530",
+										"adm_nm": "사직동",
+										"corp_cnt": "817",
+										"tot_worker": "3588"
+									},
+									{
+										"adm_cd": "11010540",
+										"adm_nm": "삼청동",
+										"corp_cnt": "215",
+										"tot_worker": "1208"
+									}
+								],
+								"errMsg": "Success",
+								"errCd": 0,
+								"trId": "ZAye_API_0304_1461635199133"
+							}
+                        </pre>
+                    </div>
+                    <!-- mng_e 20220929 이진호 -->
+                    
+                </article>
+            </div>
+            
+            <!-- 산업분류 START -->
+            <div class="content" id="industryCode">
+                <article class="title">
+                    <h2>산업분류
+                        <div class="bookmark">
+                            <button type="button" title="즐겨찾기 등록" onclick="$bookMark.bookMark_add('dataAPI','센서스 통계','산업분류','/html/newOpenApi/api/dataApi/census.html#industryCode');"class="btnBmk">즐겨찾기 등록</button>
+                            <div class="popMsg">즐겨찾기</div>
+                        </div>
+                    </h2>
+                    <p>(전국사업체조사) 산업분류 코드 제공 API</p>
+                </article>
+                <article class="detail">
+                    <h3>요청주소</h3>
+                    <p><span class="guideUrl">https://sgisapi.mods.go.kr/OpenAPI3/stats/industrycode.json</span></p>
+                </article>
+                <article class="detail">
+                    <h3>요청정보(Body)</h3>
+                    <div class="tbl">
+                        <table>
+                            <colgroup>
+                                <col>
+                                <col>
+                                <col>
+                                <col>
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th><span>요청변수</span></th>
+                                    <th><span>값</span></th>
+                                    <th><span>Optional</span></th>
+                                    <th><span>설명</span></th>
+                                </tr>
+                            </thead>
+                            
+                            <tbody>
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">accessToken</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>필수</span></td>
+                                    <td><span>액세스토큰</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">class_deg</em></span></td>
+                                    <td>
+                                    	<span>
+		                                   String
+										</span>
+									</td>
+                                    <td><span>필수</span></td>
+                                    <!-- mng_s 20260413 양은채, 11차 산업분류 반영-->
+                                    <td><span>8,9,10,11차 산업분류코드<br/>
+                                    2000~2005년 : 8 <br/>
+                                    2006~2016년 : 9 <br/>
+                                    2017년~2023년 : 10 <br/>
+                                    2024년~ : 11
+                                    </span></td>
+                                    <!-- mng_e 20260413 양은채, 11차 산업분류 반영-->
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">class_code</em></span></td>
+                                    <td>
+                                    	<span>
+		                                   String
+										</span>
+									</td>
+                                    <td><span>선택</span></td>
+                                    <td><span>산업분류코드 조회의 기준이 되는 분류코드<br />
+									변수, 이 변수를 기준으로 하위 분류코드의<br />
+									리스트가반환되며, null인 경우 최상위<br />
+									분류코드 리스트 반환<br />
+									최대 6자리(5단계) 1-2-1-1-1자리로 구성
+                                    </span></td>
+                                </tr>
+                                
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+                <article class="detail">
+                    <h3>응답정보</h3>
+                    <div class="tbl">
+                        <table>
+                            <colgroup>
+                                <col>
+                                <col>
+                                <col>
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th><span>출력변수</span></th>
+                                    <th><span>값</span></th>
+                                    <th><span>설명</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span><em class="guideResponse">class_code</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>산업분류코드</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideResponse">class_nm</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>산업분류코드명</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+                <article class="detail">
+                    <h3>호출결과 예제 <button type="button" class="btn btn03" onclick="javascript:logWriteAndMove('A0', '07', '04', '19', '소스예제 실행 > 산업분류', '', '../../../newOpenApi/api/develop/dvp.html?type1=03&type2=06&seq=1', false);">&#60;&#47;&#62; 소스 예제 실행</button></h3>
+                    <div class="exmpMaker" style="max-height:500px;">
+                        <pre class="code" >
+                        	{
+								"id": "API_0303",
+								"result": [
+									{
+										"class_code": "A011",
+										"class_nm": "작물 재배업"
+									},
+									{
+										"class_code": "A012",
+										"class_nm": "축산업"
+									},
+									{
+										"class_code": "A013",
+										"class_nm": "작물재배 및 축산 복합농업"
+									},
+									{
+										"class_code": "A014",
+										"class_nm": "작물재배 및 축산 관련 서비스업"
+									},
+									{
+										"class_code": "A015",
+										"class_nm": "수렵 및 관련 서비스업"
+									}
+								],
+								"errMsg": "Success",
+								"errCd": 0,
+								"trId": "i5Bm_API_0303_1419231536360"
+							}
+                        </pre>
+                    </div>
+                </article>
+            </div>
+            
+            
+            <!-- 농가통계 START -->
+            <div class="content" id="farmhousehold">
+                <article class="title">
+                    <h2>농가통계
+                        <div class="bookmark">
+                            <button type="button" title="즐겨찾기 등록" onclick="$bookMark.bookMark_add('dataAPI','센서스 통계','농가통계','/html/newOpenApi/api/dataApi/census.html#farmhousehold');"class="btnBmk">즐겨찾기 등록</button>
+                            <div class="popMsg">즐겨찾기</div>
+                        </div>
+                    </h2>
+                    <p>(농림어업총조사) 농가 통계 제공 API</p>
+                </article>
+                <article class="detail">
+                    <h3>요청주소</h3>
+                    <p><span class="guideUrl">https://sgisapi.mods.go.kr/OpenAPI3/stats/farmhousehold.json</span></p>
+                </article>
+                <article class="detail">
+                    <h3>요청정보(Body)</h3>
+                    <div class="tbl">
+                        <table>
+                            <colgroup>
+                                <col>
+                                <col>
+                                <col>
+                                <col>
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th><span>요청변수</span></th>
+                                    <th><span>값</span></th>
+                                    <th><span>Optional</span></th>
+                                    <th><span>설명</span></th>
+                                </tr>
+                            </thead>
+                            
+                            <tbody>
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">accessToken</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>필수</span></td>
+                                    <td><span>액세스토큰</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">year</em></span></td>
+                                    <td>
+                                    	<span>
+                                    		2000년 : 2000<br />
+											2005년 : 2005<br />
+											2010년 : 2010<br />
+											2015년 : 2015<br />
+											2020년 : 2020
+										</span>
+									</td>
+                                    <td><span>필수</span></td>
+                                    <td><span>기준연도</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">adm_cd</em></span></td>
+                                    <td>
+                                    	<span>
+		                                   	non   : 전국 시도 리스트<br />
+											2자리 : 해당 시도    <br />
+											5자리 : 해당 시군구  <br />
+											
+											<!-- mng_s 20220929 이진호 -->
+											<!-- 읍면동이 코드가 기존 7자리에서 8자리로 변경됨에 따라 수정 -->
+											<!-- 7자리 : 해당 읍면동  <br /> -->
+											8자리 : 해당 읍면동  <br />
+											<!-- mng_e 20220929 이진호 -->
+											
+										</span>
+									</td>
+                                    <td><span>선택</span></td>
+                                    <td><span>행정구역코드<br />
+									"영역검색유무"가 행정구역일 경우
+                                    </span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">low_search</em></span></td>
+                                    <td>
+                                    	<span>
+		                                   	행정구역코드에 해당하는 정보만 요청 : 0<br />
+											하위 행정구역 정보 요청 : 1<br />
+											(default : 0)
+										</span>
+									</td>
+                                    <td><span>선택</span></td>
+                                    <td><span>하위 통계 정보 유무<br />
+									"영역검색유무"가 행정구역일 경우
+                                    </span></td>
+                                </tr>
+                                
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+                <article class="detail">
+                    <h3>응답정보</h3>
+                    <div class="tbl">
+                        <table>
+                            <colgroup>
+                                <col>
+                                <col>
+                                <col>
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th><span>출력변수</span></th>
+                                    <th><span>값</span></th>
+                                    <th><span>설명</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span><em class="guideResponse">adm_cd</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>행정구역코드</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideResponse">adm_nm</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>행정구역명<br/>
+                                    * 집계구에서는 나오지 않음</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideResponse">farm_cnt</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>단위 : 가구<br/>농가 수</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideResponse">population</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>단위 : 명<br/>농가인구 수</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideResponse">avg_population</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>단위 : 명<br/>농가 평균 인구 수</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+                <article class="detail">
+                    <h3>호출결과 예제 <button type="button" class="btn btn03" onclick="javascript:logWriteAndMove('A0', '07', '04', '19', '소스예제 실행 > 농가통계', '', '../../../newOpenApi/api/develop/dvp.html?type1=03&type2=07&seq=1', false);">&#60;&#47;&#62; 소스 예제 실행</button></h3>
+                    <div class="exmpMaker" style="max-height:500px;">
+                        <pre class="code" >
+                        	{
+								"id": "API_0307",
+								"result": [
+									{
+										"adm_cd": "11030",
+										"farm_cnt": 31,
+										"adm_nm": "용산구",
+										"avg_population": "3",
+										"population": 100
+									},
+									{
+										"adm_cd": "11160",
+										"farm_cnt": 433,
+										"adm_nm": "강서구",
+										"avg_population": "3",
+										"population": 1439
+									}
+								],
+								"errMsg": "Success",
+								"errCd": 0,
+								"trId": "*oQi_API_0307_1419239511295"
+							}
+                        </pre>
+                    </div>
+                </article>
+            </div>
+            
+            
+            <!-- 임가통계 START -->
+            <div class="content" id="forestryhousehold">
+                <article class="title">
+                    <h2>임가통계
+                        <div class="bookmark">
+                            <button type="button" title="즐겨찾기 등록" onclick="$bookMark.bookMark_add('dataAPI','센서스 통계','임가통계','/html/newOpenApi/api/dataApi/census.html#forestryhousehold');"class="btnBmk">즐겨찾기 등록</button>
+                            <div class="popMsg">즐겨찾기</div>
+                        </div>
+                    </h2>
+                    <p>(농림어업총조사) 임가 통계 제공 API</p>
+                </article>
+                <article class="detail">
+                    <h3>요청주소</h3>
+                    <p><span class="guideUrl">https://sgisapi.mods.go.kr/OpenAPI3/stats/forestryhousehold.json</span></p>
+                </article>
+                <article class="detail">
+                    <h3>요청정보(Body)</h3>
+                    <div class="tbl">
+                        <table>
+                            <colgroup>
+                                <col>
+                                <col>
+                                <col>
+                                <col>
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th><span>요청변수</span></th>
+                                    <th><span>값</span></th>
+                                    <th><span>Optional</span></th>
+                                    <th><span>설명</span></th>
+                                </tr>
+                            </thead>
+                            
+                            <tbody>
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">accessToken</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>필수</span></td>
+                                    <td><span>액세스토큰</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">year</em></span></td>
+                                    <td>
+                                    	<span>
+											2005년 : 2005<br />
+											2010년 : 2010<br />
+											2015년 : 2015<br />
+											2020년 : 2020
+										</span>
+									</td>
+                                    <td><span>필수</span></td>
+                                    <td><span>기준연도</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">adm_cd</em></span></td>
+                                    <td>
+                                    	<span>
+		                                   	non   : 전국 시도 리스트<br />
+											2자리 : 해당 시도    <br />
+											5자리 : 해당 시군구  <br />
+											
+											<!-- mng_s 20220929 이진호 -->
+											<!-- 읍면동이 코드가 기존 7자리에서 8자리로 변경됨에 따라 수정 -->
+											<!-- 7자리 : 해당 읍면동  <br /> -->
+											8자리 : 해당 읍면동  <br />
+											<!-- mng_e 20220929 이진호 -->
+											
+										</span>
+									</td>
+                                    <td><span>선택</span></td>
+                                    <td><span>행정구역코드<br />
+									"영역검색유무"가 행정구역일 경우
+                                    </span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">low_search</em></span></td>
+                                    <td>
+                                    	<span>
+		                                   	행정구역코드에 해당하는 정보만 요청 : 0<br />
+											하위 행정구역 정보 요청 : 1<br />
+											(default : 0)
+										</span>
+									</td>
+                                    <td><span>선택</span></td>
+                                    <td><span>하위 통계 정보 유무<br />
+									"영역검색유무"가 행정구역일 경우
+                                    </span></td>
+                                </tr>
+                                
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+                <article class="detail">
+                    <h3>응답정보</h3>
+                    <div class="tbl">
+                        <table>
+                            <colgroup>
+                                <col>
+                                <col>
+                                <col>
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th><span>출력변수</span></th>
+                                    <th><span>값</span></th>
+                                    <th><span>설명</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span><em class="guideResponse">adm_cd</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>행정구역코드</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideResponse">adm_nm</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>행정구역명<br/>
+                                    * 집계구에서는 나오지 않음</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideResponse">forestry_cnt</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>임가수(가구)</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideResponse">population</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>임가인구수(명)</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideResponse">avg_population</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>임가평균인구수(명)</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+                <article class="detail">
+                    <h3>호출결과 예제 <button type="button" class="btn btn03" onclick="javascript:logWriteAndMove('A0', '07', '04', '19', '소스예제 실행 > 임가통계', '', '../../../newOpenApi/api/develop/dvp.html?type1=03&type2=08&seq=1', false);">&#60;&#47;&#62; 소스 예제 실행</button></h3>
+                    <div class="exmpMaker" style="max-height:500px;">
+                        <pre class="code" >
+                        	{
+								"id": "API_0308",
+								"result": [
+									{
+										"adm_cd": "11030",
+										"adm_nm": "용산구",
+										"forestry_cnt": 1,
+										"avg_population": "3",
+										"population": 3
+									},
+									{
+										"adm_cd": "11160",
+										"adm_nm": "강서구",
+										"forestry_cnt": 17,
+										"avg_population": "3",
+										"population": 52
+									}
+								],
+								"errMsg": "Success",
+								"errCd": 0,
+								"trId": "fNI3_API_0308_1419239944777"
+							}
+                        </pre>
+                    </div>
+                </article>
+            </div>
+            
+            
+            <!-- 어가통계 START -->
+            <div class="content" id="fisheryhousehold">
+                <article class="title">
+                    <h2>어가통계
+                        <div class="bookmark">
+                            <button type="button" title="즐겨찾기 등록" onclick="$bookMark.bookMark_add('dataAPI','센서스 통계','어가통계','/html/newOpenApi/api/dataApi/census.html#fisheryhousehold');"class="btnBmk">즐겨찾기 등록</button>
+                            <div class="popMsg">즐겨찾기</div>
+                        </div>
+                    </h2>
+                    <p>(농림어업총조사) 어가(해수면/내수면) 통계 제공 API</p>
+                </article>
+                <article class="detail">
+                    <h3>요청주소</h3>
+                    <p><span class="guideUrl">https://sgisapi.mods.go.kr/OpenAPI3/stats/fisheryhousehold.json</span></p>
+                </article>
+                <article class="detail">
+                    <h3>요청정보(Body)</h3>
+                    <div class="tbl">
+                        <table>
+                            <colgroup>
+                                <col>
+                                <col>
+                                <col>
+                                <col>
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th><span>요청변수</span></th>
+                                    <th><span>값</span></th>
+                                    <th><span>Optional</span></th>
+                                    <th><span>설명</span></th>
+                                </tr>
+                            </thead>
+                            
+                            <tbody>
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">accessToken</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>필수</span></td>
+                                    <td><span>액세스토큰</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">year</em></span></td>
+                                    <td>
+                                    	<span>
+                                    		2005년 : 2005<br />
+											2010년 : 2010<br />
+											2015년 : 2015<br />
+											2020년 : 2020
+										</span>
+									</td>
+                                    <td><span>필수</span></td>
+                                    <td><span>기준연도</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">oga_div</em></span></td>
+                                    <td>
+                                    	<span>
+                                    		전체 : 0<br />
+											내수면어가 : 1<br />
+											해수면어가 : 2
+										</span>
+									</td>
+                                    <td><span>필수</span></td>
+                                    <td><span> 어가구분</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">adm_cd</em></span></td>
+                                    <td>
+                                    	<span>
+		                                   	non   : 전국 시도 리스트<br />
+											2자리 : 해당 시도    <br />
+											5자리 : 해당 시군구  <br />
+											
+											<!-- mng_s 20220929 이진호 -->
+											<!-- 읍면동이 코드가 기존 7자리에서 8자리로 변경됨에 따라 수정 -->
+											<!-- 7자리 : 해당 읍면동  <br /> -->
+											8자리 : 해당 읍면동  <br />
+											<!-- mng_e 20220929 이진호 -->
+											
+										</span>
+									</td>
+                                    <td><span>선택</span></td>
+                                    <td><span>행정구역코드<br />
+									"영역검색유무"가 행정구역일 경우
+                                    </span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">low_search</em></span></td>
+                                    <td>
+                                    	<span>
+		                                   	행정구역코드에 해당하는 정보만 요청 : 0<br />
+											하위 행정구역 정보 요청 : 1<br />
+											(default : 0)
+										</span>
+									</td>
+                                    <td><span>선택</span></td>
+                                    <td><span>하위 통계 정보 유무<br />
+									"영역검색유무"가 행정구역일 경우
+                                    </span></td>
+                                </tr>
+                                
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+                <article class="detail">
+                    <h3>응답정보</h3>
+                    <div class="tbl">
+                        <table>
+                            <colgroup>
+                                <col>
+                                <col>
+                                <col>
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th><span>출력변수</span></th>
+                                    <th><span>값</span></th>
+                                    <th><span>설명</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span><em class="guideResponse">adm_cd</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>행정구역코드</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideResponse">adm_nm</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>행정구역명<br/>
+                                    * 집계구에서는 나오지 않음</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideResponse">fishery_cnt</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>단위 : 가구<br/>어가 수</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideResponse">population</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>단위 : 명<br/>어가인구 수</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideResponse">avg_population</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>단위 : 명<br/>어가 평균 인구 수</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+                <article class="detail">
+                    <h3>호출결과 예제 <button type="button" class="btn btn03" onclick="javascript:logWriteAndMove('A0', '07', '04', '19', '소스예제 실행 > 어가통계', '', '../../../newOpenApi/api/develop/dvp.html?type1=03&type2=09&seq=1', false);">&#60;&#47;&#62; 소스 예제 실행</button></h3>
+                    <div class="exmpMaker" style="max-height:500px;">
+                        <pre class="code" >
+                        	{
+								"id": "API_0309",
+								"result": [
+									{
+										"adm_cd": "11030",
+										"fishery_cnt": 1,
+										"adm_nm": "용산구",
+										"avg_population": "6",
+										"population": 6
+									},
+									{
+										"adm_cd": "11230",
+										"fishery_cnt": 1,
+										"adm_nm": "강남구",
+										"avg_population": "2",
+										"population": 2
+									}
+								],
+								"errMsg": "Success",
+								"errCd": 0,
+								"trId": "aGCG_API_0309_1419240211967"
+							}
+                        </pre>
+                    </div>
+                </article>
+            </div>
+            
+            <!-- 가구원 통계 START -->
+            <div class="content" id="householdmember">
+                <article class="title">
+                    <h2>가구원통계
+                        <div class="bookmark">
+                            <button type="button" title="즐겨찾기 등록" onclick="$bookMark.bookMark_add('dataAPI','센서스 통계','가구원통계','/html/newOpenApi/api/dataApi/census.html#householdmember');"class="btnBmk">즐겨찾기 등록</button>
+                            <div class="popMsg">즐겨찾기</div>
+                        </div>
+                    </h2>
+                    <p>(농림어업총조사) 농가ㆍ임가ㆍ어가 가구원 통계 제공 API</p>
+                </article>
+                <article class="detail">
+                    <h3>요청주소</h3>
+                    <p><span class="guideUrl">https://sgisapi.mods.go.kr/OpenAPI3/stats/householdmember.json</span></p>
+                </article>
+                <article class="detail">
+                    <h3>요청정보(Body)</h3>
+                    <div class="tbl">
+                        <table>
+                            <colgroup>
+                                <col>
+                                <col>
+                                <col>
+                                <col>
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th><span>요청변수</span></th>
+                                    <th><span>값</span></th>
+                                    <th><span>Optional</span></th>
+                                    <th><span>설명</span></th>
+                                </tr>
+                            </thead>
+                            
+                            <tbody>
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">accessToken</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>필수</span></td>
+                                    <td><span>액세스토큰</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">year</em></span></td>
+                                    <td>
+                                    	<span>
+	                                    	2000년 : 2000<br/>
+											2005년 : 2005<br />
+											2010년 : 2010<br />
+											2015년 : 2015<br />
+											2020년 : 2020
+										</span>
+									</td>
+                                    <td><span>필수</span></td>
+                                    <td><span>기준연도</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">data_type</em></span></td>
+                                    <td>
+                                    	<span>
+                                    		농가 : 1<br />
+											임가 : 2<br />
+											해수면어가 : 3<br />
+											내수면어가 : 4
+										</span>
+									</td>
+                                    <td><span>필수</span></td>
+                                    <td><span> 가구타입</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">adm_cd</em></span></td>
+                                    <td>
+                                    	<span>
+		                                   	non   : 전국 시도 리스트<br />
+											2자리 : 해당 시도    <br />
+											5자리 : 해당 시군구  <br />
+											
+											<!-- mng_s 20220929 이진호 -->
+											<!-- 읍면동이 코드가 기존 7자리에서 8자리로 변경됨에 따라 수정 -->
+											<!-- 7자리 : 해당 읍면동  <br /> -->
+											8자리 : 해당 읍면동  <br />
+											<!-- mng_e 20220929 이진호 -->
+											
+										</span>
+									</td>
+                                    <td><span>선택</span></td>
+                                    <td><span>행정구역코드<br />
+									"영역검색유무"가 행정구역일 경우
+                                    </span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">low_search</em></span></td>
+                                    <td>
+                                    	<span>
+		                                   	행정구역코드에 해당하는 정보만 요청 : 0<br />
+											하위 행정구역 정보 요청 : 1<br />
+											(default : 0)
+										</span>
+									</td>
+                                    <td><span>선택</span></td>
+                                    <td><span>하위 통계 정보 유무<br />
+									"영역검색유무"가 행정구역일 경우
+                                    </span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideImportant guideParam">gender</em></span></td>
+                                    <td>
+                                    	<span>
+		                                   	총합 : 0<br />
+											남자 : 1<br />
+											여자 : 2
+										</span>
+									</td>
+                                    <td><span>선택</span></td>
+                                    <td><span>성별</span></td>
+                                </tr>
+                                
+                                <tr>
+                                
+                                    <td><span><em class="guideImportant guideParam">age_from</em></span></td>
+                                    <td>
+                                    	<span>
+		                                   	0 ~ 150
+										</span>
+									</td>
+                                    <td><span>선택</span></td>
+                                    <td><span>나이(from)</span></td>
+                                </tr>
+                                
+                                <tr>
+                                
+                                    <td><span><em class="guideImportant guideParam">age_to</em></span></td>
+                                    <td>
+                                    	<span>
+		                                   	0 ~ 150
+										</span>
+									</td>
+                                    <td><span>선택</span></td>
+                                    <td><span>나이(to)</span></td>
+                                </tr>
+                                
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+                <article class="detail">
+                    <h3>응답정보</h3>
+                    <div class="tbl">
+                        <table>
+                            <colgroup>
+                                <col>
+                                <col>
+                                <col>
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th><span>출력변수</span></th>
+                                    <th><span>값</span></th>
+                                    <th><span>설명</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><span><em class="guideResponse">adm_cd</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>행정구역코드</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideResponse">adm_nm</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>행정구역명<br/>
+                                    * 집계구에서는 나오지 않음</span></td>
+                                </tr>
+                                
+                                <tr>
+                                    <td><span><em class="guideResponse">population</em></span></td>
+                                    <td><span>String</span></td>
+                                    <td><span>가구원수(명)</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </article>
+                <article class="detail">
+                    <h3>호출결과 예제 <button type="button" class="btn btn03" onclick="javascript:logWriteAndMove('A0', '07', '04', '19', '소스예제 실행 > 가구원통계', '', '../../../newOpenApi/api/develop/dvp.html?type1=03&type2=10&seq=1', false);">&#60;&#47;&#62; 소스 예제 실행</button></h3>
+                    <div class="exmpMaker" style="max-height:500px;">
+                        <pre class="code" >
+                        	{
+								"id": "API_0310",
+								"result": [
+									{
+										"adm_cd": "11030",
+										"adm_nm": "용산구",
+										"population": 1
+									},
+									{
+										"adm_cd": "11160",
+										"adm_nm": "강서구",
+										"population": 12
+									}
+								],
+								"errMsg": "Success",
+								"errCd": 0,
+								"trId": "r9fc_API_0310_1419240710477"
+							}
+                        </pre>
+                    </div>
+                </article>
+            </div>
+            
+        </main>
+    </div>
+
+<script type="text/javascript">
+    // exmpMaker highlight
+    $(function(){   
+        $('pre.code').highlight({source:1, zebra:1, indent:'space', list:'ol'});
+    });
+
+    $(document).ready(function(){
+		moveToScroll();
+		guideLinkFollow();
+		
+		//mng_s 20220207 이진호
+	    //detCd 를 가져오기 위해 timeout 걸엇음
+	    //안걸면 detcd를 잘 못가져옴
+	    setTimeout(function(){
+	    	var getDetCd = $('aside').find('li .on').children().text();
+			srvLogWrite('A0', '07', '04', '03', getDetCd, '');
+	    },100);
+	    //mng_e 20220207 이진호
+	});
+	
+	function popup(filename,W,H)
+	{
+		var url = "../../../openApi/api/dataCode/"+filename+".html";
+		var windowW = W;
+	    var windowH = H;
+		var left = Math.ceil((window.screen.width - windowW)/2);
+	    var top = Math.ceil((window.screen.height - windowH)/2.5);
+		var popOption = "width="+windowW+", height="+windowH+", resizable=no, scrollbars=yes, top="+top+",left="+left;
+		window.open(url,"SUBEDITPOP",popOption);
+	}	
+	
+	//mng_s 20210915 이진호
+	//데이터API 분기처리로 인해 common.js에 있는 
+	//guideLinkFollow() 를 각 분기된 페이지 마다 따로 넣어줌
+	function guideLinkFollow (){
+		var $menu     = $('.depth03 li');
+		var $contents = $('.content');
+		
+		$("main").scroll(function(){ 
+			var scltop = $(this).scrollTop();
+			
+			$.each($contents, function(idx, item){ 
+				var	$target   = $contents.eq(idx),
+	                i         = $target.index(),
+	                targetTop = $target.offset().top;
+					targetTop = targetTop-200;
+	            if (targetTop < 0) {
+	                $menu.removeClass('on');
+	                $menu.eq(idx+3).addClass('on');
+	                $menu.css('font-weight', 'normal')
+	                $menu.eq(idx+3).css('font-weight', 'bold')
+	            }
+	            if (scltop == 0){ //페이지 최상위 일때 menu on
+	            	//console.log(scltop+" === " + idx);
+	            	$menu.removeClass('on');
+	                $menu.eq(3).addClass('on'); //해당페이지의 첫번째 On
+	            }
+	        })
+		});
+	}
+	//mng_e 20210915 이진호
+	
+	//mng_s 20210915 이진호
+	//메뉴 리스트에서 on인 항목의 위치를 구하여 해당 위치로 스크롤 이동
+	function setScroll(){
+		var scrollPosition = $('aside').scrollTop();
+		sessionStorage.setItem("scroll_position", scrollPosition)
+	};
+	
+	function moveToScroll(){
+		//$(".guideMenu").scrollTop($('.etcList li a.on').offset().top);
+		 var position = sessionStorage.getItem("scroll_position");
+		$("aside").scrollTop(position);
+	}
+	//mng_e 20210915 이진호
+</script>
+</body>
+</html>

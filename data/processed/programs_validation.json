@@ -1,0 +1,179 @@
+{
+  "generated_at_utc": "2026-08-12T08:51:51+00:00",
+  "official_base_url": "https://www.incheon.go.kr",
+  "source_list_files": [
+    {
+      "file": "program_list_OHH020101.html",
+      "bytes": "143475",
+      "sha256": "467146d30291eec0c5e4b53c2c646ea677fbb8086af4cd222ef464db24b729a6",
+      "records": "84"
+    },
+    {
+      "file": "program_list_OHH020102.html",
+      "bytes": "91383",
+      "sha256": "5198e3a144267e86948c30e5508471e7d4d685a4b6695dce6082a24dcbafd94e",
+      "records": "9"
+    },
+    {
+      "file": "program_list_OHH020103.html",
+      "bytes": "92322",
+      "sha256": "ac6c0ef0dc51008f1d0b93d33dfa644973c5ad930877d28f38a7f1b6629cc345",
+      "records": "11"
+    },
+    {
+      "file": "program_list_OHH020104.html",
+      "bytes": "120736",
+      "sha256": "3fc10c8b1981f30743fa4bcfb3b36313faf814ab75f777c59249acec3bf48cdd",
+      "records": "52"
+    },
+    {
+      "file": "program_list_OHH020105.html",
+      "bytes": "93974",
+      "sha256": "3274a78f8d75de2ec2511f93ee05ceea49a9177ff5aa81d03bb1316baa033875",
+      "records": "13"
+    },
+    {
+      "file": "program_list_OHH020106.html",
+      "bytes": "87756",
+      "sha256": "e2ab65b8e5a76766975f2a947a4aa817dc0a7a52a0583b0df5791d168ccb9951",
+      "records": "4"
+    }
+  ],
+  "discovered_links": 173,
+  "unique_program_ids": 173,
+  "duplicate_program_ids": {},
+  "parsed_programs": 173,
+  "detail_failures": [],
+  "detail_source_counts": {
+    "cache": 173
+  },
+  "cached_detail_files": 173,
+  "category_counts": {
+    "건강": 52,
+    "경제": 13,
+    "기타": 4,
+    "안전": 11,
+    "정서": 84,
+    "주거": 9
+  },
+  "status_counts": {
+    "접수마감": 74,
+    "접수예정": 11,
+    "접수중": 88
+  },
+  "region_counts": {
+    "강화군": 11,
+    "강화군 | 동구 | 연수구 | 부평구 | 서구": 1,
+    "강화군 | 연수구 | 부평구 | 서구": 2,
+    "강화군 | 옹진군 | 중구 | 동구 | 미추홀구 | 연수구 | 남동구 | 부평구 | 계양구 | 서구": 1,
+    "계양구": 12,
+    "남동구": 19,
+    "동구": 6,
+    "미추홀구": 10,
+    "부평구": 17,
+    "서구": 16,
+    "연수구": 29,
+    "영종구": 8,
+    "옹진군": 4,
+    "인천광역시 전체": 23,
+    "제물포구": 6,
+    "중구": 8
+  },
+  "field_completeness": {
+    "program_id": {
+      "non_empty": 173,
+      "empty": 0
+    },
+    "category_code": {
+      "non_empty": 173,
+      "empty": 0
+    },
+    "category": {
+      "non_empty": 173,
+      "empty": 0
+    },
+    "title": {
+      "non_empty": 173,
+      "empty": 0
+    },
+    "status": {
+      "non_empty": 173,
+      "empty": 0
+    },
+    "description": {
+      "non_empty": 173,
+      "empty": 0
+    },
+    "gender": {
+      "non_empty": 173,
+      "empty": 0
+    },
+    "lifecycle": {
+      "non_empty": 173,
+      "empty": 0
+    },
+    "region": {
+      "non_empty": 173,
+      "empty": 0
+    },
+    "intro": {
+      "non_empty": 173,
+      "empty": 0
+    },
+    "period": {
+      "non_empty": 173,
+      "empty": 0
+    },
+    "content": {
+      "non_empty": 149,
+      "empty": 24
+    },
+    "target": {
+      "non_empty": 170,
+      "empty": 3
+    },
+    "scale": {
+      "non_empty": 10,
+      "empty": 163
+    },
+    "apply_period": {
+      "non_empty": 173,
+      "empty": 0
+    },
+    "apply_method": {
+      "non_empty": 160,
+      "empty": 13
+    },
+    "contact": {
+      "non_empty": 171,
+      "empty": 2
+    },
+    "updated_date": {
+      "non_empty": 173,
+      "empty": 0
+    },
+    "source_url": {
+      "non_empty": 173,
+      "empty": 0
+    }
+  },
+  "relevant_programs": 86,
+  "relevance_domain_counts": {
+    "고립·관계망": 55,
+    "돌봄·발굴": 46,
+    "안전·응급": 20
+  },
+  "checks": {
+    "six_list_files": true,
+    "expected_173_unique_ids": true,
+    "all_details_parsed": true,
+    "one_cached_detail_per_id": true,
+    "all_source_urls_https": true,
+    "all_ids_unique_in_output": true
+  },
+  "outputs": {
+    "all": "processed/programs_all.csv",
+    "relevant": "processed/programs_relevant.csv",
+    "validation": "processed/programs_validation.json"
+  }
+}

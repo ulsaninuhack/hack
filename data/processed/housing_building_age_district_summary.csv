@@ -1,0 +1,12 @@
+﻿district_code,district_name,raw_source_rows,building_records,duplicate_source_rows_collapsed,age_valid_records,age_missing_or_invalid_records,age_coverage_pct,age_30_plus_records,age_30_plus_share_valid_pct,age_40_plus_records,age_40_plus_share_valid_pct,residential_records,residential_age_valid_records,residential_age_missing_or_invalid_records,residential_age_coverage_pct,residential_age_30_plus_records,residential_age_30_plus_share_valid_pct,residential_age_40_plus_records,residential_age_40_plus_share_valid_pct,data_as_of_date,granularity
+28125,제물포구,33182,14966,18216,11076,3890,74.0078,8278,74.7382,5597,50.5327,8880,5939,2941,66.8806,5034,84.7617,3432,57.7875,2026-08-05,district/legal_dong; not administrative_dong
+28155,영종구,5392,5358,34,5073,285,94.6809,427,8.4171,369,7.2738,3369,3166,203,93.9745,320,10.1074,292,9.2230,2026-08-05,district/legal_dong; not administrative_dong
+28177,미추홀구,26604,26570,34,24892,1678,93.6846,17452,70.1109,10669,42.8612,20105,18661,1444,92.8177,13777,73.8278,8534,45.7317,2026-08-05,district/legal_dong; not administrative_dong
+28185,연수구,6387,6384,3,6304,80,98.7469,4455,70.6694,676,10.7234,4614,4581,33,99.2848,3657,79.8297,564,12.3117,2026-08-05,district/legal_dong; not administrative_dong
+28200,남동구,21386,21329,57,20788,541,97.4635,12943,62.2619,2790,13.4212,11697,11576,121,98.9655,7770,67.1216,2047,17.6831,2026-08-05,district/legal_dong; not administrative_dong
+28237,부평구,19489,19488,1,19047,441,97.7371,12258,64.3566,5417,28.4402,13035,12756,279,97.8596,8841,69.3086,3989,31.2716,2026-08-05,district/legal_dong; not administrative_dong
+28245,계양구,10395,10266,129,10123,143,98.6071,6046,59.7254,1851,18.2851,6842,6767,75,98.9038,4507,66.6026,1349,19.9350,2026-08-05,district/legal_dong; not administrative_dong
+28275,서해구,17896,17885,11,17670,215,98.7979,9564,54.1256,3797,21.4884,10717,10653,64,99.4028,6785,63.6910,2790,26.1898,2026-08-05,district/legal_dong; not administrative_dong
+28290,검단구,5791,5788,3,5470,318,94.5059,1086,19.8537,140,2.5594,2222,2001,221,90.0540,290,14.4928,58,2.8986,2026-08-05,district/legal_dong; not administrative_dong
+28710,강화군,21882,21879,3,20589,1290,94.1039,8939,43.4164,5314,25.8099,15515,14421,1094,92.9488,6782,47.0286,4485,31.1005,2026-08-05,district/legal_dong; not administrative_dong
+28720,옹진군,7145,7136,9,6749,387,94.5768,2878,42.6434,2151,31.8714,5273,4984,289,94.5192,2332,46.7897,1833,36.7777,2026-08-05,district/legal_dong; not administrative_dong

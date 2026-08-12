@@ -1,0 +1,29 @@
+{
+  "name": "incheon-care-context-map",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": { "node": ">=24 <25" },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc -b",
+    "preview": "vite preview",
+    "prepare:data": "python3 scripts/prepare_web_data.py --source-dir data/processed --output-dir public/data",
+    "validate:data": "python3 scripts/prepare_web_data.py --source-dir data/processed --output-dir public/data --check"
+  },
+  "dependencies": {
+    "lucide-react": "1.31.0",
+    "maplibre-gl": "6.3.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@types/geojson": "7946.0.16",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "@vitejs/plugin-react": "6.0.5",
+    "typescript": "7.0.2",
+    "vite": "8.2.1"
+  }
+}

@@ -1,0 +1,122 @@
+{
+  "status": "pass",
+  "script_version": 1,
+  "inputs": {
+    "shapefile": "/Users/coldmans/Documents/Codex/2026-08-06/new-chat/work/i5-data/raw/boundaries/vworld_census_admin_dong_boundary_20260410/BND_ADM_DONG_PG.shp",
+    "shapefile_bundle_sha256": {
+      "BND_ADM_DONG_PG.shp": "44599ba4f17c8155abd43682f6332181da81129bce0f72d840e231dfb4a1079c",
+      "BND_ADM_DONG_PG.shx": "e3912adb166a93fbeeb46e19fd5324db2344cf425f8901027c24d0bf912f2d3f",
+      "BND_ADM_DONG_PG.dbf": "439d04ccf070ff69066065309ede02661fb6323d44cf81ae788d0514b7fe9075",
+      "BND_ADM_DONG_PG.prj": "d1e193c7d79d44da8888b37d42dbee5d772c92f0af76a4190ea096debcdd99ec",
+      "BND_ADM_DONG_PG.cpg": "3033cf66fa728da7a2940d823aad8118fb40687ebfad1147c313478b2baafe4b"
+    },
+    "current_admin_dongs": "/Users/coldmans/Documents/Codex/2026-08-06/new-chat/work/i5-data/processed/admin_dongs_incheon_20260701.csv",
+    "current_admin_dongs_sha256": "0b2cc498e7b82172536a9a68b8d8bbdd299de315ca50c9fce392ad04e98d05a7",
+    "source_crs_epsg_detected": 5186,
+    "source_crs_wkt": "PROJCS[\"KGD2002_Central_Belt_2010\",GEOGCS[\"GCS_KGD2002\",DATUM[\"D_Korea_Geodetic_Datum_2002\",SPHEROID[\"GRS_1980\",6378137.0,298.257222101]],PRIMEM[\"Greenwich\",0.0],UNIT[\"Degree\",0.0174532925199433]],PROJECTION[\"Transverse_Mercator\"],PARAMETER[\"False_Easting\",200000.0],PARAMETER[\"False_Northing\",600000.0],PARAMETER[\"Central_Meridian\",127.0],PARAMETER[\"Scale_Factor\",1.0],PARAMETER[\"Latitude_Of_Origin\",38.0],UNIT[\"Meter\",1.0]]",
+    "source_base_dates": [
+      "20250630"
+    ]
+  },
+  "outputs": {
+    "geojson": "/Users/coldmans/Documents/Codex/2026-08-06/new-chat/work/i5-data/processed/boundary_incheon_admin_dong_20250630.geojson",
+    "geojson_sha256": "1ace8ff0d56daacddc60bcbcd85ab4436c02033341cd81738ba188a23ff45a20",
+    "crosswalk": "/Users/coldmans/Documents/Codex/2026-08-06/new-chat/work/i5-data/processed/boundary_current_to_geometry_crosswalk_20260701.csv",
+    "crosswalk_sha256": "d17bfc40bd6fcd9e29c9d1f9c98c657c5f6317bb7e51f4f6896fb2ea1b641b2b",
+    "geometry_to_current_crosswalk": "/Users/coldmans/Documents/Codex/2026-08-06/new-chat/work/i5-data/processed/boundary_geometry_to_current_crosswalk_20260701.csv",
+    "geometry_to_current_crosswalk_sha256": "d44a098b7eacbf35535b822ca0b6045979caeba5766583555c3588686d06a04b"
+  },
+  "counts": {
+    "source_national_geometry_count": 3559,
+    "incheon_geometry_zone_count": 156,
+    "current_admin_dong_count": 162,
+    "crosswalk_row_count": 162,
+    "mapped_current_row_count": 162,
+    "unmatched_current_row_count": 0,
+    "mapped_unique_geometry_zone_count": 156,
+    "aggregation_group_count": 6,
+    "mapping_method_counts": {
+      "branch_office_parent_aggregate": 4,
+      "post_snapshot_split_aggregate": 4,
+      "unique_normalized_name": 154
+    },
+    "map_unit_status_counts": {
+      "aggregated_split": 2,
+      "exact": 150,
+      "parent_with_branch_office": 4
+    }
+  },
+  "mapping": {
+    "policy": "Use unique normalized names, plus explicit safe many-to-one aggregation rules; never fabricate post-snapshot polygon splits.",
+    "aggregation_rule": "Sum additive numerators/denominators across every current row sharing a geometry_zone_id, then recompute rates; never average rates.",
+    "aggregation_groups": {
+      "vworld_sgis_20250630:23010640": [
+        "운서1동",
+        "운서2동"
+      ],
+      "vworld_sgis_20250630:23080880": [
+        "아라1동",
+        "아라2동"
+      ],
+      "vworld_sgis_20250630:23510420": [
+        "서도면",
+        "서도면볼음출장소"
+      ],
+      "vworld_sgis_20250630:23520310": [
+        "북도면",
+        "북도면장봉출장소"
+      ],
+      "vworld_sgis_20250630:23520340": [
+        "대청면",
+        "대청면소청출장소"
+      ],
+      "vworld_sgis_20250630:23520360": [
+        "자월면",
+        "자월면이작출장소"
+      ]
+    },
+    "unmatched_current_rows": [],
+    "unused_geometry_codes": []
+  },
+  "geometry": {
+    "projected_area_m2_before_simplification": 1110533131.5993328,
+    "projected_area_m2_after_simplification": 1110458819.7204356,
+    "area_retention_ratio": 0.9999330845007837,
+    "simplified_geometry_repair_count": 0,
+    "invalid_wgs84_geometry_codes": [],
+    "empty_wgs84_geometry_codes": [],
+    "output_geometry_types": {
+      "MultiPolygon": 21,
+      "Polygon": 135
+    },
+    "bbox_wgs84": [
+      124.60971767856728,
+      36.926851320883905,
+      126.79369544496515,
+      37.9842418897407
+    ],
+    "serialized_invalid_feature_ids": [],
+    "serialized_empty_feature_ids": [],
+    "simplify_tolerance_meters": 10.0
+  },
+  "checks": {
+    "source_base_date_is_20250630": true,
+    "source_crs_is_epsg_5186": true,
+    "incheon_geometry_count_is_156": true,
+    "current_admin_dong_count_is_162": true,
+    "crosswalk_row_count_equals_current_count": true,
+    "all_current_rows_mapped": true,
+    "mapped_geometry_zone_count_is_156": true,
+    "all_source_geometry_zones_used": true,
+    "source_geometry_codes_unique": true,
+    "current_admin_codes_unique": true,
+    "all_source_district_prefixes_known": true,
+    "geojson_feature_count_matches_geometry_count": true,
+    "geometry_to_current_row_count_is_156": true,
+    "map_unit_statuses_are_reviewed": true,
+    "map_unit_status_counts_are_expected": true,
+    "serialized_geojson_geometries_valid": true,
+    "serialized_geojson_geometries_nonempty": true,
+    "aggregation_group_count_is_6": true
+  }
+}
