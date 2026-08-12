@@ -7,8 +7,11 @@
     "node": ">=24 <25"
   },
   "scripts": {
+    "audio": "node --env-file-if-exists=.env src/audio-cli.mjs",
     "text": "node --env-file-if-exists=.env src/cli.mjs",
-    "test": "node --test"
+    "test": "node --test",
+    "test:coverage": "node --test --experimental-test-coverage --test-coverage-include='src/**/*.mjs' --test-coverage-exclude='src/*cli.mjs' --test-coverage-lines=80 --test-coverage-functions=80 --test-coverage-branches=80",
+    "test:live": "RUN_LIVE_WHISPER=1 node --env-file-if-exists=.env --test test/live-transcription.test.mjs"
   },
   "dependencies": {
     "ajv": "8.20.0",
