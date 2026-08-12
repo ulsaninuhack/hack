@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "generatedBy": "e2e/p8-demo-hardening.spec.ts",
+  "productionLike": true,
+  "screenshots": [
+    {
+      "file": "artifacts/screenshots/public-map-desktop.png",
+      "width": 1440,
+      "height": 900,
+      "state": "실제 공개 집계 지도와 혼합 시점 고지"
+    },
+    {
+      "file": "artifacts/screenshots/surveyor-queue-mobile.png",
+      "width": 390,
+      "height": 844,
+      "state": "실제 API 오늘 큐와 일일 요약"
+    },
+    {
+      "file": "artifacts/screenshots/surveyor-form-mobile.png",
+      "width": 390,
+      "height": 844,
+      "state": "실제 연락 결과·관찰·수동 입력 폼"
+    },
+    {
+      "file": "artifacts/screenshots/surveyor-detail-mobile.png",
+      "width": 390,
+      "height": 844,
+      "state": "실제 규칙 재계산 후 분리된 급성도·취약도와 기여"
+    },
+    {
+      "file": "artifacts/screenshots/manager-review-desktop.png",
+      "width": 1440,
+      "height": 900,
+      "state": "실제 방문 권고와 관리자 운영 요약"
+    },
+    {
+      "file": "artifacts/screenshots/manager-map-desktop.png",
+      "width": 1440,
+      "height": 900,
+      "state": "실제 선택 합성 점과 키보드 목록 대안"
+    },
+    {
+      "file": "artifacts/screenshots/operations-overlay-desktop.png",
+      "width": 1440,
+      "height": 900,
+      "state": "실제 156구역 [합성] 연락업무 모드와 투명한 구조 맥락"
+    },
+    {
+      "file": "artifacts/screenshots/loading-mobile.png",
+      "width": 390,
+      "height": 844,
+      "state": "[검증 화면] loading 상태 · 연락업무 API 가로채기"
+    },
+    {
+      "file": "artifacts/screenshots/empty-mobile.png",
+      "width": 390,
+      "height": 844,
+      "state": "[검증 화면] empty 상태 · 연락업무 API 가로채기"
+    },
+    {
+      "file": "artifacts/screenshots/error-mobile.png",
+      "width": 390,
+      "height": 844,
+      "state": "[검증 화면] error 상태 · 연락업무 API 가로채기"
+    },
+    {
+      "file": "artifacts/screenshots/empty-loading-error-mobile.png",
+      "width": 390,
+      "height": 844,
+      "state": "[검증 화면] 별도 검증한 empty/loading/error 상태 묶음"
+    }
+  ],
+  "checks": {
+    "consoleErrors": 0,
+    "pageErrors": 0,
+    "axeSeriousCritical": 0,
+    "minBodyFontPx": 18,
+    "minTargetWidthPx": 130.296875,
+    "minTargetHeightPx": 48,
+    "horizontalOverflowPx": 0,
+    "syntheticMarker": true,
+    "separateAxes": true,
+    "mixedSnapshotWarning": true,
+    "modelOutputLabel": true,
+    "compositeScoreAbsent": true
+  },
+  "harnessedStates": [
+    "empty-mobile",
+    "loading-mobile",
+    "error-mobile",
+    "empty-loading-error-mobile"
+  ]
+}

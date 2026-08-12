@@ -10,7 +10,7 @@ import { VOICE_EXTRACTION_INSTRUCTIONS } from './prompt.mjs';
 
 const DEFAULT_MODEL = 'gpt-4o-mini';
 const SURVEYOR_ID_PATTERN = /^연결단원 [0-9]{3}$/;
-const CASE_ID_PATTERN = /\bCASE-[0-9]{4,8}\b/g;
+const CASE_ID_PATTERN = /(?:\bCASE-[0-9]{4,8}\b|\bSYN-HH-[0-9]{10}-[0-9]{4}\b)/g;
 const EXPLICIT_RISK_SCORE_PATTERN = /(?:위험\s*점수|risk\s*score)\s*(?:는|은|:|=)?\s*([0-9]+)(?:\s*점)?/i;
 const NEGATED_VISIT_PATTERN = /방문(?:이|은|을)?\s*(?:필요\s*(?:없|하지\s*않)|권고하지\s*않|추천하지\s*않)/;
 const EXPLICIT_VISIT_PATTERN = /(?:방문(?:이|은)?\s*필요(?:해|하|합|할|했|될)|방문(?:을)?\s*(?:권고|추천)|방문해야|방문해\s*(?:주세요|주십시오))/;

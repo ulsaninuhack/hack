@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { FormEvent, KeyboardEvent } from 'react'
+import type { FormEvent } from 'react'
 import { AlertTriangle, CheckCircle2, RefreshCw, Send } from 'lucide-react'
 import MapView from './MapView'
 import {
   ContactOpsClientError,
   emptyObservations,
   loadCase,
+  loadManagerBreadth,
+  loadOperationsMap,
   loadRecommendations,
   loadTodayQueue,
   submitContact,
@@ -16,9 +18,17 @@ import type {
   CaseDetail,
   ContactResultLabel,
   QueueItem,
+  ManagerBreadth,
+  OperationsMap,
+  OperationsMapZone,
 } from './contactOpsClient'
+import { SurveyorBreadth } from './SurveyorBreadth'
+import { AiObservationPanel } from './AiObservationPanel'
 import { loadData } from './data'
 import type { DataBundle } from './types'
+import { loadStructuralContext } from './structuralContext'
+import type { StructuralContext, StructuralIndicator, StructuralZone } from './structuralContext'
+
 
 const SYNTHETIC_MESSAGE = '합성 연락업무 데모 · 실제 주민, 실제 업무, 개인 판정이 아닙니다.'
 const CONTACT_LABELS: ContactResultLabel[] = [
@@ -119,52 +129,6 @@ function LoadingOrError({ error, retry }: { error: string | null; retry: () => v
   )
 }
 
-function QueueList({
-  items,
-  selectedId,
-  onSelect,
-}: {
-  items: QueueItem[]
-  selectedId: string | null
-  onSelect: (caseId: string) => void
-}) {
-  const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
-    if (!['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(event.key)) return
-    event.preventDefault()
-    const nextIndex = event.key === 'Home' ? 0
-      : event.key === 'End' ? items.length - 1
-        : event.key === 'ArrowDown' ? Math.min(index + 1, items.length - 1)
-          : Math.max(index - 1, 0)
-    const next = items[nextIndex]
-    if (!next) return
-    onSelect(next.household_id)
-    document.getElementById(`queue-${next.household_id}`)?.focus()
-  }
-
-  return (
-    <div className="ops-queue-list" role="listbox" aria-label="오늘 연락업무 목록">
-      {items.map((item, index) => (
-        <button
-          id={`queue-${item.household_id}`}
-          role="option"
-          aria-selected={item.household_id === selectedId}
-          className={item.household_id === selectedId ? 'ops-queue-item selected' : 'ops-queue-item'}
-          key={item.household_id}
-          onClick={() => onSelect(item.household_id)}
-          onKeyDown={(event) => handleKeyDown(event, index)}
-        >
-          <span>[합성] {item.household_id}</span>
-          <strong>
-            <b data-score-axis="acute">급성도 {item.triage.급성도_점수}</b>
-            <b data-score-axis="vulnerability">취약도 {item.triage.취약도_점수}</b>
-          </strong>
-          <small>{item.preferred_contact_method === 'phone' ? '전화 안부 확인' : '방문 선호 기록'}</small>
-        </button>
-      ))}
-    </div>
-  )
-}
-
 function ObservationForm({
   value,
   onChange,
@@ -249,6 +213,7 @@ export function SurveyorPage() {
   const [items, setItems] = useState<QueueItem[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [detail, setDetail] = useState<CaseDetail | null>(null)
+  const [details, setDetails] = useState<CaseDetail[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState('')
@@ -278,7 +243,10 @@ export function SurveyorPage() {
     if (!selectedId) { setDetail(null); return }
     let active = true
     void loadCase(selectedId).then((next) => {
-      if (active) setDetail(next)
+      if (active) {
+        setDetail(next)
+        setDetails((current) => [...current.filter((item) => item.household.id !== next.household.id), next])
+      }
     }).catch((cause: unknown) => {
       if (active) setError(errorMessage(cause, '상세 정보를 불러오지 못했습니다.'))
     })
@@ -324,9 +292,7 @@ export function SurveyorPage() {
         <div className="ops-mobile-flow">
           <section className="ops-queue" aria-labelledby="today-queue-heading">
             <h2 id="today-queue-heading">오늘 연락업무</h2>
-            {items.length > 0
-              ? <QueueList items={items} selectedId={selectedId} onSelect={setSelectedId} />
-              : <p className="ops-empty">오늘 예정된 합성 연락업무가 없습니다.</p>}
+            <SurveyorBreadth items={items} details={details} loading={loading} error={null} selectedId={selectedId} onSelect={setSelectedId} onRetry={() => void refresh()} />
           </section>
           <section className="ops-detail" aria-label="선택한 합성 연락업무">
             <h2>선택한 연락업무</h2>
@@ -351,8 +317,8 @@ export function SurveyorPage() {
               </label>
               <ObservationForm value={observations} onChange={setObservations} />
               <label>개인정보 없는 합성 메모
-                <textarea value={memo} onChange={(event) => setMemo(event.target.value)} placeholder="이 메모는 P3 검토 입력 전까지 현재 화면에만 유지됩니다." />
-                <small>현재 P2에서는 점수나 서버 기록에 넣지 않습니다.</small>
+                <textarea value={memo} onChange={(event) => setMemo(event.target.value)} placeholder="수동 입력의 참고 메모이며 현재 화면에만 유지됩니다." />
+                <small>점수나 서버 기록에 넣지 않습니다. 아래 인공지능 후보 입력과 별개로 사용할 수 있습니다.</small>
               </label>
               <button disabled={saving || !detail || !resultLabel} type="submit">
                 <Send aria-hidden="true" /> {saving ? '저장 중' : '통화 결과 저장'}
@@ -360,6 +326,16 @@ export function SurveyorPage() {
             </fieldset>
             <p className="ops-live" role="status" aria-live="polite">{saving ? '결정론적 규칙과 분리된 점수 축을 계산하는 중입니다.' : feedback}</p>
           </form>
+          {displayedDetail && <AiObservationPanel
+            key={displayedDetail.household.id}
+            caseId={displayedDetail.household.id}
+            revision={displayedDetail.revision}
+            onApplied={async (updated) => {
+              setDetail(updated)
+              setFeedback('인공지능 후보 확인 결과를 저장하고 연락업무 순서를 다시 계산했습니다.')
+              await refresh()
+            }}
+          />}
         </div>
       )}
     </main>
@@ -370,6 +346,12 @@ export function ManagerPage() {
   const [items, setItems] = useState<CaseDetail[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [mapData, setMapData] = useState<DataBundle | null>(null)
+  const [structuralContext, setStructuralContext] = useState<StructuralContext | null>(null)
+  const [operationsMap, setOperationsMap] = useState<OperationsMap | null>(null)
+  const [selectedOperationsZoneId, setSelectedOperationsZoneId] = useState<string | null>(null)
+  const [mapMode, setMapMode] = useState<'public' | 'operations'>('public')
+  const [breadth, setBreadth] = useState<ManagerBreadth | null>(null)
+  const [breadthError, setBreadthError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [mapError, setMapError] = useState(false)
@@ -388,6 +370,8 @@ export function ManagerPage() {
     longitude: selected.household.location.longitude,
     latitude: selected.household.location.latitude,
   } : null, [selected])
+  const activeOperationsZoneId = selectedOperationsZoneId ?? selected?.household.location.geometry_zone_id ?? null
+  const activeOperationsZone = operationsMap?.zones.find((zone) => zone.geometry_zone_id === activeOperationsZoneId) ?? null
 
   const refresh = async () => {
     try {
@@ -406,6 +390,26 @@ export function ManagerPage() {
   }
 
   useEffect(() => { void refresh() }, [])
+  useEffect(() => {
+    let active = true
+    void loadManagerBreadth().then((next) => {
+      if (active) { setBreadth(next); setBreadthError(null) }
+    }).catch((cause: unknown) => {
+      if (active) setBreadthError(errorMessage(cause, '관리자 운영 요약을 불러오지 못했습니다.'))
+    })
+    return () => { active = false }
+  }, [])
+  useEffect(() => {
+    let active = true
+    void Promise.all([loadStructuralContext(), loadOperationsMap()]).then(([context, operations]) => {
+      if (!active) return
+      setStructuralContext(context)
+      setOperationsMap(operations)
+    }).catch(() => {
+      if (active) setMapError(true)
+    })
+    return () => { active = false }
+  }, [])
   useEffect(() => {
     let active = true
     void loadData().then((data) => {
@@ -472,6 +476,7 @@ export function ManagerPage() {
               </div>
             )}
           </section>
+          <ManagerBreadthPanel breadth={breadth} error={breadthError} />
           <section className="ops-decision">
             <h2>선택한 권고 검토</h2>
             {selected ? <>
@@ -481,6 +486,7 @@ export function ManagerPage() {
                 <strong>선택한 합성 점</strong>
                 <span>{selected.household.location.current_district_name_20260701} {selected.household.location.current_admin_dong_name_20260701}</span>
                 <small>지도는 맥락 확인용입니다. 왼쪽의 키보드 접근 가능 목록으로 같은 업무를 선택할 수 있습니다.</small>
+                <MapModeToggle mode={mapMode} onChange={setMapMode} />
                 <div className="ops-map-frame">
                   {mapData ? <MapView
                     data={mapData}
@@ -489,13 +495,18 @@ export function ManagerPage() {
                     showTransit={false}
                     showBubbles={false}
                     facilityCategory="전체"
-                    selectedZoneId={selected.household.location.geometry_zone_id}
+                    selectedZoneId={activeOperationsZoneId}
                     syntheticPoint={syntheticPoint}
+                    mapMode={mapMode}
+                    structuralScores={structuralContext ? Object.fromEntries(structuralContext.zones.map((zone) => [zone.geometry_zone_id, zone.score_0_50])) : undefined}
+                    operationsByZone={operationsMap ? Object.fromEntries(operationsMap.zones.map((zone) => [zone.geometry_zone_id, zone.operations])) : undefined}
                     ariaLabel="[합성] 연락업무 위치와 공개 동단위 맥락 지도"
-                    onSelectDong={() => {}}
+                    onSelectDong={(dong) => setSelectedOperationsZoneId(dong.geometry_zone_id)}
                   /> : <p role="status">공개 동단위 맥락 지도를 불러오는 중입니다.</p>}
                 </div>
                 {mapError && <p>지도를 불러오지 못했습니다. 목록 검토와 담당자 결정은 계속 사용할 수 있습니다.</p>}
+                {mapMode === 'operations' && <ZoneOperationsPanel zone={activeOperationsZone} />}
+                <StructuralContextPanel zone={structuralContext?.zones.find((item) => item.geometry_zone_id === activeOperationsZoneId) ?? null} />
               </section>
               <form className="ops-form" onSubmit={submit}>
                 <fieldset>
@@ -525,4 +536,82 @@ export function ManagerPage() {
       )}
     </main>
   )
+}
+
+function ManagerBreadthPanel({ breadth, error }: { breadth: ManagerBreadth | null; error: string | null }) {
+  if (error) return <section className="ops-breadth" aria-label="[합성] 관리자 운영 요약"><span>[합성]</span><p role="alert">{error}</p></section>
+  if (!breadth) return <section className="ops-breadth" aria-label="[합성] 관리자 운영 요약"><span>[합성]</span><p role="status">관리자 운영 요약을 불러오는 중입니다.</p></section>
+  return <aside className="ops-breadth" aria-label="[합성] 관리자 운영 요약">
+    <span className="synthetic-chip">[합성]</span>
+    <section><h2>행정복지센터 이관</h2>{breadth.transfer_recommendations.length === 0 ? <p>현재 이관 권고가 없습니다.</p> : <ul>{breadth.transfer_recommendations.map((item) => <li key={item.case_id}><strong>{item.status_label}</strong><span>[합성] {item.case_id}</span><small>급성도 {item.acute.score} · 취약도 {item.vulnerability.score}</small></li>)}</ul>}</section>
+    <section><h2>분리된 2축 분포</h2><h3>급성도 분포</h3><Distribution values={breadth.grade_distribution.acute.grades} /><h3>취약도 분포</h3><Distribution values={breadth.grade_distribution.vulnerability.score_bands} /></section>
+    <section className="ops-tuning"><h2>{breadth.tuning_warning.title}</h2><strong>{breadth.tuning_warning.current_mild_signal_count.toLocaleString()}건</strong><p>{breadth.tuning_warning.interpretation}</p></section>
+    <section><h2>승인된 방문 {breadth.approved_visit_hint.approved_visit_count}건</h2><p>{breadth.approved_visit_hint.label}</p>{breadth.approved_visit_hint.items.length > 0 && <ol>{breadth.approved_visit_hint.items.map((item) => <li key={item.case_id}>[합성] {item.case_id} · {item.admin_dong}{item.distance_from_previous_km != null ? ` · 이전 지점에서 ${item.distance_from_previous_km}km` : ''}</li>)}</ol>}</section>
+  </aside>
+}
+
+function Distribution({ values }: { values: Record<string, number> }) {
+  return <dl className="ops-distribution">{Object.entries(values).map(([label, count]) => <div key={label}><dt>{label}</dt><dd>{count}건</dd></div>)}</dl>
+}
+
+function MapModeToggle({ mode, onChange }: { mode: 'public' | 'operations'; onChange: (mode: 'public' | 'operations') => void }) {
+  return <div className="map-mode-toggle" role="group" aria-label="지도 표시 모드">
+    <button type="button" aria-pressed={mode === 'public'} onClick={() => onChange('public')}>공개 인구 맥락</button>
+    <button type="button" aria-pressed={mode === 'operations'} onClick={() => onChange('operations')}>[합성] 연락업무</button>
+  </div>
+}
+
+export function ZoneOperationsPanel({ zone }: { zone: OperationsMapZone | null }) {
+  if (!zone) return <section className="zone-operations-panel" aria-label="선택한 구역의 합성 연락업무"><p role="status">선택한 구역의 합성 연락업무를 불러오는 중입니다.</p></section>
+  const operations = zone.operations
+  return <section className="zone-operations-panel" aria-label="선택한 구역의 합성 연락업무">
+    <span className="synthetic-chip">[합성]</span>
+    <h3>선택한 구역의 [합성] 연락업무</h3>
+    <p>채색은 구역 내 급성도 최댓값, 원 크기는 취약도 최댓값입니다. 두 축은 각각 표시하며 자동 승인은 사용하지 않습니다.</p>
+    <dl className="zone-operation-metrics">
+      <div><dt>급성도 채색값</dt><dd>{operations.acute_color_metric ?? '점수 없음'}{operations.acute_max_case_id ? ` · ${operations.acute_max_case_id}` : ''}</dd></div>
+      <div><dt>취약도 원 크기값</dt><dd>{operations.vulnerability_size_metric ?? '점수 없음'}{operations.vulnerability_max_case_id ? ` · ${operations.vulnerability_max_case_id}` : ''}</dd></div>
+      <div><dt>점수 기록 / 미기록</dt><dd>{operations.scored_case_count}건 / {operations.unscored_case_count}건</dd></div>
+    </dl>
+    <p className="zone-aggregation">구역 집계: 최댓값 우선 맥락. 동점이면 높은 축 점수 후 합성 업무 ID 오름차순으로 선택합니다.</p>
+    <ContributionSummary title="급성도 기여" entries={operations.contribution_summaries.acute} />
+    <ContributionSummary title="취약도 기여" entries={operations.contribution_summaries.vulnerability} />
+  </section>
+}
+
+function ContributionSummary({ title, entries }: { title: string; entries: Array<{ code: string; total_points: number; case_count: number }> }) {
+  return <section className="zone-contributions"><h4>{title}</h4>{entries.length === 0 ? <p>점수 기록이 없습니다.</p> : <ul>{entries.map((entry) => <li key={entry.code}><span>{entry.code}</span><strong>{entry.total_points}점 · {entry.case_count}건</strong></li>)}</ul>}</section>
+}
+
+function StructuralContextPanel({ zone }: { zone: StructuralZone | null }) {
+  if (!zone) return <section className="structural-panel" aria-label="공개 인구 맥락"><p role="status">공개 인구 맥락을 불러오는 중입니다.</p></section>
+  return <section className="structural-panel" aria-label="공개 인구 맥락">
+    <span className="structural-model-label">[MODEL OUTPUT — UNVALIDATED]</span>
+    <h3>공개 인구 맥락 · 156개 지도 구역</h3>
+    <p>개인 또는 합성 연락업무의 점수가 아닌, 공개 집계 기반 구조 맥락입니다.</p>
+    <dl className="structural-summary">
+      <div><dt>구조 맥락 점수</dt><dd>{zone.score_0_50.toFixed(1)} / 50</dd></div>
+      <div><dt>사용 가능 분모</dt><dd>{zone.available_score_denominator.toFixed(1)} / 50</dd></div>
+      <div><dt>완결성</dt><dd>{zone.completeness.available_indicator_count} / {zone.completeness.total_indicator_count} ({Math.round(zone.completeness.ratio * 100)}%)</dd></div>
+    </dl>
+    <div className="structural-indicators">
+      {Object.entries(zone.indicators).map(([key, indicator]) => <IndicatorRow key={key} indicator={indicator} />)}
+    </div>
+  </section>
+}
+
+function IndicatorRow({ indicator }: { indicator: StructuralIndicator }) {
+  const raw = indicator.raw_value == null ? '결측' : `${(indicator.raw_value * 100).toFixed(1)}%`
+  return <article className="structural-indicator">
+    <h4>{indicator.label_ko}</h4>
+    {indicator.missing ? <p>결측 · 가산점 없음{indicator.missing_reason ? ` (${indicator.missing_reason})` : ''}</p> : <>
+      <dl>
+        <div><dt>원자료</dt><dd>{raw} ({indicator.raw_numerator?.toLocaleString() ?? '–'} / {indicator.raw_denominator?.toLocaleString() ?? '–'})</dd></div>
+        <div><dt>중간순위</dt><dd>{(indicator.percentile_rank! * 100).toFixed(1)}% · 비교 {indicator.comparable_geography_count}구역</dd></div>
+        <div><dt>기여</dt><dd>{indicator.contribution.toFixed(1)} / {indicator.maximum_contribution.toFixed(1)}</dd></div>
+        <div><dt>기준일</dt><dd>분자 {indicator.reference_dates.numerator ?? '–'} · 분모 {indicator.reference_dates.denominator ?? '–'}</dd></div>
+      </dl>
+      {indicator.mixed_snapshot && <p className="mixed-snapshot-note"><strong>혼합 시점 참고값</strong><br />분자 {indicator.reference_dates.numerator ?? '–'} · 분모 {indicator.reference_dates.denominator ?? '–'} · 서로 다른 기준일의 참고 비율이며 동시점 비율이 아닙니다.</p>}
+    </>}
+  </article>
 }

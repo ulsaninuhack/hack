@@ -14,6 +14,9 @@ interface MapViewProps {
   selectedZoneId: string | null
   onSelectDong: (properties: DongProperties) => void
   syntheticPoint?: { caseId: string; longitude: number; latitude: number } | null
+  mapMode?: 'public' | 'operations'
+  structuralScores?: Record<string, number>
+  operationsByZone?: Record<string, { acute_color_metric: number | null; vulnerability_size_metric: number | null }>
   ariaLabel?: string
 }
 
@@ -22,6 +25,8 @@ const BUBBLE_SOURCE = 'dong-bubbles'
 const FACILITY_SOURCE = 'facilities'
 const TRANSIT_SOURCE = 'transit'
 const SYNTHETIC_POINT_SOURCE = 'synthetic-contact-case'
+const OPERATIONAL_SOURCES = [DONG_SOURCE, BUBBLE_SOURCE, FACILITY_SOURCE, TRANSIT_SOURCE, SYNTHETIC_POINT_SOURCE]
+const OPERATIONAL_LAYERS = ['dong-fill', 'dong-border', 'dong-bubbles', 'facility-clusters', 'facility-cluster-count', 'facility-points', 'transit-points', 'synthetic-contact-case-halo', 'synthetic-contact-case-point']
 
 // MapLibre 6 resolves its worker next to the bundled entry at runtime. Vite
 // cannot discover that computed URL, so the build emits the worker and shared
@@ -41,6 +46,12 @@ function colorExpression(metric: MetricKey): ExpressionSpecification {
     ]
   }
   return ['interpolate', ['linear'], ['get', metric], 0.12, '#f2f1e9', 0.24, '#dcebc6', 0.3, '#a9d2a3', 0.36, '#57a68c', 0.48, '#12665b']
+}
+
+function mapColorExpression(mode: MapViewProps['mapMode'], metric: MetricKey): ExpressionSpecification {
+  if (mode === 'operations') return ['case', ['==', ['feature-state', 'acute'], null], '#d8dedb', ['interpolate', ['linear'], ['feature-state', 'acute'], 0, '#f6f0df', 25, '#edbb67', 50, '#db7049', 75, '#8f2f3c', 100, '#4d1830']]
+  if (mode === 'public') return ['case', ['==', ['feature-state', 'structuralScore'], null], colorExpression(metric), ['interpolate', ['linear'], ['feature-state', 'structuralScore'], 0, '#f4f1ea', 12.5, '#dce9c7', 25, '#a8cf9e', 37.5, '#58a68c', 50, '#14685e']]
+  return colorExpression(metric)
 }
 
 function setVisibility(map: Map, layer: string, visible: boolean) {
@@ -85,18 +96,18 @@ export default function MapView(props: MapViewProps) {
       map.addSource(DONG_SOURCE, { type: 'geojson', data: current.data.dongs, promoteId: 'geometry_zone_id' })
       map.addLayer({
         id: 'dong-fill', type: 'fill', source: DONG_SOURCE,
-        paint: { 'fill-color': colorExpression(current.metric), 'fill-opacity': 0.76 },
+        paint: { 'fill-color': mapColorExpression(current.mapMode, current.metric), 'fill-opacity': 0.76 },
       })
       map.addLayer({
         id: 'dong-border', type: 'line', source: DONG_SOURCE,
         paint: { 'line-color': ['case', ['boolean', ['feature-state', 'selected'], false], '#f7c765', '#ffffff'], 'line-width': ['case', ['boolean', ['feature-state', 'selected'], false], 3, 0.8], 'line-opacity': 0.9 },
       })
-      map.addSource(BUBBLE_SOURCE, { type: 'geojson', data: toBubbleCollection(current.data) })
+      map.addSource(BUBBLE_SOURCE, { type: 'geojson', data: toBubbleCollection(current.data, current.operationsByZone) })
       map.addLayer({
         id: 'dong-bubbles', type: 'circle', source: BUBBLE_SOURCE,
         paint: {
-          'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, ['interpolate', ['linear'], ['get', 'one_person_households_age_65_plus'], 0, 2, 2500, 14], 13, ['interpolate', ['linear'], ['get', 'one_person_households_age_65_plus'], 0, 5, 2500, 25]],
-          'circle-color': '#f3bd54', 'circle-opacity': 0.82, 'circle-stroke-color': '#5d4213', 'circle-stroke-width': 1,
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, ['interpolate', ['linear'], ['get', 'vulnerability'], 0, 2, 100, 14], 13, ['interpolate', ['linear'], ['get', 'vulnerability'], 0, 5, 100, 25]],
+          'circle-color': ['case', ['==', ['get', 'acute'], null], '#f3bd54', ['interpolate', ['linear'], ['get', 'acute'], 0, '#f6f0df', 50, '#db7049', 100, '#4d1830']], 'circle-opacity': 0.82, 'circle-stroke-color': '#5d4213', 'circle-stroke-width': 1,
         },
       })
       map.addSource(FACILITY_SOURCE, { type: 'geojson', data: current.data.facilities, cluster: true, clusterMaxZoom: 13, clusterRadius: 48 })
@@ -136,9 +147,16 @@ export default function MapView(props: MapViewProps) {
       setVisibility(map, 'facility-cluster-count', current.showFacilities)
       setVisibility(map, 'facility-points', current.showFacilities)
       setVisibility(map, 'transit-points', current.showTransit)
-      setVisibility(map, 'dong-bubbles', current.showBubbles)
+      setVisibility(map, 'dong-bubbles', current.mapMode === 'operations' ? true : current.showBubbles)
+      updateContextStates(map, current)
 
-      map.once('idle', () => containerRef.current?.setAttribute('data-map-ready', 'true'))
+      // `idle` waits for all network activity, including optional external raster
+      // tiles and glyphs. Readiness instead means our interactive GeoJSON layers
+      // are installed and have completed their first MapLibre render cycle.
+      if (hasOperationalMapLayers(map)) {
+        map.once('render', () => containerRef.current?.setAttribute('data-map-ready', 'true'))
+        map.triggerRepaint()
+      }
 
       const handleDong = (event: MapMouseEvent) => {
         const feature = map.queryRenderedFeatures(event.point, { layers: ['dong-fill'] })[0]
@@ -181,23 +199,26 @@ export default function MapView(props: MapViewProps) {
 
   useEffect(() => {
     const map = mapRef.current
-    if (!map?.isStyleLoaded()) return
-    map.setPaintProperty('dong-fill', 'fill-color', colorExpression(props.metric))
-  }, [props.metric])
+    if (!map?.isStyleLoaded() || !hasOperationalMapLayers(map)) return
+    map.setPaintProperty('dong-fill', 'fill-color', mapColorExpression(props.mapMode, props.metric))
+    updateContextStates(map, props)
+    const bubbleSource = map.getSource(BUBBLE_SOURCE) as maplibregl.GeoJSONSource | undefined
+    bubbleSource?.setData(toBubbleCollection(props.data, props.operationsByZone))
+  }, [props.metric, props.mapMode, props.structuralScores, props.operationsByZone, props.data])
 
   useEffect(() => {
     const map = mapRef.current
-    if (!map?.isStyleLoaded()) return
+    if (!map?.isStyleLoaded() || !hasOperationalMapLayers(map)) return
     setVisibility(map, 'facility-clusters', props.showFacilities)
     setVisibility(map, 'facility-cluster-count', props.showFacilities)
     setVisibility(map, 'facility-points', props.showFacilities)
     setVisibility(map, 'transit-points', props.showTransit)
-    setVisibility(map, 'dong-bubbles', props.showBubbles)
-  }, [props.showFacilities, props.showTransit, props.showBubbles])
+    setVisibility(map, 'dong-bubbles', props.mapMode === 'operations' ? true : props.showBubbles)
+  }, [props.showFacilities, props.showTransit, props.showBubbles, props.mapMode])
 
   useEffect(() => {
     const map = mapRef.current
-    if (!map?.isStyleLoaded()) return
+    if (!map?.isStyleLoaded() || !map.getSource(FACILITY_SOURCE)) return
     const source = map.getSource(FACILITY_SOURCE) as maplibregl.GeoJSONSource | undefined
     if (!source) return
     const features = props.facilityCategory === '전체'
@@ -208,7 +229,7 @@ export default function MapView(props: MapViewProps) {
 
   useEffect(() => {
     const map = mapRef.current
-    if (!map?.isStyleLoaded()) return
+    if (!map?.isStyleLoaded() || !map.getSource(DONG_SOURCE)) return
     for (const feature of props.data.dongs.features) {
       const id = feature.properties.geometry_zone_id
       map.setFeatureState({ source: DONG_SOURCE, id }, { selected: id === props.selectedZoneId })
@@ -225,7 +246,7 @@ export default function MapView(props: MapViewProps) {
 
   useEffect(() => {
     const map = mapRef.current
-    if (!map?.isStyleLoaded()) return
+    if (!map?.isStyleLoaded() || !map.getSource(SYNTHETIC_POINT_SOURCE)) return
     const source = map.getSource(SYNTHETIC_POINT_SOURCE) as maplibregl.GeoJSONSource | undefined
     source?.setData(toSyntheticPointCollection(props.syntheticPoint))
     if (props.syntheticPoint) {
@@ -240,6 +261,11 @@ export default function MapView(props: MapViewProps) {
   return <div ref={containerRef} className="map" role="region" aria-label={props.ariaLabel ?? '인천 돌봄 수요 맥락 지도'} />
 }
 
+export function hasOperationalMapLayers(map: { getSource(id: string): unknown; getLayer(id: string): unknown }) {
+  return OPERATIONAL_SOURCES.every((id) => map.getSource(id) !== undefined)
+    && OPERATIONAL_LAYERS.every((id) => map.getLayer(id) !== undefined)
+}
+
 function toSyntheticPointCollection(point: MapViewProps['syntheticPoint']): FeatureCollection<Point> {
   return {
     type: 'FeatureCollection',
@@ -251,7 +277,19 @@ function toSyntheticPointCollection(point: MapViewProps['syntheticPoint']): Feat
   }
 }
 
-function toBubbleCollection(data: DataBundle): FeatureCollection<Point, DongProperties> {
+function updateContextStates(map: Map, props: MapViewProps) {
+  if (!map.getSource(DONG_SOURCE)) return
+  for (const feature of props.data.dongs.features) {
+    const id = feature.properties.geometry_zone_id
+    const operation = props.operationsByZone?.[id]
+    map.setFeatureState({ source: DONG_SOURCE, id }, {
+      structuralScore: props.structuralScores?.[id] ?? null,
+      acute: operation?.acute_color_metric ?? null,
+    })
+  }
+}
+
+function toBubbleCollection(data: DataBundle, operationsByZone?: MapViewProps['operationsByZone']): FeatureCollection<Point, DongProperties & { acute: number | null; vulnerability: number }> {
   return {
     type: 'FeatureCollection',
     features: data.dongs.features.map((feature) => ({
@@ -260,7 +298,11 @@ function toBubbleCollection(data: DataBundle): FeatureCollection<Point, DongProp
         type: 'Point',
         coordinates: [feature.properties.representative_longitude, feature.properties.representative_latitude],
       },
-      properties: feature.properties,
+      properties: {
+        ...feature.properties,
+        acute: operationsByZone?.[feature.properties.geometry_zone_id]?.acute_color_metric ?? null,
+        vulnerability: operationsByZone?.[feature.properties.geometry_zone_id]?.vulnerability_size_metric ?? 0,
+      },
     })),
   }
 }

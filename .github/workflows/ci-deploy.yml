@@ -72,8 +72,8 @@ jobs:
       - name: Install Chromium for operations E2E
         run: npx playwright install --with-deps chromium
 
-      - name: Test the surveyor-to-manager browser flow
-        run: npm run test:e2e:p2
+      - name: Test the surveyor-to-manager browser flows
+        run: npm run test:e2e:ops
 
       - name: Verify objective overnight UI evidence
         run: npm run verify:overnight
@@ -87,6 +87,9 @@ jobs:
             artifacts/playwright/
             artifacts/playwright-report/
             artifacts/screenshots/
+            artifacts/axe/
+            artifacts/p8-evidence.json
+            test-results/
           if-no-files-found: warn
           retention-days: 7
 
@@ -190,11 +193,9 @@ jobs:
 
       - name: Verify public production alias references the API
         shell: bash
-        env:
-          PRODUCTION_ORIGIN: https://incheon-care-map.vercel.app
         run: |
           set -euo pipefail
-          production_origin="${PRODUCTION_ORIGIN%/}"
+          production_origin="https://incheon-care-map.vercel.app"
           app_html_file="$(mktemp)"
           asset_file="$(mktemp)"
           trap 'rm -f "$app_html_file" "$asset_file"' EXIT
@@ -391,6 +392,8 @@ jobs:
 
       - name: Record backend deployment
         run: |
-          echo "Backend image tag: ${IMAGE}" >> "$GITHUB_STEP_SUMMARY"
-          echo "Deployed image digest: ${{ steps.image.outputs.image }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "Cloud Run service: ${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "Backend image tag: ${IMAGE}"
+            echo "Deployed image digest: ${{ steps.image.outputs.image }}"
+            echo "Cloud Run service: ${{ steps.deploy.outputs.url }}"
+          } >> "$GITHUB_STEP_SUMMARY"

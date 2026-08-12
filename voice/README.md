@@ -6,6 +6,7 @@
 
 - **3a 완료:** 텍스트 입력 -> OpenAI Structured Outputs -> 계약 검증 -> JSON
 - **3b 완료(모킹 전사 검증):** WAV/MP3 파일 -> OpenAI 전사 -> 즉시 PII 마스킹 -> 기존 3a -> 같은 계약 검증 -> JSON
+- **ContactOps P3 어댑터 완료(모킹 검증):** Planner -> 기존 JSON 스키마 -> 영/한 관찰 매핑 -> Critic -> 명시적 사용자 확인 후보
 - **3c 미구현:** Realtime API(WebRTC) -> function calling -> 같은 JSON
 
 3a가 최하단 폴백이다. 3b는 파일을 전사한 뒤 `processVoiceInput({ kind: 'text', ... })`에 그대로 넘기고, 3c도 실시간 전사·함수 호출이 실패하면 3b, 다시 3a 순서로 전환한다.
@@ -19,6 +20,8 @@
 매뉴얼 기준은 「고독사 예방 및 관리를 위한 이웃연결단 활동 매뉴얼」 14쪽의 6개 위험징후 체크리스트와 48~49쪽의 관찰·가정방문 기록지다. 언급되지 않은 관찰 항목은 `null`이며, 식사·위생은 매뉴얼 표기의 `양호 | 불량 | 심각`만 사용한다.
 
 트리아지 경계를 지키기 위해 `risk_score`는 발화에 숫자 점수가 직접 등장할 때만 옮기고 기본값은 `0`이다. `visit_recommended`도 연결단원이 방문 필요를 직접 권고·요청했을 때만 `true`다. 이 값은 방문 확정이 아니며 최종 규칙과 담당자 승인은 메인 시스템의 책임이다.
+
+ContactOps 확인 후보는 기존 음성 계약의 `risk_score`와 `visit_recommended`를 항상 제거하고 제거 내역만 남긴다. 미응답 연속 횟수, 재연락 기한, 점수, 방문 승인, 이관 완료, 경로 제약은 후보 스키마가 받지 않는 서버 소유 필드다. `위생상태: 심각`은 새 가중치를 만들지 않고 `불량`으로 매핑하며 Critic 경고를 남긴다.
 
 ## 설치와 오프라인 테스트
 
@@ -77,6 +80,24 @@ const result = await processAudioFile({
 
 전사 호출 경계는 `transcribe(audioPath, options) -> string`이다. 테스트에서는 `processAudioFile`의 `transcriber` 옵션에 stub을 주입하고, 운영에서는 기본 OpenAI 어댑터를 사용한다.
 
+ContactOps는 `planContactOpsObservation(input, options)`로 텍스트 또는 검증된 WAV/MP3를 후보로 바꾸고, 서버가 확인 요청을 받을 때 `assertContactOpsObservationCandidate(value)`로 정확한 키와 경계를 다시 검증한다. 어댑터는 `confirmed: false` 후보만 만들며 확정·점수·승인을 실행하지 않는다.
+
+```js
+import {
+  assertContactOpsObservationCandidate,
+  planContactOpsObservation,
+} from './voice/src/contact-ops-adapter.mjs';
+
+const candidate = await planContactOpsObservation({
+  kind: 'text',
+  text: 'SYN-HH-2812551000-0001 전화는 연결됐고 식사가 심각합니다.',
+  surveyorId: '연결단원 001',
+  caseId: 'SYN-HH-2812551000-0001',
+}, { plannerClient: deterministicMockClient });
+
+const safeConfirmationCandidate = assertContactOpsObservationCandidate(candidate);
+```
+
 ## 라이브 옵션과 폴백
 
 사람이 만든 합성 TTS 오디오 또는 동의를 받은 비식별 테스트 오디오의 경로를 로컬 `.env`에만 둔 뒤 명시적으로 실행한다.
@@ -86,6 +107,8 @@ npm run test:live
 ```
 
 `RUN_LIVE_WHISPER=1`이 설정된 이 명령만 실제 전사 API와 3a API를 호출한다. 전사 결과의 문구 일치는 단언하지 않고, 비어 있지 않은 마스킹 전사와 최종 계약 통과만 확인한다. `.env`, 원시 전사, 오디오 경로는 커밋하거나 로그로 남기지 않는다.
+
+ContactOps 실제 Planner–Critic 그래프는 `ENABLE_LIVE_CONTACT_OPS_AI=1`이 명시된 경우에만 열린다. Planner 호출 후 두 번째 Structured Outputs Critic 호출이 실행되며, Critic은 `missing_fields`, `contradictions`, `low_confidence_fields`, `warnings` 배열만 반환할 수 있다. 기본값 `0`에서는 외부 호출을 막고 주입된 모킹 Planner/Critic만 실행한다.
 
 폴백 순서는 3c 실시간 입력 실패 시 3b 파일 업로드, 3b 실패 시 3a 텍스트 직접 입력이다. 3c는 아직 구현하지 않았다.
 

@@ -74,6 +74,60 @@ export interface CaseDetail {
   findings?: Array<{ code?: string }>
 }
 
+export interface ManagerBreadth {
+  synthetic: true
+  displayMarker: '[합성]'
+  transfer_recommendations: Array<{ case_id: string; status_label: string; acute: { score: number }; vulnerability: { score: number } }>
+  grade_distribution: {
+    scored_case_count: number
+    not_yet_scored_case_count: number
+    acute: { axis_label: string; grades: Record<string, number> }
+    vulnerability: { axis_label: string; score_bands: Record<string, number> }
+  }
+  tuning_warning: { title: string; current_mild_signal_count: number; source_case_count: number; interpretation: string }
+  approved_visit_hint: {
+    approved_visit_count: number
+    label: string
+    items: Array<{ case_id: string; district: string; admin_dong: string; assigned_worker_ids: string[]; approved_max_route_distance_km: number; distance_from_previous_km?: number }>
+  }
+}
+
+export interface OperationsMapZone {
+  geometry_zone_id: string
+  public_structural_context: {
+    model_output_label: '[MODEL OUTPUT — UNVALIDATED]'
+    score_0_50: number
+    available_score_denominator: number
+    completeness: { available_indicator_count?: number; total_indicator_count?: number; ratio: number }
+    indicators: Record<string, unknown>
+  }
+  operations: {
+    synthetic: true
+    displayMarker: '[합성]'
+    aggregation: 'zone_max_priority_context'
+    tie_rule: string
+    acute_color_metric: number | null
+    vulnerability_size_metric: number | null
+    acute_max_case_id: string | null
+    vulnerability_max_case_id: string | null
+    scored_case_count: number
+    unscored_case_count: number
+    contribution_summaries: {
+      acute: Array<{ code: string; total_points: number; case_count: number }>
+      vulnerability: Array<{ code: string; total_points: number; case_count: number }>
+    }
+  }
+}
+
+export interface OperationsMap {
+  synthetic: true
+  displayMarker: '[합성]'
+  geometry_zone_count: 156
+  current_admin_dong_count: 162
+  public_context_label: '[MODEL OUTPUT — UNVALIDATED]'
+  zones: OperationsMapZone[]
+}
+
 export class ContactOpsClientError extends Error {
   constructor(public readonly code: string, message: string) {
     super(message)
@@ -136,6 +190,14 @@ export async function loadRecommendations() {
   return request<{ synthetic: true; displayMarker: '[합성]'; items: CaseDetail[] }>(
     '/api/v1/contact-ops/visit-recommendations',
   )
+}
+
+export async function loadManagerBreadth() {
+  return request<ManagerBreadth>('/api/v1/contact-ops/manager-breadth')
+}
+
+export async function loadOperationsMap() {
+  return request<OperationsMap>('/api/v1/contact-ops/operations-map')
 }
 
 export function emptyObservations(): CanonicalObservations {

@@ -135,6 +135,16 @@ export function createMemoryContactOpsState({ households }) {
       records.set(keyFor(key), next);
       return clone(next);
     },
+    async resetSession({ sessionId }) {
+      if (typeof sessionId !== 'string' || !SESSION_ID_PATTERN.test(sessionId)) {
+        throw new TypeError('sessionId must be a bounded opaque demo session identifier');
+      }
+      let resetOverrideCount = 0;
+      for (const key of [...records.keys()]) {
+        if (key.startsWith(`${sessionId}\u0000`)) { records.delete(key); resetOverrideCount += 1; }
+      }
+      return { synthetic: true, session_id: sessionId, reset_override_count: resetOverrideCount, seed_case_count: seedById.size };
+    },
   });
 }
 
@@ -208,6 +218,19 @@ export function createFirestoreContactOpsState({ firestore, collectionName, hous
         transaction.set(reference, next);
         return clone(next);
       });
+    },
+    async resetSession({ sessionId }) {
+      if (typeof sessionId !== 'string' || !SESSION_ID_PATTERN.test(sessionId)) {
+        throw new TypeError('sessionId must be a bounded opaque demo session identifier');
+      }
+      const snapshot = await firestore.collection(collectionName).where('session_id', '==', sessionId).get();
+      const documents = snapshot.docs || [];
+      for (let index = 0; index < documents.length; index += 450) {
+        const batch = firestore.batch();
+        for (const documentSnapshot of documents.slice(index, index + 450)) batch.delete(documentSnapshot.ref);
+        await batch.commit();
+      }
+      return { synthetic: true, session_id: sessionId, reset_override_count: documents.length, seed_case_count: seeds.size };
     },
   });
 }

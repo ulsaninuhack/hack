@@ -13,7 +13,7 @@ export const VOICE_EXTRACTION_INSTRUCTIONS = `
 - intent=contact_result이면 contact_result만 객체이고 condition은 null이다.
 - intent=other이면 condition과 contact_result와 case_id가 모두 null이다.
 - surveyor_id와 transcript는 입력값을 그대로 복사한다.
-- case_id는 transcript에 정확히 등장한 CASE-숫자 형식만 사용하고, 없으면 null이다.
+- case_id는 transcript에 정확히 등장한 CASE-숫자 또는 SYN-HH-숫자-숫자 형식만 사용하고, 없으면 null이다.
 - 개인정보 마스킹 토큰을 복원하거나 실제 이름·연락처·주소를 만들지 않는다.
 
 관찰 매핑:

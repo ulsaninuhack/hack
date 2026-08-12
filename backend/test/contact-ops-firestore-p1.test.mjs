@@ -14,7 +14,7 @@ function fakeFirestore() {
         data: () => structuredClone(records.get(id)),
       }),
     }),
-    where: () => ({ get: async () => { queryCount += 1; return { docs: [...records.values()].filter((r) => r.session_id === sessionId).map((data) => ({ data: () => structuredClone(data) })) }; } }),
+    where: () => ({ get: async () => { queryCount += 1; return { docs: [...records.entries()].filter(([, r]) => r.session_id === sessionId).map(([id, data]) => ({ ref: { id }, data: () => structuredClone(data) })) }; } }),
   };
   return {
     collection: () => collection,
@@ -23,6 +23,10 @@ function fakeFirestore() {
       create: (ref, value) => { createCount += 1; records.set(ref.id, structuredClone(value)); },
       set: (ref, value) => records.set(ref.id, structuredClone(value)),
     }),
+    batch: () => {
+      const deletes = [];
+      return { delete: (ref) => deletes.push(ref.id), commit: async () => deletes.forEach((id) => records.delete(id)) };
+    },
     records,
     get queryCount() { return queryCount; },
     get createCount() { return createCount; },
@@ -92,5 +96,14 @@ describe('P1 Firestore synthetic state adapter', () => {
       () => state.list({ sessionId }),
       (error) => error.code === 'STATE_INVALID',
     );
+  });
+  test('resets only a queried synthetic session overlay in bounded delete batches', async () => {
+    const firestore = fakeFirestore();
+    const state = createFirestoreContactOpsState({ firestore, collectionName: 'ops', households: [household] });
+    await state.update({ sessionId, caseId: household.id, expectedRevision: 0 }, (current) => current);
+    firestore.records.set('other--case', { ...firestore.records.values().next().value, session_id: 'another-firestore-session' });
+    const reset = await state.resetSession({ sessionId });
+    assert.equal(reset.reset_override_count, 1); assert.equal(firestore.records.size, 1);
+    const repeat = await state.resetSession({ sessionId }); assert.equal(repeat.reset_override_count, 0);
   });
 });

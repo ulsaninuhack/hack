@@ -27,7 +27,7 @@ UI 변경은 [`docs/UI_UX_REVIEW_RUBRIC.md`](docs/UI_UX_REVIEW_RUBRIC.md)의 조
 
 실행 중인 웹앱은 대용량 원천을 직접 읽지 않고, 검증된 정적 자산만 `public/data/`에서 불러온다. 복지시설 원천 정규화 3,394개는 보존하되, 현재 시설 runtime 레이어는 명백한 아동·청소년 전용 시설을 제외한 관련 canonical 3,115개와 지도 포인트 2,816개를 소비한다. 이는 법적 이용자격 판정이 아니다. `VITE_API_BASE_URL`이 설정된 runtime에서는 Cloud Run API를 우선 사용하고, 환경변수가 없거나 API 호출이 실패하면 Vercel에 배포된 같은 정적 자산으로 fallback한다.
 
-프론트엔드는 React 19·TypeScript 7·Vite 8·MapLibre GL JS 6으로 구성했고 OpenStreetMap 베이스맵을 사용한다. 백엔드는 Node.js 24로 작성한 읽기 전용 API며, 검증된 `public/data/`를 Docker 이미지에 번들해 Cloud Run에서 제공한다. 지도·API 요청 경로는 개인 데이터나 AI 추론 결과를 생성하지 않는다. 별도 `voice/` 모듈은 동의받고 개인정보를 마스킹한 텍스트를 고정 JSON 계약으로 구조화할 수 있지만 현재 ContactOps나 지도 경로에 연결되어 있지 않다. 같은 GCP 프로젝트의 Firestore는 향후 서버 측 AI 리포트·메모용으로 준비되어 있지만, 현재 지도 요청과 정적 데이터 제공은 DB 장애와 분리되어 있다.
+프론트엔드는 React 19·TypeScript 7·Vite 8·MapLibre GL JS 6으로 구성했고 OpenStreetMap 베이스맵을 사용한다. 백엔드는 Node.js 24로 작성했으며, 검증된 `public/data/`와 합성 ContactOps 세션 API를 Cloud Run에서 제공한다. 공개 지도 요청은 개인 데이터나 AI 추론 결과를 생성하지 않고 Firestore 장애와 분리된다. 별도 `voice/` 모듈은 동의받고 개인정보를 마스킹한 텍스트 또는 검증된 WAV/MP3를 Planner→스키마→한글 관찰 DTO→Critic 후보로 바꾼다. 후보는 사용자가 명시적으로 확인하기 전에는 ContactOps 상태를 바꾸지 않으며 방문 승인을 만들 수 없다.
 
 ## 합성 ContactOps 개발 데이터
 
@@ -50,7 +50,7 @@ UI 변경은 [`docs/UI_UX_REVIEW_RUBRIC.md`](docs/UI_UX_REVIEW_RUBRIC.md)의 조
 npm --prefix backend run demo:contact-ops
 ```
 
-이 명령은 오늘 연락대상 큐 생성, 더미 연락결과 입력, 미응답·후속조치 규칙 검사, 2축 점수의 방문 권고, 담당자 명시 승인까지 텍스트로 보여 준다. 미응답 2회만으로 방문을 직접 권고하지 않는다. 이 ContactOps 데모 자체는 LLM·음성·경로 최적화를 호출하지 않는다. 별도 `voice/` 텍스트→JSON 3a 단계는 구현됐지만 ContactOps 음성 어댑터, 오디오 파일·Realtime 입력, 조건부 경로 게이트는 아직 구현하지 않았다.
+이 명령은 오늘 연락대상 큐 생성, 더미 연락결과 입력, 미응답·후속조치 규칙 검사, 2축 점수의 방문 권고, 담당자 명시 승인까지 텍스트로 보여 준다. 미응답 2회만으로 방문을 직접 권고하지 않는다. 이 결정론 데모 명령 자체는 LLM·음성·경로 최적화를 호출하지 않는다. 운영 API에는 모킹 검증된 Planner–Critic ContactOps 어댑터와 텍스트·WAV/MP3 입력 계약이 연결됐다. 라이브 OpenAI 호출은 명시적 환경 게이트가 없으면 닫혀 있고, 실제 한국어 음성 품질·Realtime 입력·조건부 경로 게이트는 아직 완료하지 않았다.
 
 ## 지표 해석 원칙
 
@@ -81,7 +81,7 @@ flowchart LR
     E --> F["Vercel<br/>프론트+정적 fallback"]
     E --> G["Docker Node.js 24 API<br/>정적 원본 이미지 번들"]
     G --> H["Cloud Run"]
-    J["Firestore<br/>향후 가변 AI 리포트·메모"] -. "현재 요청 경로 밖" .-> H
+    J["Firestore<br/>합성 세션 오버레이"] --> H
     F --> I["브라우저 지도 UI"]
     H -->|"VITE_API_BASE_URL 설정 시 runtime API 우선"| I
     I -. "API 실패 시 정적 fallback" .-> F
@@ -152,6 +152,15 @@ npm run validate:data
 - `GET /api/v1/zones/:geometryZoneId`
 - `GET /api/v1/facilities?district=&category=&bbox=&limit=&offset=`
 - `GET /api/v1/transit?district=&bbox=&minTotalEvents=&minRouteCount=&limit=&offset=`
+- `GET /api/v1/contact-ops/today?referenceDate=&workerId=`
+- `GET /api/v1/contact-ops/cases/:caseId`
+- `GET /api/v1/contact-ops/visit-recommendations`
+- `GET /api/v1/contact-ops/manager-breadth`
+- `GET /api/v1/contact-ops/operations-map`
+- `POST /api/v1/contact-ops/cases/:caseId/contact-results`
+- `POST /api/v1/contact-ops/cases/:caseId/triage/recalculate`
+- `POST /api/v1/contact-ops/cases/:caseId/visit-decisions`
+- `POST /api/v1/contact-ops/cases/:caseId/ai-observations`
 
 API 테스트와 생산 이미지를 로컬에서 같은 계약으로 검증할 수 있다.
 
@@ -172,7 +181,7 @@ docker run --rm -p 8080:8080 \
 - 프론트는 Vercel Production으로, API는 commit SHA 태그의 `linux/amd64` 이미지를 Artifact Registry에 push한 뒤 Cloud Run으로 배포한다.
 - GitHub Actions가 프론트 배포의 단일 소유자다. `vercel.json`의 `git.deploymentEnabled=false`로 Vercel Git 자동 배포와의 중복을 막는다.
 - Cloud Run 배포는 GitHub OIDC와 Workload Identity Federation을 사용하며 서비스 계정 JSON 키를 저장소에 두지 않는다.
-- Firestore `(default)`는 서버 측 가변 리포트용으로만 예약되어 있고 현재 API 경로는 사용하지 않는다. 정적 지도 원천을 DB로 중복 이전하지 않는다.
+- Firestore `(default)`는 생산 환경의 합성 ContactOps 세션 오버레이에만 사용한다. 공개 지도·시설·교통·요약 원천은 DB로 중복 이전하지 않으며 Firestore 장애와 독립적이다. 브라우저가 Firestore에 직접 접근하지 않는다.
 - 대용량 `data/`는 배포에서 제외한다. 정적 fallback과 API Docker 이미지 둘 다 검수된 `public/data/`만 번들한다.
 
 설정·secret 등록·장애 대응은 [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)에 정리되어 있다.

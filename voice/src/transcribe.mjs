@@ -42,7 +42,7 @@ function hasMp3Signature(header) {
   return hasId3Tag || hasFrameSync;
 }
 
-async function assertSupportedAudioFile(audioPath) {
+export async function assertSupportedAudioFile(audioPath) {
   if (typeof audioPath !== 'string' || audioPath.trim() === '') {
     throw new TranscriptionError('Audio file is unavailable.');
   }
