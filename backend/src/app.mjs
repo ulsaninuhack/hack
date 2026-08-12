@@ -12,7 +12,10 @@ const MAX_ROUTE_COUNT = 1_000;
 const MAX_URL_LENGTH = 4_096;
 const DATA_INTERPRETATION = 'official-facility-locations-not-individual-beneficiaries';
 const REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]{1,128}$/;
-const ALLOWED_PREFLIGHT_HEADERS = new Set(['accept', 'content-type', 'x-request-id']);
+const ALLOWED_PREFLIGHT_HEADERS = new Set(['accept', 'content-type', 'x-request-id', 'x-demo-session-id']);
+const CASE_ID_PATTERN = /^SYN-HH-\d{10}-\d{4}$/;
+const WORKER_ID_PATTERN = /^SYN-W-\d{10}-01$/;
+const SESSION_ID_PATTERN = /^[A-Za-z0-9_-]{16,128}$/;
 
 class ApiError extends Error {
   constructor(status, code, message, details) {
@@ -442,8 +445,9 @@ function rejectBodyBearingRequest(request) {
 
 function handlePreflight(request, response, context) {
   const requestedMethod = request.headers['access-control-request-method'];
-  if (requestedMethod && requestedMethod !== 'GET') {
-    throw new ApiError(405, 'METHOD_NOT_ALLOWED', 'Only GET and OPTIONS are supported');
+  const operations = (request.url || '').startsWith('/api/v1/contact-ops');
+  if (requestedMethod && (!['GET', 'POST'].includes(requestedMethod) || (requestedMethod === 'POST' && !operations))) {
+    throw new ApiError(405, 'METHOD_NOT_ALLOWED', 'Only GET, POST, and OPTIONS are supported');
   }
   const requestedHeaders = String(request.headers['access-control-request-headers'] || '')
     .split(',')
@@ -456,14 +460,85 @@ function handlePreflight(request, response, context) {
     });
   }
   const headers = securityHeaders(context.requestId, context.origin, context.corsAllowed);
-  headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS';
-  headers['Access-Control-Allow-Headers'] = 'Accept, Content-Type, X-Request-ID';
+  headers['Access-Control-Allow-Methods'] = operations ? 'GET, POST, OPTIONS' : 'GET, OPTIONS';
+  headers['Access-Control-Allow-Headers'] = operations ? 'Accept, Content-Type, X-Request-ID, X-Demo-Session-ID' : 'Accept, Content-Type, X-Request-ID';
   headers['Access-Control-Max-Age'] = '600';
   headers['Cache-Control'] = 'public, max-age=600';
   response.writeHead(204, headers);
   response.end();
 }
 
+function readBody(request) {
+  return new Promise((resolve, reject) => {
+    let body = ''; request.setEncoding('utf8');
+    request.on('data', (chunk) => { body += chunk; if (body.length > 20_000) reject(new ApiError(413, 'REQUEST_TOO_LARGE', 'Request body is too large')); });
+    request.on('end', () => { try { resolve(JSON.parse(body)); } catch { reject(new ApiError(400, 'INVALID_JSON', 'Request body must be valid JSON')); } });
+    request.on('error', reject);
+  });
+}
+function exactBody(body, keys) {
+  if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).length !== keys.length || keys.some((key) => !Object.hasOwn(body, key))) {
+    throw new ApiError(400, 'INVALID_BODY', 'Request body does not match the required contract');
+  }
+  return body;
+}
+function assertIsoDateValue(value, label) {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)
+      || Number.isNaN(Date.parse(`${value}T00:00:00.000Z`))
+      || new Date(`${value}T00:00:00.000Z`).toISOString().slice(0, 10) !== value) {
+    throw new ApiError(400, 'INVALID_BODY', `${label} must be a valid ISO date`);
+  }
+}
+function sessionFor(request, { required = false } = {}) {
+  const value = request.headers['x-demo-session-id'];
+  const sessionId = Array.isArray(value) ? value[0] : value;
+  if (sessionId === undefined && !required) return 'read-only-demo-session';
+  if (typeof sessionId !== 'string' || !SESSION_ID_PATTERN.test(sessionId)) throw new ApiError(400, 'INVALID_SESSION', 'X-Demo-Session-ID is invalid');
+  return sessionId;
+}
+function caseIdFrom(pathname, suffix = '') {
+  const prefix = '/api/v1/contact-ops/cases/';
+  const id = pathname.slice(prefix.length, suffix ? -suffix.length : undefined);
+  if (!CASE_ID_PATTERN.test(id)) throw new ApiError(400, 'INVALID_PATH', 'caseId must be a synthetic case ID');
+  return id;
+}
+async function routeContactOps(request, url, service) {
+  if (!service) throw new ApiError(503, 'CONTACT_OPS_UNAVAILABLE', 'ContactOps state is unavailable');
+  const readSession = () => sessionFor(request);
+  if (request.method === 'GET' && url.pathname === '/api/v1/contact-ops/today') {
+    assertKnownQuery(url.searchParams, new Set(['referenceDate', 'workerId']));
+    const referenceDate = url.searchParams.get('referenceDate');
+    try { assertIsoDateValue(referenceDate, 'referenceDate'); } catch { throw new ApiError(400, 'INVALID_QUERY', 'referenceDate must be a valid ISO date'); }
+    const workerId = url.searchParams.get('workerId');
+    if (workerId !== null && !WORKER_ID_PATTERN.test(workerId)) throw new ApiError(400, 'INVALID_QUERY', 'workerId must be synthetic');
+    return service.getToday({ sessionId: readSession(), referenceDate, workerId });
+  }
+  if (request.method === 'GET' && url.pathname === '/api/v1/contact-ops/visit-recommendations') {
+    assertKnownQuery(url.searchParams, new Set(['district']));
+    return service.getVisitRecommendations({ sessionId: readSession(), district: url.searchParams.get('district') });
+  }
+  if (request.method === 'GET' && url.pathname.startsWith('/api/v1/contact-ops/cases/')) return service.getCase({ sessionId: readSession(), caseId: caseIdFrom(url.pathname) });
+  if (request.method !== 'POST') throw new ApiError(405, 'METHOD_NOT_ALLOWED', 'ContactOps supports GET, POST, and OPTIONS');
+  if (!/^application\/json(?:;|$)/i.test(String(request.headers['content-type'] || ''))) throw new ApiError(415, 'UNSUPPORTED_MEDIA_TYPE', 'Content-Type must be application/json');
+  const sessionId = sessionFor(request, { required: true }); const body = await readBody(request);
+  const mappings = [
+    ['/contact-results', ['expected_revision', 'contact_date', 'contact_result', 'observations'], 'recordContactResult', (b) => { assertIsoDateValue(b.contact_date, 'contact_date'); return { expectedRevision: b.expected_revision, contactDate: b.contact_date, contactResult: b.contact_result, observations: b.observations }; }],
+    ['/triage/recalculate', ['expected_revision', 'reference_date'], 'recalculateTriage', (b) => ({ expectedRevision: b.expected_revision, referenceDate: b.reference_date })],
+  ];
+  if (url.pathname.endsWith('/ai-observations')) throw new ApiError(501, 'FEATURE_NOT_AVAILABLE', 'AI observations are reserved for P3');
+  for (const [suffix, keys, method, convert] of mappings) if (url.pathname.endsWith(suffix)) {
+    const caseId = caseIdFrom(url.pathname, suffix); exactBody(body, keys);
+    return service[method]({ sessionId, caseId, ...convert(body) });
+  }
+  if (url.pathname.endsWith('/visit-decisions')) {
+    const approved = body?.decision === 'approved';
+    exactBody(body, approved
+      ? ['expected_revision', 'decision', 'decided_by', 'decided_at', 'note', 'assigned_worker_ids', 'max_route_distance_km']
+      : ['expected_revision', 'decision', 'decided_by', 'decided_at', 'note']);
+    return service.recordVisitDecision({ sessionId, caseId: caseIdFrom(url.pathname, '/visit-decisions'), expectedRevision: body.expected_revision, decision: body.decision, decidedBy: body.decided_by, decidedAt: body.decided_at, note: body.note, assignedWorkerIds: body.assigned_worker_ids, maxRouteDistanceKm: body.max_route_distance_km });
+  }
+  throw new ApiError(404, 'NOT_FOUND', 'Route not found');
+}
 function routeRequest(store, url) {
   if (url.pathname === '/health' || url.pathname === '/healthz') {
     assertKnownQuery(url.searchParams, new Set());
@@ -497,6 +572,7 @@ export function createApiHandler({
   corsOrigins = process.env.CORS_ORIGINS || '',
   rateLimitPerMinute = Number(process.env.RATE_LIMIT_PER_MINUTE || 600),
   logger = null,
+  contactOpsService = null,
 }) {
   if (!store) throw new Error('store is required');
   if (!Number.isSafeInteger(rateLimitPerMinute) || rateLimitPerMinute < 0 || rateLimitPerMinute > 100_000) {
@@ -537,10 +613,9 @@ export function createApiHandler({
         handlePreflight(request, response, context);
         return;
       }
-      if (request.method !== 'GET') {
-        throw new ApiError(405, 'METHOD_NOT_ALLOWED', 'Only GET and OPTIONS are supported');
-      }
-      if (rejectBodyBearingRequest(request)) {
+      const isOps = pathname.startsWith('/api/v1/contact-ops');
+      if ((!isOps && request.method !== 'GET') || (isOps && !['GET', 'POST'].includes(request.method))) throw new ApiError(405, 'METHOD_NOT_ALLOWED', 'Method is not allowed for this route');
+      if (request.method === 'GET' && rejectBodyBearingRequest(request)) {
         throw new ApiError(413, 'REQUEST_BODY_NOT_ALLOWED', 'Request bodies are not accepted');
       }
 
@@ -553,9 +628,20 @@ export function createApiHandler({
         }
       }
 
-      const result = routeRequest(store, url);
+      const result = isOps
+        ? { body: { apiVersion: API_VERSION, data: await routeContactOps(request, url, contactOpsService) }, cacheable: false }
+        : routeRequest(store, url);
       sendJson(request, response, 200, result.body, context, result.cacheable);
     } catch (error) {
+      if (!(error instanceof ApiError) && error?.code === 'STATE_CONFLICT') {
+        error = new ApiError(409, 'STATE_CONFLICT', error.message);
+      } else if (!(error instanceof ApiError) && error?.code === 'CASE_NOT_FOUND') {
+        error = new ApiError(404, 'CASE_NOT_FOUND', error.message);
+      } else if (!(error instanceof ApiError) && error instanceof TypeError) {
+        error = new ApiError(400, 'INVALID_BODY', error.message);
+      } else if (!(error instanceof ApiError) && pathname.startsWith('/api/v1/contact-ops')) {
+        error = new ApiError(503, 'CONTACT_OPS_UNAVAILABLE', 'ContactOps state is unavailable');
+      }
       if (!(error instanceof ApiError)) {
         logger?.error?.({
           timestamp: new Date().toISOString(),

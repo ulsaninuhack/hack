@@ -3,6 +3,10 @@ dist/
 coverage/
 .vercel/
 .playwright-cli/
+test-results/
+playwright-report/
+artifacts/playwright/
+artifacts/playwright-report/
 output/
 .omx/
 gha-creds-*.json

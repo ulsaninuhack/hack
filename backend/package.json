@@ -12,5 +12,8 @@
     "start": "node src/server.mjs",
     "test": "node --test",
     "test:coverage": "node scripts/coverage-gate.mjs"
+  },
+  "dependencies": {
+    "@google-cloud/firestore": "9.0.0"
   }
 }

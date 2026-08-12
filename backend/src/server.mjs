@@ -1,4 +1,7 @@
 import { createApiServer } from './app.mjs';
+import { readFile } from 'node:fs/promises';
+import { createContactOpsService } from './contact-ops-service.mjs';
+import { createFirestoreContactOpsState, createMemoryContactOpsState } from './contact-ops-state.mjs';
 import { loadDataStore } from './data-store.mjs';
 
 const port = Number(process.env.PORT || 8080);
@@ -15,8 +18,30 @@ const logger = {
   },
 };
 
+async function loadSyntheticHouseholds() {
+  const directory = process.env.DATA_DIR || new URL('../../public/data/', import.meta.url);
+  const path = directory instanceof URL ? new URL('synthetic-households.json', directory) : `${directory}/synthetic-households.json`;
+  const dataset = JSON.parse(await readFile(path, 'utf8'));
+  if (!Array.isArray(dataset.households) || dataset.synthetic !== true || dataset.households.some((household) => household.synthetic !== true)) {
+    throw new Error('ContactOps seed must contain synthetic households only');
+  }
+  return dataset.households;
+}
+
+async function loadContactOpsState(households) {
+  const backend = process.env.CONTACT_OPS_STATE_BACKEND || 'memory';
+  if (backend === 'memory') return createMemoryContactOpsState({ households });
+  if (backend !== 'firestore') throw new Error('CONTACT_OPS_STATE_BACKEND must be memory or firestore');
+  const { Firestore } = await import('@google-cloud/firestore');
+  return createFirestoreContactOpsState({
+    firestore: new Firestore(), households,
+    collectionName: process.env.CONTACT_OPS_FIRESTORE_COLLECTION || 'synthetic_contact_ops_sessions',
+  });
+}
+
 const store = await loadDataStore();
-const server = createApiServer({ store, logger });
+const contactOpsService = createContactOpsService({ state: await loadContactOpsState(await loadSyntheticHouseholds()) });
+const server = createApiServer({ store, logger, contactOpsService });
 
 server.listen(port, '0.0.0.0', () => {
   logger.info({
