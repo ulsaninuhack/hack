@@ -5,12 +5,12 @@
 - Project: private hackathon MVP, "I5 도시 돌봄" / Incheon care-context map.
 - Frontend: React 19, TypeScript, Vite 8, MapLibre, static assets from `public/data/`.
 - Frontend production: `https://incheon-care-map.vercel.app` is live.
-- Runtime data boundary today: the browser still has static `public/data/` fallback behavior; frontend runtime API plus static fallback changes are a follow-up PR item.
+- Runtime data boundary: this branch introduces Cloud Run API-first loading while retaining `public/data/` as the outage/local fallback. After merge, verify the deployed bundle references the production API.
 - Deployment owner: GitHub Actions workflow `CI / Production Deploy`.
 - Backend local source: Node 24 read-only API for curated `public/data/`, with `src/`, 41 tests, coverage gate, Dockerfile, `.dockerignore`, and README.
 - Backend bootstrap: `https://incheon-care-api-vy3v2ludma-du.a.run.app/health` is live. Treat this as bootstrap proof, not proof that the latest follow-up source/CD path has deployed.
 - Backend health convention: `/health` is canonical external health; `/healthz` is a compatibility alias in the current source/tests.
-- Cloud Run CD status: workflow now contains PR validation for frontend+backend and `main` sibling deploy jobs for Vercel and Cloud Run. The follow-up PR/CD path still needs merge and post-deploy verification.
+- Cloud Run CD status: workflow contains PR validation for frontend+backend and `main` sibling deploy jobs for Vercel and Cloud Run. This branch still needs merge and post-deploy verification.
 - GCP auth: use Workload Identity Federation only. Do not add JSON service-account keys.
 - GCP DB: Firestore Standard Native `(default)` is provisioned in `asia-northeast3`; the runtime service account has `roles/datastore.user`. Current API routes do not use it. Keep static map snapshots in `public/data/` and reserve Firestore for future server-side variable AI reports or notes.
 
