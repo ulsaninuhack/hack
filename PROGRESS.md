@@ -232,7 +232,8 @@ hostile follow-up, commit, preview, and blockers. Existing entries are never rew
 - That run also found a stale manager-summary view after approval. A RED component test
   now freezes breadth refresh and one-render-per-axis behavior; the minimal refresh fix is
   GREEN. The corrected Vercel deployment `dpl_6Qfng1L3yTDwdUdTZ3bPGSu53uff` and preview
-  Cloud Run revision `incheon-care-api-preview-00005-wvl` are labeled `769f55d`, retain
+  Cloud Run revision `incheon-care-api-preview-00006-bc9` is labeled with the runtime-fix
+  commit `daa8a65`; both retain
   min 0 / service-and-revision max 1, exact preview CORS, and return the 664-case report.
   A fresh public-browser rerun reached `승인된 방문 1건` immediately after the manager
   decision with zero console errors. Remote PR checks, merge, production deploy, and final
