@@ -102,6 +102,18 @@ describe('contact triage vulnerability scoring', () => {
       /동단위.*기여.*합계/,
     );
   });
+
+  test('rejects unsupported relationship and social-contact values instead of under-scoring', () => {
+    for (const overrides of [
+      { 관계망_유무: '없음 ' },
+      { 연락_빈도: '없음 ' },
+    ]) {
+      assert.throws(
+        () => calculateVulnerabilityScore(scoringInput(overrides)),
+        /unsupported value/,
+      );
+    }
+  });
 });
 
 describe('two-axis triage queue', () => {
@@ -219,5 +231,35 @@ describe('two-axis triage queue', () => {
 
   test('rejects non-array queue input', () => {
     assert.throws(() => buildTriageQueue(null), /array/i);
+  });
+
+  test('rejects schema-invalid identity, schedule, and dong provenance fields', () => {
+    const invalidOverrides = [
+      { 케이스_id: undefined },
+      { 케이스_id: 'CASE-0001' },
+      { 기준일: '2026-02-31' },
+      { 마지막_연결_후_경과일: -1 },
+      { 마지막_연결_후_경과일: 1.5 },
+      { 재연락_기한: 'tomorrow' },
+      { 계약_버전: 'contact-triage-scoring-input-v9' },
+      { 합성_운영데이터: false },
+      { 동단위_구조취약도: { 지도구역_id: '' } },
+      { 동단위_구조취약도: { 현행_행정동_코드_20260701: '28125' } },
+      { 동단위_구조취약도: { 기준일_메모: '' } },
+    ];
+
+    for (const overrides of invalidOverrides) {
+      assert.throws(() => buildTriageQueue([scoringInput(overrides)]));
+    }
+  });
+
+  test('rejects unknown top-level fields and invalid dong contribution provenance', () => {
+    const unknownFieldInput = scoringInput();
+    unknownFieldInput.종합_점수 = 99;
+    assert.throws(() => buildTriageQueue([unknownFieldInput]), /unknown key/);
+
+    const invalidProvenance = scoringInput();
+    invalidProvenance.동단위_구조취약도.기여내역[0].출처 = '개인_위기정보';
+    assert.throws(() => buildTriageQueue([invalidProvenance]), /출처/);
   });
 });

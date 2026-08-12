@@ -26,6 +26,37 @@ const DONG_CONTRIBUTION_CODES = [
 
 const ACUITY_GRADES = ['정상', '주시', '방문권고', '방문권고-우선'];
 
+const SCORING_INPUT_KEYS = [
+  '계약_버전',
+  '합성_운영데이터',
+  '케이스_id',
+  '기준일',
+  '관찰_6징후',
+  '식사상태',
+  '위생상태',
+  '공과금_2개월_이상_체납',
+  '최근_건강_정신_괴로움',
+  '관계망_유무',
+  '연락_빈도',
+  '연속_미응답_횟수',
+  '개인_평소_응답률',
+  '평소_응답률_대비_급락',
+  '마지막_연결_후_경과일',
+  '재연락_기한',
+  '방문_승인_상태',
+  '동단위_구조취약도',
+];
+
+const DONG_CONTEXT_KEYS = [
+  '지도구역_id',
+  '현행_행정동_코드_20260701',
+  '점수',
+  '기준일_메모',
+  '기여내역',
+];
+
+const DONG_CONTRIBUTION_KEYS = ['코드', '가산점', '출처'];
+
 function clampScore(score) {
   return Math.min(100, Math.max(0, score));
 }
@@ -81,6 +112,44 @@ function assertNullableBoolean(value, label) {
 function assertEnum(value, allowed, label) {
   if (!allowed.includes(value)) {
     throw new TypeError(`${label} has an unsupported value`);
+  }
+}
+
+function assertExactKeys(value, keys, label) {
+  const allowed = new Set(keys);
+  for (const key of keys) {
+    if (!Object.hasOwn(value, key)) {
+      throw new TypeError(`${label} missing required key: ${key}`);
+    }
+  }
+  const unknown = Object.keys(value).find((key) => !allowed.has(key));
+  if (unknown) {
+    throw new TypeError(`${label} contains unknown key: ${unknown}`);
+  }
+}
+
+function assertNonEmptyString(value, label) {
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new TypeError(`${label} must be a non-empty string`);
+  }
+}
+
+function assertIsoDate(value, label, { nullable = false } = {}) {
+  if (nullable && value === null) return;
+  if (typeof value !== 'string') {
+    throw new TypeError(`${label} must be an ISO date`);
+  }
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) {
+    throw new TypeError(`${label} must be an ISO date`);
+  }
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysByMonth = [31, leapYear ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  if (year === 0 || month < 1 || month > 12 || day < 1 || day > daysByMonth[month - 1]) {
+    throw new TypeError(`${label} must be a valid ISO date`);
   }
 }
 
@@ -206,8 +275,17 @@ export function calculateAcuityScore(input) {
 
 export function calculateVulnerabilityScore(input) {
   assertObject(input, 'input');
+  assertEnum(input.관계망_유무, ['있음', '없음', null], '관계망_유무');
+  assertEnum(input.연락_빈도, ['주_1회_이상', '주_1회_미만', '없음', null], '연락_빈도');
   const dongContext = input.동단위_구조취약도;
   assertObject(dongContext, '동단위_구조취약도');
+  assertExactKeys(dongContext, DONG_CONTEXT_KEYS, '동단위_구조취약도');
+  assertNonEmptyString(dongContext.지도구역_id, '동단위_구조취약도.지도구역_id');
+  if (typeof dongContext.현행_행정동_코드_20260701 !== 'string'
+      || !/^\d{10}$/.test(dongContext.현행_행정동_코드_20260701)) {
+    throw new TypeError('동단위_구조취약도.현행_행정동_코드_20260701 must be 10 digits');
+  }
+  assertNonEmptyString(dongContext.기준일_메모, '동단위_구조취약도.기준일_메모');
   assertFiniteRange(dongContext.점수, 0, 50, '동단위 구조취약도 점수');
 
   if (!Array.isArray(dongContext.기여내역)) {
@@ -217,8 +295,12 @@ export function calculateVulnerabilityScore(input) {
   const byCode = new Map();
   for (const item of dongContext.기여내역) {
     assertObject(item, '동단위 구조취약도 기여내역 item');
+    assertExactKeys(item, DONG_CONTRIBUTION_KEYS, '동단위 구조취약도 기여내역 item');
     if (byCode.has(item.코드)) {
       throw new TypeError(`동단위 구조취약도 기여내역 contains duplicate code: ${item.코드}`);
+    }
+    if (item.출처 !== '공개_동단위_집계') {
+      throw new TypeError('동단위 구조취약도 기여내역 출처 must be 공개_동단위_집계');
     }
     assertFiniteRange(item.가산점, 0, 50, `동단위 ${item.코드} 가산점`);
     byCode.set(item.코드, item);
@@ -279,6 +361,31 @@ export function calculateVulnerabilityScore(input) {
   };
 }
 
+function validateQueueInput(input) {
+  assertObject(input, 'input');
+  assertExactKeys(input, SCORING_INPUT_KEYS, 'input');
+  if (input.계약_버전 !== 'contact-triage-scoring-input-v0.1.0') {
+    throw new TypeError('계약_버전 has an unsupported value');
+  }
+  if (input.합성_운영데이터 !== true) {
+    throw new TypeError('합성_운영데이터 must be true');
+  }
+  if (typeof input.케이스_id !== 'string'
+      || !/^SYN-HH-\d{10}-\d{4}$/.test(input.케이스_id)) {
+    throw new TypeError('케이스_id has an unsupported format');
+  }
+  assertIsoDate(input.기준일, '기준일');
+  if (input.마지막_연결_후_경과일 !== null
+      && (!Number.isInteger(input.마지막_연결_후_경과일)
+        || input.마지막_연결_후_경과일 < 0)) {
+    throw new TypeError('마지막_연결_후_경과일 must be a non-negative integer or null');
+  }
+  assertIsoDate(input.재연락_기한, '재연락_기한', { nullable: true });
+  recommendationStatus(input.방문_승인_상태, '정상');
+  validateAcuityInput(input);
+  calculateVulnerabilityScore(input);
+}
+
 function recommendationStatus(currentStatus, acuityGrade) {
   if (!([null, '권고', '승인', '반려'].includes(currentStatus))) {
     throw new TypeError('방문_승인_상태 must be null, 권고, 승인, or 반려');
@@ -293,6 +400,7 @@ export function buildTriageQueue(inputs) {
   }
 
   return inputs.map((input) => {
+    validateQueueInput(input);
     const acute = calculateAcuityScore(input);
     const vulnerability = calculateVulnerabilityScore(input);
     return {
