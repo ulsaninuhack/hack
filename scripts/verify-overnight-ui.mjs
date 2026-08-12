@@ -1,5 +1,5 @@
 import { readFileSync, statSync } from 'node:fs'
-import { spawnSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 
 const screenshots = [
   ['artifacts/screenshots/surveyor-queue-mobile.png', 390, 844],
@@ -44,11 +44,14 @@ const frontendFiles = ['package.json', 'src/App.tsx', 'src/MapView.tsx', 'src/Op
   .join('\n')
 if (/firebase|firestore/i.test(frontendFiles)) throw new Error('Frontend contains a direct Firestore/Firebase seam')
 
-const coreDiff = spawnSync('git', [
-  'diff', '--exit-code', '1fab6889', '--',
-  'backend/src/contact-ops.mjs', 'backend/src/contact-triage-scoring.mjs',
-], { encoding: 'utf8' })
-if (coreDiff.status !== 0) throw new Error(`Frozen core diff failed:\n${coreDiff.stdout}${coreDiff.stderr}`)
+const frozenCoreFiles = new Map([
+  ['backend/src/contact-ops.mjs', '3036cf29afe4aa0151386596673d46e585a49b19d42d7a500c3216df88fd570c'],
+  ['backend/src/contact-triage-scoring.mjs', '51ea5e9f04c09f5f0849adacc1438c23ef9982905f0afbf347d0759cd5141dd7'],
+])
+for (const [path, expectedHash] of frozenCoreFiles) {
+  const actualHash = createHash('sha256').update(readFileSync(path)).digest('hex')
+  if (actualHash !== expectedHash) throw new Error(`Frozen core hash changed for ${path}`)
+}
 
 process.stdout.write([
   'Overnight UI proof PASS',
