@@ -132,17 +132,17 @@ jobs:
       - name: Verify production frontend references the API
         shell: bash
         env:
-          DEPLOYMENT_URL: ${{ steps.deploy.outputs.url }}
+          PRODUCTION_ORIGIN: https://incheon-care-map.vercel.app
         run: |
-          deployment_origin="${DEPLOYMENT_URL%/}"
-          app_html="$(curl --fail --silent --show-error --retry 12 --retry-all-errors --retry-delay 5 "${deployment_origin}/")"
+          production_origin="${PRODUCTION_ORIGIN%/}"
+          app_html="$(curl --fail --location --silent --show-error --retry 12 --retry-all-errors --retry-delay 5 "${production_origin}/")"
           asset_path="$(printf '%s' "$app_html" | grep -oE '/assets/index-[A-Za-z0-9_-]+\.js' | head -1)"
           if [[ -z "$asset_path" ]]; then
             echo "::error::Could not identify the production frontend entry asset"
             exit 1
           fi
-          curl --fail --silent --show-error --retry 12 --retry-all-errors --retry-delay 5 \
-            "${deployment_origin}${asset_path}" \
+          curl --fail --location --silent --show-error --retry 12 --retry-all-errors --retry-delay 5 \
+            "${production_origin}${asset_path}" \
             | grep --fixed-strings 'https://incheon-care-api-vy3v2ludma-du.a.run.app' >/dev/null
 
   deploy-backend-production:
