@@ -4,12 +4,14 @@
 
 | Phase | Status | Evidence |
 | --- | --- | --- |
-| P0 | in progress | Freeze contract authored; gates pending |
+| P0 | pass | `PROGRESS.md` P0 entry; independent judge PASS |
 | P1-P8 | not started | No completion claim |
 
 ## Machine-verified overnight
 
-Nothing beyond the pre-existing merged baseline is claimed yet.
+- P0 baseline/freeze passed on Node 24, including 97 backend tests, deterministic data,
+  Docker, production commit/revision/digest matching, live API, Vercel asset, and a
+  1440×900 Playwright screenshot with zero console errors.
 
 ## Requires morning human review
 
