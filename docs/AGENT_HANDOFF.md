@@ -135,7 +135,7 @@ Current backend expectation: local tests and Docker pass, production `/health` i
 
 1. Treat the 664 mild-signal accumulation cases as a tuning gate. Do not change weights without updating the golden set and rerunning the deterministic distribution report.
 2. Define and validate the upstream 0~50 dong-context normalization before injecting nonzero structural vulnerability scores. Do not invent weights in the runtime scorer.
-3. Integrate the existing text-to-JSON voice contract only after deterministic rules stay green. The adapter may map voice/text observations into a structured contact result, flag contradictions/missing fields, and provide candidate visit/transfer reasons. Voice-provided `risk_score` or `visit_recommended` is non-authoritative; final visit approval and transfer remain deterministic rule plus manager action.
+3. Integrate the existing text/file-to-JSON voice contract only after deterministic rules stay green. The adapter may map voice/text observations into a structured contact result, flag contradictions/missing fields, and provide candidate visit/transfer reasons. Voice-provided `risk_score` or `visit_recommended` is non-authoritative; final visit approval and transfer remain deterministic rule plus manager action.
 4. Add route gating only for approved visits. Trigger route planning only when same-day approved visits are numerous, two-person/public-official accompaniment is needed, time/area/travel-mode constraints conflict, or reassignment is required. For one to three approved visits, show nearest-order guidance.
 
 ## Next Work Procedure
