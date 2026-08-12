@@ -121,7 +121,6 @@ npm run validate:data
 생산 API는 <https://incheon-care-api-vy3v2ludma-du.a.run.app>에서 검증된 정적 자산을 읽기 전용으로 제공한다. 외부 헬스체크의 canonical 경로는 `GET /health`이다.
 
 - `GET /health` — Cloud Run 외부 헬스체크
-- `GET /healthz` — 호환용 alias
 - `GET /api/v1/summary`
 - `GET /api/v1/zones?district=&bbox=&limit=&offset=`
 - `GET /api/v1/zones/:geometryZoneId`
