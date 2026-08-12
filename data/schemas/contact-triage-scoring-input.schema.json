@@ -1,0 +1,174 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://incheon-care-map.example/schemas/contact-triage-scoring-input.schema.json",
+  "title": "ContactOps two-axis triage scoring input",
+  "description": "Trusted adapter DTO for synthetic operational triage. It combines field observations, canonical contact history, and public dong-level context. It is not the raw voice JSON and does not estimate a person's risk probability.",
+  "$comment": "Evidence basis: Ministry of Health and Welfare neighbor-connector manual p11 (discovery characteristics), p14 and p48 (six warning signs), and p49 (home-visit observation fields). Weights are the separately versioned operational scoring contract, not claims made by the manual.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "계약_버전",
+    "합성_운영데이터",
+    "케이스_id",
+    "기준일",
+    "관찰_6징후",
+    "식사상태",
+    "위생상태",
+    "공과금_2개월_이상_체납",
+    "최근_건강_정신_괴로움",
+    "관계망_유무",
+    "연락_빈도",
+    "연속_미응답_횟수",
+    "개인_평소_응답률",
+    "평소_응답률_대비_급락",
+    "마지막_연결_후_경과일",
+    "재연락_기한",
+    "방문_승인_상태",
+    "동단위_구조취약도"
+  ],
+  "properties": {
+    "계약_버전": { "const": "contact-triage-scoring-input-v0.1.0" },
+    "합성_운영데이터": { "const": true },
+    "케이스_id": {
+      "type": "string",
+      "pattern": "^SYN-HH-\\d{10}-\\d{4}$"
+    },
+    "기준일": { "type": "string", "format": "date" },
+    "관찰_6징후": { "$ref": "#/$defs/관찰_6징후" },
+    "식사상태": {
+      "type": ["string", "null"],
+      "enum": ["양호", "불량", "심각", null],
+      "$comment": "Manual p49 meal-state field. Unknown or unmentioned is null."
+    },
+    "위생상태": {
+      "type": ["string", "null"],
+      "enum": ["양호", "불량", null],
+      "$comment": "Manual p49 personal-hygiene field. Unknown or unmentioned is null."
+    },
+    "공과금_2개월_이상_체납": {
+      "type": ["boolean", "null"],
+      "$comment": "Manual p49 observation/report field only. Do not populate from private utility-company anomaly feeds."
+    },
+    "최근_건강_정신_괴로움": {
+      "type": ["boolean", "null"],
+      "$comment": "Manual p49 recent physical or mental difficulty observation. This is not a diagnosis."
+    },
+    "관계망_유무": {
+      "type": ["string", "null"],
+      "enum": ["있음", "없음", null],
+      "$comment": "Manual p49 asks whether a person or institution is available for help."
+    },
+    "연락_빈도": {
+      "type": ["string", "null"],
+      "enum": ["주_1회_이상", "주_1회_미만", "없음", null],
+      "$comment": "Social-contact frequency from manual p11 and p49 context. It is not ContactOps contact_cadence_days."
+    },
+    "연속_미응답_횟수": {
+      "type": "integer",
+      "minimum": 0,
+      "$comment": "Trusted projection of canonical contact.consecutive_no_answer_count. Voice output must not write this field."
+    },
+    "개인_평소_응답률": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "maximum": 1,
+      "$comment": "Server-owned historical baseline in the closed interval 0..1. Not inferred by an LLM."
+    },
+    "평소_응답률_대비_급락": {
+      "type": ["boolean", "null"],
+      "$comment": "Deterministic upstream history analysis supplies this predicate. Null means insufficient history."
+    },
+    "마지막_연결_후_경과일": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "$comment": "Derived from a successful last-connected date at 기준일. A failed contact attempt does not reset it."
+    },
+    "재연락_기한": {
+      "$ref": "#/$defs/nullable_date",
+      "$comment": "Korean projection of canonical workflow.follow_up_deadline, not contact.next_contact_date."
+    },
+    "방문_승인_상태": {
+      "type": ["string", "null"],
+      "enum": [null, "권고", "승인", "반려"],
+      "$comment": "Read-only projection of canonical workflow.visit_approval_status. Only an explicit manager action may create 승인 or 반려."
+    },
+    "동단위_구조취약도": { "$ref": "#/$defs/동단위_구조취약도" }
+  },
+  "$defs": {
+    "nullable_date": {
+      "anyOf": [
+        { "type": "null" },
+        { "type": "string", "format": "date" }
+      ]
+    },
+    "관찰_6징후": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "우편물_고지서_적체",
+        "악취_벌레",
+        "쓰레기_술병",
+        "인기척_없이_TV_불",
+        "외출_없음",
+        "연락_두절"
+      ],
+      "properties": {
+        "우편물_고지서_적체": { "type": ["boolean", "null"] },
+        "악취_벌레": { "type": ["boolean", "null"] },
+        "쓰레기_술병": { "type": ["boolean", "null"] },
+        "인기척_없이_TV_불": { "type": ["boolean", "null"] },
+        "외출_없음": { "type": ["boolean", "null"] },
+        "연락_두절": {
+          "type": ["boolean", "null"],
+          "$comment": "Manual p14 and p48 independent field observation. Do not set it from the same failed call that increments 연속_미응답_횟수."
+        }
+      },
+      "$comment": "The exact six warning signs in manual p14 and repeated observation checklist p48. Null means unobserved, not false."
+    },
+    "동단위_기여": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["코드", "가산점", "출처"],
+      "properties": {
+        "코드": {
+          "enum": ["고령비율", "1인가구비율", "노후주택", "기초수급_밀도"]
+        },
+        "가산점": { "type": "number", "minimum": 0, "maximum": 50 },
+        "출처": { "const": "공개_동단위_집계" }
+      }
+    },
+    "동단위_구조취약도": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "지도구역_id",
+        "현행_행정동_코드_20260701",
+        "점수",
+        "기준일_메모",
+        "기여내역"
+      ],
+      "properties": {
+        "지도구역_id": { "type": "string", "minLength": 1 },
+        "현행_행정동_코드_20260701": {
+          "type": "string",
+          "pattern": "^\\d{10}$"
+        },
+        "점수": { "type": "number", "minimum": 0, "maximum": 50 },
+        "기준일_메모": { "type": "string", "minLength": 1 },
+        "기여내역": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": { "$ref": "#/$defs/동단위_기여" },
+          "allOf": [
+            { "contains": { "type": "object", "properties": { "코드": { "const": "고령비율" } }, "required": ["코드"] } },
+            { "contains": { "type": "object", "properties": { "코드": { "const": "1인가구비율" } }, "required": ["코드"] } },
+            { "contains": { "type": "object", "properties": { "코드": { "const": "노후주택" } }, "required": ["코드"] } },
+            { "contains": { "type": "object", "properties": { "코드": { "const": "기초수급_밀도" } }, "required": ["코드"] } }
+          ]
+        }
+      },
+      "$comment": "Public dong-level context based on manual p11 discovery characteristics. The 0..50 normalization/version is supplied upstream; this schema does not invent weights. 162 current dongs remain mapped onto 156 dated geometry zones."
+    }
+  }
+}

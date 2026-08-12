@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://incheon-care-map.example/schemas/contact-triage-worker-input.schema.json",
+  "title": "ContactOps worker triage input",
+  "description": "Synthetic worker constraints, safety flags, and dynamic condition used for operational assignment after triage. It contains no global route-distance constraint.",
+  "$comment": "Worker condition can later be adapted from the isolated voice condition contract. Maximum route distance remains only in an explicitly approved household visit constraint.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "계약_버전",
+    "합성_운영데이터",
+    "연결단원_id",
+    "제약",
+    "안전",
+    "컨디션"
+  ],
+  "properties": {
+    "계약_버전": { "const": "contact-triage-worker-input-v0.1.0" },
+    "합성_운영데이터": { "const": true },
+    "연결단원_id": {
+      "type": "string",
+      "pattern": "^SYN-W-\\d{10}-01$"
+    },
+    "제약": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["계단_가능", "가능_시간대", "담당구역"],
+      "properties": {
+        "계단_가능": { "type": "boolean" },
+        "가능_시간대": { "$ref": "#/$defs/시간대" },
+        "담당구역": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "pattern": "^\\d{10}$" }
+        }
+      }
+    },
+    "안전": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["2인1조_필요", "정신건강_동행"],
+      "properties": {
+        "2인1조_필요": { "type": "boolean" },
+        "정신건강_동행": { "type": "boolean" }
+      }
+    },
+    "컨디션": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["상태", "갱신시각", "출처"],
+      "properties": {
+        "상태": { "enum": ["정상", "주의", "업무경감", "근무중지"] },
+        "갱신시각": { "type": "string", "format": "date-time" },
+        "출처": { "enum": ["시스템_기본값", "본인_입력", "담당자_입력"] }
+      }
+    }
+  },
+  "$defs": {
+    "시간대": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["시작", "종료"],
+      "properties": {
+        "시작": { "type": "string", "pattern": "^(?:[01]\\d|2[0-3]):[0-5]\\d$" },
+        "종료": { "type": "string", "pattern": "^(?:[01]\\d|2[0-3]):[0-5]\\d$" }
+      }
+    }
+  }
+}

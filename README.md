@@ -37,16 +37,18 @@
 - `data/schemas/synthetic-worker.schema.json`
 - `data/schemas/synthetic-household.schema.json`
 - `src/syntheticCareOpsTypes.ts`
+- `data/schemas/contact-triage-*.schema.json`
+- `backend/src/contact-triage-scoring.mjs`
 
 모든 레코드는 `synthetic=true`이고 이름·주소·전화번호가 없다. 좌표는 2025 지도구역 안에 생성한 합성 점이며 실제 주거 위치가 아니다. 중심 필드는 `next_contact_date`, `preferred_contact_method`, `consecutive_no_answer_count`, `follow_up_deadline`, `follow_up_status`, `visit_approval_status`, `transfer_status`, `last_contact_result`다. `visit_approval_status`는 규칙 권고 전에는 `null`이며, 방문 제약과 `max_route_distance_km`는 담당자가 명시 승인한 뒤에만 생긴다. UI·규칙 그래프 사용법과 162→156 공간 제약은 [`docs/SYNTHETIC_CARE_OPS_DATA.md`](docs/SYNTHETIC_CARE_OPS_DATA.md)를 따른다.
 
-현재 최소 데모는 LLM 없이 결정론적으로 돈다.
+현재 최소 데모는 LLM 없이 결정론적으로 돈다. 연락·기한 규칙 뒤에 급성도와 취약도를 합치지 않는 2축 트리아지를 적용한다. 모든 점수는 기여내역을 반환하고, 방문 임계값은 권고만 만들며 담당자 승인 전에는 경로 제약이 생기지 않는다. 세부 배점·정렬·역전 감시는 [`docs/CONTACT_TRIAGE_SCORING.md`](docs/CONTACT_TRIAGE_SCORING.md)를 따른다.
 
 ```bash
 npm --prefix backend run demo:contact-ops
 ```
 
-이 명령은 오늘 연락대상 큐 생성, 더미 연락결과 입력, 미응답·후속조치 규칙 검사, 방문 승격 권고, 담당자 명시 승인까지 텍스트로 보여 준다. 이 ContactOps 데모 자체는 LLM·음성·경로 최적화를 호출하지 않는다. 별도 `voice/` 텍스트→JSON 3a 단계는 구현됐지만 ContactOps 어댑터, 오디오 파일·Realtime 입력, 조건부 경로 게이트는 아직 구현하지 않았다.
+이 명령은 오늘 연락대상 큐 생성, 더미 연락결과 입력, 미응답·후속조치 규칙 검사, 2축 점수의 방문 권고, 담당자 명시 승인까지 텍스트로 보여 준다. 미응답 2회만으로 방문을 직접 권고하지 않는다. 이 ContactOps 데모 자체는 LLM·음성·경로 최적화를 호출하지 않는다. 별도 `voice/` 텍스트→JSON 3a 단계는 구현됐지만 ContactOps 음성 어댑터, 오디오 파일·Realtime 입력, 조건부 경로 게이트는 아직 구현하지 않았다.
 
 ## 지표 해석 원칙
 

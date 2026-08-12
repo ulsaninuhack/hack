@@ -83,6 +83,8 @@ ok "data interpretation caveats are present in runtime manifest"
 
 npm run validate:synthetic-data
 ok "synthetic CareOps fixtures are deterministic and current"
+npm run test:contact-triage-schema
+ok "contact triage schemas match the two-axis scorer and queue output"
 
 if [ -d backend ]; then
   if [ -f backend/src/app.mjs ] && [ -f backend/src/data-store.mjs ] && [ -f backend/src/server.mjs ]; then
