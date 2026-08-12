@@ -121,15 +121,15 @@ task.approved_visit_constraints !== null
 
 `requires_public_official_companion=true`인 업무는 항상 `requires_two_person_team=true`다. 이후 OR-Tools 같은 경로 엔진을 붙일 때 이 조건은 LLM 프롬프트가 아니라 하드 제약으로 유지한다.
 
-## LLM·음성 계획
+## LLM·음성 연결 계획
 
-LLM과 음성 입력은 아직 구현하지 않았다. 결정론적 규칙이 먼저이며, LLM은 다음 세 지점에만 붙인다.
+`voice/` 3a 단계는 동의받고 개인정보를 마스킹한 텍스트를 OpenAI Structured Outputs의 고정 JSON 계약으로 구조화한다. 다만 그 출력을 ContactOps에 적용하는 어댑터, 오디오 파일 전사, Realtime/WebRTC는 아직 구현하지 않았다. 결정론적 규칙이 최종 상태 전환을 소유하며, LLM 연결은 다음 세 지점에만 붙인다.
 
 - 음성·텍스트 메모를 구조화된 연락결과로 변환
 - 이전 기록과 현재 발화의 모순·누락 탐지
 - 방문 필요 후보와 이관 필요 후보의 근거 제시
 
-최종 방문 승인, 이관 확정, 경로 입력 전환은 자동화하지 않는다. 규칙 그래프와 담당자 승인 기록이 있어야 한다.
+최종 방문 승인, 이관 확정, 경로 입력 전환은 자동화하지 않는다. `voice` 출력의 `risk_score`와 `visit_recommended`는 발화에서 추출한 내용일 뿐 운영 점수·방문 결정이 아니다. 규칙 그래프와 담당자 승인 기록이 있어야 한다.
 
 ## 재생성과 검증
 

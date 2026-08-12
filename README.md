@@ -25,7 +25,7 @@
 
 실행 중인 웹앱은 대용량 원천을 직접 읽지 않고, 검증된 정적 자산만 `public/data/`에서 불러온다. `VITE_API_BASE_URL`이 설정된 runtime에서는 Cloud Run API를 우선 사용하고, 환경변수가 없거나 API 호출이 실패하면 Vercel에 배포된 같은 정적 자산으로 fallback한다.
 
-프론트엔드는 React 19·TypeScript 7·Vite 8·MapLibre GL JS 6으로 구성했고 OpenStreetMap 베이스맵을 사용한다. 백엔드는 Node.js 24로 작성한 읽기 전용 API며, 검증된 `public/data/`를 Docker 이미지에 번들해 Cloud Run에서 제공한다. 어느 현재 경로도 개인 데이터나 AI 추론 결과를 생성하지 않는다. 같은 GCP 프로젝트에는 향후 서버 측 AI 진단 리포트·메모를 저장할 Firestore가 준비되어 있지만, 현재 지도 요청과 정적 데이터 제공은 DB 장애와 분리되어 있다.
+프론트엔드는 React 19·TypeScript 7·Vite 8·MapLibre GL JS 6으로 구성했고 OpenStreetMap 베이스맵을 사용한다. 백엔드는 Node.js 24로 작성한 읽기 전용 API며, 검증된 `public/data/`를 Docker 이미지에 번들해 Cloud Run에서 제공한다. 지도·API 요청 경로는 개인 데이터나 AI 추론 결과를 생성하지 않는다. 별도 `voice/` 모듈은 동의받고 개인정보를 마스킹한 텍스트를 고정 JSON 계약으로 구조화할 수 있지만 현재 ContactOps나 지도 경로에 연결되어 있지 않다. 같은 GCP 프로젝트의 Firestore는 향후 서버 측 AI 리포트·메모용으로 준비되어 있지만, 현재 지도 요청과 정적 데이터 제공은 DB 장애와 분리되어 있다.
 
 ## 합성 ContactOps 개발 데이터
 
@@ -46,7 +46,7 @@
 npm --prefix backend run demo:contact-ops
 ```
 
-이 명령은 오늘 연락대상 큐 생성, 더미 연락결과 입력, 미응답·후속조치 규칙 검사, 방문 승격 권고, 담당자 명시 승인까지 텍스트로 보여 준다. LLM·음성 입력·경로 최적화는 아직 구현하지 않았다. 다음 순서는 전체 회귀검증, LLM 구조화·검토 레이어, 조건부 경로 게이트다.
+이 명령은 오늘 연락대상 큐 생성, 더미 연락결과 입력, 미응답·후속조치 규칙 검사, 방문 승격 권고, 담당자 명시 승인까지 텍스트로 보여 준다. 이 ContactOps 데모 자체는 LLM·음성·경로 최적화를 호출하지 않는다. 별도 `voice/` 텍스트→JSON 3a 단계는 구현됐지만 ContactOps 어댑터, 오디오 파일·Realtime 입력, 조건부 경로 게이트는 아직 구현하지 않았다.
 
 ## 지표 해석 원칙
 
@@ -162,7 +162,7 @@ docker run --rm -p 8080:8080 \
 
 ## CI/CD
 
-- Pull request와 모든 push에서 Node.js 24로 웹 데이터 결정성, 프론트 타입·빌드, API 커버리지 게이트, Docker 이미지 빌드를 검증한다.
+- Pull request와 모든 push에서 Node.js 24로 웹·합성 ContactOps 데이터 결정성, 프론트 타입·빌드, API 커버리지 게이트, `voice/` 골든셋, Docker 이미지 빌드를 검증한다.
 - Pull request는 배포하지 않는다. 검증을 통과한 PR이 `main`에 merge되면 프론트와 API 생산 배포를 독립된 병렬 job으로 시작한다.
 - 프론트는 Vercel Production으로, API는 commit SHA 태그의 `linux/amd64` 이미지를 Artifact Registry에 push한 뒤 Cloud Run으로 배포한다.
 - GitHub Actions가 프론트 배포의 단일 소유자다. `vercel.json`의 `git.deploymentEnabled=false`로 Vercel Git 자동 배포와의 중복을 막는다.

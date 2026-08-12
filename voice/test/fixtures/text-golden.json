@@ -1,0 +1,165 @@
+[
+  {
+    "name": "surveyor knee condition",
+    "input": {
+      "kind": "text",
+      "text": "오늘 무릎이 안 좋아요",
+      "surveyorId": "연결단원 001"
+    },
+    "expected": {
+      "intent": "condition",
+      "surveyor_id": "연결단원 001",
+      "case_id": null,
+      "transcript": "오늘 무릎이 안 좋아요",
+      "condition": {
+        "status": "무릎통증",
+        "derived_constraints": {
+          "avoid_stairs": true,
+          "reduce_workload": true,
+          "phone_only": false,
+          "early_finish": false
+        }
+      },
+      "contact_result": null
+    }
+  },
+  {
+    "name": "surveyor fatigue condition",
+    "input": {
+      "kind": "text",
+      "text": "좀 피곤하네요",
+      "surveyorId": "연결단원 002"
+    },
+    "expected": {
+      "intent": "condition",
+      "surveyor_id": "연결단원 002",
+      "case_id": null,
+      "transcript": "좀 피곤하네요",
+      "condition": {
+        "status": "피로",
+        "derived_constraints": {
+          "avoid_stairs": false,
+          "reduce_workload": true,
+          "phone_only": false,
+          "early_finish": false
+        }
+      },
+      "contact_result": null
+    }
+  },
+  {
+    "name": "reached contact with serious meal signal",
+    "input": {
+      "kind": "text",
+      "text": "방금 CASE-0412랑 통화했는데 기운 없고 이틀째 밥을 안 먹었대요, 연락은 됐어요",
+      "surveyorId": "연결단원 001"
+    },
+    "expected": {
+      "intent": "contact_result",
+      "surveyor_id": "연결단원 001",
+      "case_id": "CASE-0412",
+      "transcript": "방금 CASE-0412랑 통화했는데 기운 없고 이틀째 밥을 안 먹었대요, 연락은 됐어요",
+      "condition": null,
+      "contact_result": {
+        "reached": true,
+        "observation": {
+          "mail_piled": null,
+          "odor_bugs": null,
+          "trash_bottles": null,
+          "tv_light_on": null,
+          "no_outing": null,
+          "no_contact": false,
+          "meal_status": "심각",
+          "hygiene": null
+        },
+        "free_text": "기운이 없다고 함",
+        "risk_signals": ["식사 심각", "기력 저하"],
+        "risk_score": 0,
+        "visit_recommended": false,
+        "evidence": ["방금 CASE-0412랑 통화했는데 기운 없고 이틀째 밥을 안 먹었대요, 연락은 됐어요"]
+      }
+    }
+  },
+  {
+    "name": "unreached contact with observed manual signals",
+    "input": {
+      "kind": "text",
+      "text": "CASE-0099 집 앞 우편물이 쌓여 있고 악취랑 벌레가 보여요. 연락은 안 됐어요.",
+      "surveyorId": "연결단원 003"
+    },
+    "expected": {
+      "intent": "contact_result",
+      "surveyor_id": "연결단원 003",
+      "case_id": "CASE-0099",
+      "transcript": "CASE-0099 집 앞 우편물이 쌓여 있고 악취랑 벌레가 보여요. 연락은 안 됐어요.",
+      "condition": null,
+      "contact_result": {
+        "reached": false,
+        "observation": {
+          "mail_piled": true,
+          "odor_bugs": true,
+          "trash_bottles": null,
+          "tv_light_on": null,
+          "no_outing": null,
+          "no_contact": true,
+          "meal_status": null,
+          "hygiene": null
+        },
+        "free_text": "",
+        "risk_signals": ["우편물 쌓임", "악취·벌레", "연락 두절"],
+        "risk_score": 0,
+        "visit_recommended": false,
+        "evidence": ["CASE-0099 집 앞 우편물이 쌓여 있고 악취랑 벌레가 보여요. 연락은 안 됐어요."]
+      }
+    }
+  },
+  {
+    "name": "explicit negatives are false rather than unknown",
+    "input": {
+      "kind": "text",
+      "text": "CASE-0150와 통화됐고 식사는 잘 챙겨 드시며 집도 깨끗하대요. 우편물은 쌓이지 않았어요.",
+      "surveyorId": "연결단원 004"
+    },
+    "expected": {
+      "intent": "contact_result",
+      "surveyor_id": "연결단원 004",
+      "case_id": "CASE-0150",
+      "transcript": "CASE-0150와 통화됐고 식사는 잘 챙겨 드시며 집도 깨끗하대요. 우편물은 쌓이지 않았어요.",
+      "condition": null,
+      "contact_result": {
+        "reached": true,
+        "observation": {
+          "mail_piled": false,
+          "odor_bugs": null,
+          "trash_bottles": null,
+          "tv_light_on": null,
+          "no_outing": null,
+          "no_contact": false,
+          "meal_status": "양호",
+          "hygiene": "양호"
+        },
+        "free_text": "",
+        "risk_signals": [],
+        "risk_score": 0,
+        "visit_recommended": false,
+        "evidence": ["CASE-0150와 통화됐고 식사는 잘 챙겨 드시며 집도 깨끗하대요. 우편물은 쌓이지 않았어요."]
+      }
+    }
+  },
+  {
+    "name": "synthetic PII-shaped input is masked before the model and output",
+    "input": {
+      "kind": "text",
+      "text": "이름은 홍길동이고 연락처는 010-1234-5678, 인천광역시 중구 영종대로 123에 살아요.",
+      "surveyorId": "연결단원 005"
+    },
+    "expected": {
+      "intent": "other",
+      "surveyor_id": "연결단원 005",
+      "case_id": null,
+      "transcript": "이름은 [이름 마스킹]이고 연락처는 [연락처 마스킹], [주소 마스킹]에 살아요.",
+      "condition": null,
+      "contact_result": null
+    }
+  }
+]
