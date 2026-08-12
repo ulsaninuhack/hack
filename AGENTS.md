@@ -5,7 +5,9 @@ Read it before changing code, data, documentation, or deployment settings.
 
 ## Current Architecture
 
-This repository is a private hackathon MVP for an Incheon public aggregate care-context map.
+This GitHub repository is currently public. It contains a hackathon MVP for an Incheon public
+aggregate care-context map; `package.json` remains `private: true` only to prevent accidental npm
+publication. Do not confuse package publication protection with repository visibility.
 
 - `src/`: React 19, TypeScript, Vite 8, MapLibre browser application.
 - `public/data/`: curated runtime snapshots plus clearly labeled synthetic CareOps fixtures deployed to Vercel and bundled into the API image. The current map browser prefers the API for observed layers and retains the existing static files as fallback; the synthetic fixtures are a separate contact-queue, rule-graph, and conditional-routing development contract.
@@ -81,6 +83,36 @@ GitHub Actions owns deployment.
 
 If deployment behavior changes, update both `docs/DEPLOYMENT.md` and this guide in the same change.
 
+## Next Agent Bootstrap
+
+Claude, Codex, and any other coding agent use this file as the canonical ruleset. `CLAUDE.md`
+is only a pointer into this guide. Do not continue from a merged feature branch or overwrite a
+dirty checkout. Start from current `origin/main` in a clean worktree and replace `next-task` with
+a short task name:
+
+```sh
+git fetch origin main
+git worktree add ../hack-next-agent -b agent/next-task origin/main
+cd ../hack-next-agent
+git status --short --branch
+```
+
+Then read `README.md`, `AGENTS.md`, `docs/AGENT_HANDOFF.md`, and the task-specific sources.
+Use Node 24, install the three locked dependency trees, and run the shared takeover gate:
+
+```sh
+npm ci
+npm --prefix backend ci
+npm --prefix voice ci
+npm run agent:check
+```
+
+`npm run agent:check` is the common Claude/Codex baseline. It verifies the handoff contract,
+deployment invariants, curated and synthetic data, frontend tests/typecheck/build, backend
+coverage, and voice contracts. UI or end-to-end workflow changes must additionally run
+`npm run test:e2e:ops`. If the baseline fails, preserve the first failure as evidence and fix the
+contract rather than bypassing the guardrail.
+
 ## Verification Commands
 
 Run from the repository root.
@@ -100,7 +132,7 @@ npm --prefix backend run demo:contact-ops
 npm --prefix backend run report:contact-triage
 npm --prefix voice ci
 npm --prefix voice test
-sh scripts/agent-check.sh
+npm run agent:check
 ```
 
 When a Docker daemon is available, backend container verification is also useful:

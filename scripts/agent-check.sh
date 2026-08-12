@@ -21,6 +21,9 @@ ok() {
 [ -f CLAUDE.md ] || fail "missing CLAUDE.md"
 [ -f docs/AGENT_HANDOFF.md ] || fail "missing docs/AGENT_HANDOFF.md"
 
+npm run test:agent-handoff
+ok "Claude/Codex handoff contract is current"
+
 grep -q '"name": "incheon-care-context-map"' package.json || fail "unexpected package name"
 grep -q '"private": true' package.json || fail "package must stay private"
 grep -q '"node": ">=24 <25"' package.json || fail "Node 24 engine contract missing"
@@ -43,7 +46,7 @@ grep -q 'refs/heads/main' .github/workflows/ci-deploy.yml || fail "workflow must
 grep -q 'needs: validate' .github/workflows/ci-deploy.yml || fail "production deploy jobs must depend on validation"
 grep -q 'vercel deploy --prebuilt --prod' .github/workflows/ci-deploy.yml || fail "frontend deploy must use Vercel production deploy"
 grep -q 'find .vercel/output/static/assets' .github/workflows/ci-deploy.yml || fail "frontend deploy must inspect the built entry asset"
-grep -q 'PRODUCTION_ORIGIN: https://incheon-care-map.vercel.app' .github/workflows/ci-deploy.yml || fail "frontend smoke must use the public production alias"
+grep -q 'production_origin="https://incheon-care-map.vercel.app"' .github/workflows/ci-deploy.yml || fail "frontend smoke must use the public production alias"
 grep -q 'google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093' .github/workflows/ci-deploy.yml || fail "backend deploy must use commit-pinned keyless WIF auth"
 grep -q 'id-token: write' .github/workflows/ci-deploy.yml || fail "backend deploy must request OIDC id-token permission"
 grep -q 'gcloud auth configure-docker' .github/workflows/ci-deploy.yml || fail "backend deploy must configure Artifact Registry auth"
@@ -57,6 +60,11 @@ ok "PR validation and main production deploy lanes are configured"
 
 npm run check:ui-copy
 ok "UI copy invariants and their unit tests pass"
+npm run test:ui
+ok "frontend component and operations contracts pass"
+npm run typecheck
+npm run build
+ok "frontend typecheck, production build, and MapLibre worker verification pass"
 
 grep -q 'Firestore Standard Native' AGENTS.md || fail "AGENTS.md must record the provisioned Firestore decision"
 grep -q 'Static health/map/facility/transit/summary routes remain independent of Firestore' docs/AGENT_HANDOFF.md \
@@ -124,6 +132,11 @@ if [ -d backend ]; then
   ok "backend health endpoint convention is documented and implemented"
   npm --prefix backend run test:coverage
   ok "backend coverage-gated test suite passes locally"
+fi
+
+if [ -d voice ]; then
+  npm --prefix voice test
+  ok "voice text/file and Planner-Critic contracts pass"
 fi
 
 large_files=$(find data/raw data/processed -type f \( -size +50M \) -print 2>/dev/null | sed -n '1,20p' || true)
