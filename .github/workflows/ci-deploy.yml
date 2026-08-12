@@ -54,6 +54,9 @@ jobs:
           npm run test:synthetic-data
           npm run test:contact-triage-schema
 
+      - name: Test frontend operations contracts
+        run: npm run test:ui
+
       - name: Type-check frontend
         run: npm run typecheck
 
@@ -65,6 +68,27 @@ jobs:
 
       - name: Test backend with coverage gate
         run: npm --prefix backend run test:coverage
+
+      - name: Install Chromium for operations E2E
+        run: npx playwright install --with-deps chromium
+
+      - name: Test the surveyor-to-manager browser flow
+        run: npm run test:e2e:p2
+
+      - name: Verify objective overnight UI evidence
+        run: npm run verify:overnight
+
+      - name: Upload operations browser evidence on failure
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: contact-ops-browser-evidence
+          path: |
+            artifacts/playwright/
+            artifacts/playwright-report/
+            artifacts/screenshots/
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Install voice-layer dependencies
         run: npm --prefix voice ci

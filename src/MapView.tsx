@@ -13,12 +13,15 @@ interface MapViewProps {
   facilityCategory: string
   selectedZoneId: string | null
   onSelectDong: (properties: DongProperties) => void
+  syntheticPoint?: { caseId: string; longitude: number; latitude: number } | null
+  ariaLabel?: string
 }
 
 const DONG_SOURCE = 'admin-dongs'
 const BUBBLE_SOURCE = 'dong-bubbles'
 const FACILITY_SOURCE = 'facilities'
 const TRANSIT_SOURCE = 'transit'
+const SYNTHETIC_POINT_SOURCE = 'synthetic-contact-case'
 
 // MapLibre 6 resolves its worker next to the bundled entry at runtime. Vite
 // cannot discover that computed URL, so the build emits the worker and shared
@@ -120,6 +123,15 @@ export default function MapView(props: MapViewProps) {
         id: 'transit-points', type: 'circle', source: TRANSIT_SOURCE,
         paint: { 'circle-radius': ['interpolate', ['linear'], ['get', 'daily_average_board_alightings'], 0, 2, 500, 5, 4000, 10], 'circle-color': '#6279bd', 'circle-opacity': 0.6, 'circle-stroke-color': '#fff', 'circle-stroke-width': 0.5 },
       })
+      map.addSource(SYNTHETIC_POINT_SOURCE, { type: 'geojson', data: toSyntheticPointCollection(current.syntheticPoint) })
+      map.addLayer({
+        id: 'synthetic-contact-case-halo', type: 'circle', source: SYNTHETIC_POINT_SOURCE,
+        paint: { 'circle-radius': 16, 'circle-color': '#fff7df', 'circle-opacity': 0.9, 'circle-stroke-color': '#7a4d00', 'circle-stroke-width': 3 },
+      })
+      map.addLayer({
+        id: 'synthetic-contact-case-point', type: 'circle', source: SYNTHETIC_POINT_SOURCE,
+        paint: { 'circle-radius': 7, 'circle-color': '#f0ba50', 'circle-stroke-color': '#10211f', 'circle-stroke-width': 2 },
+      })
       setVisibility(map, 'facility-clusters', current.showFacilities)
       setVisibility(map, 'facility-cluster-count', current.showFacilities)
       setVisibility(map, 'facility-points', current.showFacilities)
@@ -211,7 +223,32 @@ export default function MapView(props: MapViewProps) {
     }
   }, [props.selectedZoneId, props.data.dongs.features])
 
-  return <div ref={containerRef} className="map" role="region" aria-label="인천 돌봄 수요 맥락 지도" />
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map?.isStyleLoaded()) return
+    const source = map.getSource(SYNTHETIC_POINT_SOURCE) as maplibregl.GeoJSONSource | undefined
+    source?.setData(toSyntheticPointCollection(props.syntheticPoint))
+    if (props.syntheticPoint) {
+      map.easeTo({
+        center: [props.syntheticPoint.longitude, props.syntheticPoint.latitude],
+        zoom: Math.max(map.getZoom(), 12),
+        duration: 500,
+      })
+    }
+  }, [props.syntheticPoint])
+
+  return <div ref={containerRef} className="map" role="region" aria-label={props.ariaLabel ?? '인천 돌봄 수요 맥락 지도'} />
+}
+
+function toSyntheticPointCollection(point: MapViewProps['syntheticPoint']): FeatureCollection<Point> {
+  return {
+    type: 'FeatureCollection',
+    features: point ? [{
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [point.longitude, point.latitude] },
+      properties: { case_id: point.caseId, synthetic: true, display_marker: '[합성]' },
+    }] : [],
+  }
 }
 
 function toBubbleCollection(data: DataBundle): FeatureCollection<Point, DongProperties> {

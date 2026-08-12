@@ -16,6 +16,7 @@ import {
 import { loadData } from './data'
 import MapView from './MapView'
 import type { DataBundle, DongProperties, MetricKey } from './types'
+import { ManagerPage, SurveyorPage } from './Operations'
 
 const METRICS: Array<{ key: MetricKey; short: string; label: string; description: string }> = [
   {
@@ -41,6 +42,12 @@ const METRICS: Array<{ key: MetricKey; short: string; label: string; description
 const FACILITY_GROUPS = ['전체', '노인복지', '장애인복지', '지역복지', '정신건강복지', '가족·여성복지']
 
 export default function App() {
+  if (window.location.pathname === '/ops/surveyor') return <SurveyorPage />
+  if (window.location.pathname === '/ops/manager') return <ManagerPage />
+  return <PublicMapApp />
+}
+
+function PublicMapApp() {
   const [data, setData] = useState<DataBundle | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [metric, setMetric] = useState<MetricKey>('age_65_plus_one_person_share_of_age_65_plus_population')

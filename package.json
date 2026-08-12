@@ -9,6 +9,10 @@
   "scripts": {
     "check:ui-copy": "node --test test/ui-copy-gate.test.mjs && node scripts/check-ui-copy.mjs",
     "verify:overnight-freeze": "node scripts/verify-overnight-freeze.mjs",
+    "verify:overnight": "npm run verify:overnight-freeze && npm run check:ui-copy && node scripts/verify-overnight-ui.mjs",
+    "test:ui": "vitest run",
+    "test:ui:watch": "vitest",
+    "test:e2e:p2": "playwright test e2e/p2-contact-ops.spec.ts",
     "dev": "vite",
     "build": "tsc -b && vite build && node scripts/verify-map-worker.mjs",
     "typecheck": "tsc -b",
@@ -29,6 +33,11 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.62.1",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.1",
     "@types/geojson": "7946.0.16",
     "@types/node": "24.13.3",
     "@types/react": "19.2.18",
@@ -36,7 +45,10 @@
     "@vitejs/plugin-react": "6.0.5",
     "ajv": "8.20.0",
     "ajv-formats": "3.0.1",
+    "axe-core": "4.11.0",
+    "jsdom": "27.4.0",
     "typescript": "7.0.2",
-    "vite": "8.2.1"
+    "vite": "8.2.1",
+    "vitest": "4.1.10"
   }
 }
