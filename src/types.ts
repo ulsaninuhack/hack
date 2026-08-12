@@ -63,6 +63,7 @@ export interface Summary {
     adminGeometryZones: number
     currentAdminDongsRepresented: number
     facilityCanonicalTotal: number
+    facilityRelevantCanonicalTotal: number
     facilityPoints: number
     transitUsagePoints: number
   }
