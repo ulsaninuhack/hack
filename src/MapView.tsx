@@ -30,7 +30,12 @@ function colorExpression(metric: MetricKey): ExpressionSpecification {
     return ['interpolate', ['linear'], ['get', metric], 0, '#f4f1ea', 600, '#dce9c7', 1000, '#a8cf9e', 1500, '#58a68c', 2500, '#14685e']
   }
   if (metric === 'housing_age_30_plus_share_valid_pct') {
-    return ['interpolate', ['linear'], ['coalesce', ['get', metric], 0], 0, '#f6f1e7', 35, '#f2d39b', 55, '#df9d67', 75, '#b95e4c', 95, '#702e3f']
+    return [
+      'case',
+      ['==', ['get', metric], null],
+      '#aeb5b2',
+      ['interpolate', ['linear'], ['get', metric], 0, '#f6f1e7', 35, '#f2d39b', 55, '#df9d67', 75, '#b95e4c', 95, '#702e3f'],
+    ]
   }
   return ['interpolate', ['linear'], ['get', metric], 0.12, '#f2f1e9', 0.24, '#dcebc6', 0.3, '#a9d2a3', 0.36, '#57a68c', 0.48, '#12665b']
 }
@@ -94,11 +99,17 @@ export default function MapView(props: MapViewProps) {
       map.addSource(FACILITY_SOURCE, { type: 'geojson', data: current.data.facilities, cluster: true, clusterMaxZoom: 13, clusterRadius: 48 })
       map.addLayer({
         id: 'facility-clusters', type: 'circle', source: FACILITY_SOURCE, filter: ['has', 'point_count'],
-        paint: { 'circle-color': ['step', ['get', 'point_count'], '#6cbdb0', 20, '#258b7c', 100, '#15564f'], 'circle-radius': ['step', ['get', 'point_count'], 13, 20, 18, 100, 25], 'circle-stroke-color': '#fff', 'circle-stroke-width': 1.5 },
+        paint: {
+          'circle-color': '#f8fbf9',
+          'circle-opacity': 0.97,
+          'circle-radius': ['step', ['get', 'point_count'], 13, 20, 18, 100, 25],
+          'circle-stroke-color': ['step', ['get', 'point_count'], '#37a899', 20, '#16796d', 100, '#0b4a44'],
+          'circle-stroke-width': 3,
+        },
       })
       map.addLayer({
         id: 'facility-cluster-count', type: 'symbol', source: FACILITY_SOURCE, filter: ['has', 'point_count'],
-        layout: { 'text-field': ['get', 'point_count_abbreviated'], 'text-size': 11 }, paint: { 'text-color': '#fff' },
+        layout: { 'text-field': ['get', 'point_count_abbreviated'], 'text-size': 11 }, paint: { 'text-color': '#0b4a44' },
       })
       map.addLayer({
         id: 'facility-points', type: 'circle', source: FACILITY_SOURCE, filter: ['!', ['has', 'point_count']],
@@ -114,6 +125,8 @@ export default function MapView(props: MapViewProps) {
       setVisibility(map, 'facility-points', current.showFacilities)
       setVisibility(map, 'transit-points', current.showTransit)
       setVisibility(map, 'dong-bubbles', current.showBubbles)
+
+      map.once('idle', () => containerRef.current?.setAttribute('data-map-ready', 'true'))
 
       const handleDong = (event: MapMouseEvent) => {
         const feature = map.queryRenderedFeatures(event.point, { layers: ['dong-fill'] })[0]
@@ -198,7 +211,7 @@ export default function MapView(props: MapViewProps) {
     }
   }, [props.selectedZoneId, props.data.dongs.features])
 
-  return <div ref={containerRef} className="map" aria-label="인천 돌봄 수요 맥락 지도" />
+  return <div ref={containerRef} className="map" role="region" aria-label="인천 돌봄 수요 맥락 지도" />
 }
 
 function toBubbleCollection(data: DataBundle): FeatureCollection<Point, DongProperties> {

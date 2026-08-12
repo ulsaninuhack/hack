@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Building2,
   ChevronDown,
+  ChevronRight,
   Database,
   Home,
   Info,
@@ -51,6 +52,9 @@ export default function App() {
   const [search, setSearch] = useState('')
   const [mobilePanel, setMobilePanel] = useState(false)
   const [showMethodology, setShowMethodology] = useState(false)
+  const methodologyButtonRef = useRef<HTMLButtonElement>(null)
+  const methodologyCloseRef = useRef<HTMLButtonElement>(null)
+  const methodologyDialogRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
     loadData().then(setData).catch((cause: unknown) => {
@@ -60,11 +64,15 @@ export default function App() {
 
   useEffect(() => {
     if (!showMethodology) return
+    methodologyCloseRef.current?.focus()
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setShowMethodology(false)
     }
     window.addEventListener('keydown', closeOnEscape)
-    return () => window.removeEventListener('keydown', closeOnEscape)
+    return () => {
+      window.removeEventListener('keydown', closeOnEscape)
+      methodologyButtonRef.current?.focus()
+    }
   }, [showMethodology])
 
   const dongRows = useMemo(() => {
@@ -82,6 +90,23 @@ export default function App() {
   }, [dongRows, search])
 
   const activeMetric = METRICS.find((item) => item.key === metric)!
+
+  const trapMethodologyFocus = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (event.key !== 'Tab') return
+    const focusable = methodologyDialogRef.current?.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    )
+    if (!focusable?.length) return
+    const first = focusable[0]
+    const last = focusable[focusable.length - 1]
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault()
+      last.focus()
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault()
+      first.focus()
+    }
+  }
 
   if (error) {
     return <main className="fatal-state"><Database /><h1>데이터를 열지 못했습니다</h1><p>{error}</p><button onClick={() => location.reload()}>다시 시도</button></main>
@@ -109,7 +134,7 @@ export default function App() {
           <h1>인천 돌봄 수요 맥락 지도</h1>
         </div>
         <div className="header-actions">
-          <button className="method-button" onClick={() => setShowMethodology(true)}><Info size={15} /> 방법론</button>
+          <button ref={methodologyButtonRef} className="method-button" onClick={() => setShowMethodology(true)}><Info size={15} /> 방법론</button>
           <a className="data-link" href="/data/manifest.json" target="_blank" rel="noreferrer"><Database size={15} /> 데이터 명세</a>
         </div>
       </header>
@@ -138,7 +163,7 @@ export default function App() {
             <div className="section-heading"><div><span>STEP 1</span><h3>비교할 지표</h3></div><ChevronDown size={16} /></div>
             <div className="metric-options">
               {METRICS.map((item) => (
-                <button key={item.key} className={metric === item.key ? 'metric-option active' : 'metric-option'} onClick={() => setMetric(item.key)}>
+                <button key={item.key} className={metric === item.key ? 'metric-option active' : 'metric-option'} aria-pressed={metric === item.key} onClick={() => setMetric(item.key)}>
                   <span className="radio-dot" />
                   <span><strong>{item.short}</strong><small>{item.description}</small></span>
                 </button>
@@ -173,11 +198,14 @@ export default function App() {
             )}
           </div>
 
-          <div className="mobile-controls" role="toolbar" aria-label="지도 지표와 레이어">
-            {METRICS.map((item) => <button key={item.key} className={metric === item.key ? 'active' : ''} aria-pressed={metric === item.key} onClick={() => setMetric(item.key)}>{item.short}</button>)}
-            <button className={showFacilities ? 'active layer-chip' : 'layer-chip'} aria-pressed={showFacilities} onClick={() => setShowFacilities((value) => !value)}>시설</button>
-            <button className={showBubbles ? 'active layer-chip' : 'layer-chip'} aria-pressed={showBubbles} onClick={() => setShowBubbles((value) => !value)}>규모 원</button>
-            <button className={showTransit ? 'active layer-chip' : 'layer-chip'} aria-pressed={showTransit} onClick={() => setShowTransit((value) => !value)}>교통</button>
+          <div className="mobile-controls-shell">
+            <div className="mobile-controls" role="toolbar" aria-label="지도 지표와 레이어">
+              {METRICS.map((item) => <button key={item.key} className={metric === item.key ? 'active' : ''} aria-pressed={metric === item.key} onClick={() => setMetric(item.key)}>{item.short}</button>)}
+              <button className={showFacilities ? 'active layer-chip' : 'layer-chip'} aria-pressed={showFacilities} onClick={() => setShowFacilities((value) => !value)}>시설</button>
+              <button className={showBubbles ? 'active layer-chip' : 'layer-chip'} aria-pressed={showBubbles} onClick={() => setShowBubbles((value) => !value)}>규모 원</button>
+              <button className={showTransit ? 'active layer-chip' : 'layer-chip'} aria-pressed={showTransit} onClick={() => setShowTransit((value) => !value)}>교통</button>
+            </div>
+            <span className="mobile-scroll-cue" aria-hidden="true"><ChevronRight size={17} /></span>
           </div>
 
           <div className="map-title-card">
@@ -198,7 +226,7 @@ export default function App() {
             onSelectDong={(dong) => { setSelectedDong(dong); setMobilePanel(true) }}
           />
 
-          <Legend metric={metric} />
+          <Legend metric={metric} showFacilities={showFacilities} showBubbles={showBubbles} showTransit={showTransit} />
 
           {selectedDong && (
             <DetailPanel dong={selectedDong} openMobile={mobilePanel} onClose={() => { setSelectedDong(null); setMobilePanel(false) }} />
@@ -207,8 +235,8 @@ export default function App() {
       </main>
       {showMethodology && (
         <div className="dialog-backdrop" role="presentation" onMouseDown={() => setShowMethodology(false)}>
-          <section className="method-dialog" role="dialog" aria-modal="true" aria-labelledby="method-title" onMouseDown={(event) => event.stopPropagation()}>
-            <button className="panel-close" onClick={() => setShowMethodology(false)} aria-label="방법론 닫기"><X size={18} /></button>
+          <section ref={methodologyDialogRef} className="method-dialog" role="dialog" aria-modal="true" aria-labelledby="method-title" onKeyDown={trapMethodologyFocus} onMouseDown={(event) => event.stopPropagation()}>
+            <button ref={methodologyCloseRef} className="panel-close" onClick={() => setShowMethodology(false)} aria-label="방법론 닫기"><X size={18} /></button>
             <span className="section-kicker">HOW TO READ</span>
             <h2 id="method-title">이 지도는 ‘판정’이 아니라<br />추가 검토의 출발점입니다</h2>
             <ol>
@@ -249,13 +277,28 @@ function DetailPanel({ dong, onClose, openMobile }: { dong: DongProperties; onCl
   )
 }
 
-function Legend({ metric }: { metric: MetricKey }) {
+function Legend({ metric, showFacilities, showBubbles, showTransit }: { metric: MetricKey; showFacilities: boolean; showBubbles: boolean; showTransit: boolean }) {
   const labels = metric === 'one_person_households_age_65_plus'
     ? ['적은 편', '600', '1,000', '1,500', '많은 편']
     : metric === 'housing_age_30_plus_share_valid_pct'
       ? ['낮은 편', '35%', '55%', '75%', '높은 편']
       : ['낮은 편', '24%', '30%', '36%', '높은 편']
-  return <div className={`legend ${metric === 'housing_age_30_plus_share_valid_pct' ? 'housing-scale' : ''}`}><span>인천 내 상대 비교</span><div className="legend-gradient" /><div className="legend-labels">{labels.map((label) => <small key={label}>{label}</small>)}</div>{metric === 'age_65_plus_one_person_share_of_age_65_plus_population' && <p>혼합 스냅샷 · 동시점 비율 아님</p>}</div>
+  return (
+    <div className={`legend ${metric === 'housing_age_30_plus_share_valid_pct' ? 'housing-scale' : ''}`}>
+      <span>인천 내 상대 비교</span>
+      <div className="legend-gradient" />
+      <div className="legend-labels">{labels.map((label) => <small key={label}>{label}</small>)}</div>
+      {metric === 'housing_age_30_plus_share_valid_pct' && <p className="no-data-key"><i />회색 구역은 주택 연령 자료 없음</p>}
+      {metric === 'age_65_plus_one_person_share_of_age_65_plus_population' && <p className="snapshot-key">혼합 스냅샷 · 동시점 비율 아님</p>}
+      {(showFacilities || showBubbles || showTransit) && (
+        <div className="point-legend" aria-label="활성 점 레이어 기호">
+          {showFacilities && <><span><i className="facility-point-symbol" />시설</span><span><i className="facility-cluster-symbol">12</i>시설 묶음</span></>}
+          {showBubbles && <span><i className="demand-bubble-symbol" />규모 원</span>}
+          {showTransit && <span><i className="transit-point-symbol" />승하차</span>}
+        </div>
+      )}
+    </div>
+  )
 }
 
 function formatCompact(value: number) {
