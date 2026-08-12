@@ -71,3 +71,25 @@ hostile follow-up, commit, preview, and blockers. Existing entries are never rew
   was introduced.
 - P3 debt remains explicit: `ai-observations` is 501 until the real Planner-Critic
   candidate and confirmation boundary is implemented.
+
+## 2026-08-13 02:41 KST — P2 PASS
+
+- `/ops/surveyor` and `/ops/manager` now complete the deterministic worker-to-manager
+  vertical slice against the real P1 HTTP API. The surveyor records a contact result and
+  observations, sees separate acute/vulnerability traces, and can create only a visit
+  recommendation; only the manager route can record an approval or rejection.
+- The isolated Playwright session proved queue reordering from a 62-point acute score,
+  reload persistence, manager-only approval, approved-only worker/distance constraints,
+  a real MapLibre synthetic point, and zero page/console errors.
+- Browser evidence: 13 component/contract tests and the 1-test production-build E2E pass;
+  axe reports no serious/critical WCAG 2.1 A/AA violations. Mobile body text is at least
+  18px, controls are at least 48px, horizontal overflow is zero, and the mobile content
+  grid is one column at 390x844.
+- The first hostile review found an external Google Fonts 404 that violated the console
+  gate. The remote import was removed, the assertion was not weakened, and a fresh E2E
+  rerun passed. A second hostile review returned PASS with no remaining P2 machine gap.
+- Regression: UI copy and overnight freeze gates, typecheck, production build, MapLibre
+  worker verification, 123 backend tests across 24 suites, and frozen core logic all pass.
+- Screenshots are indexed in `artifacts/screenshots/README.md` at the required mobile and
+  desktop dimensions. Morning human visual/touch review and a preview URL remain separate
+  delivery gates rather than machine-completion claims.
