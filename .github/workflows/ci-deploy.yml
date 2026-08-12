@@ -119,6 +119,20 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: vercel build --prod --token="$VERCEL_TOKEN"
 
+      - name: Verify built frontend references the API
+        shell: bash
+        run: |
+          api_origin='https://incheon-care-api-vy3v2ludma-du.a.run.app'
+          built_asset="$(find .vercel/output/static/assets -maxdepth 1 -type f -name 'index-*.js' -print -quit)"
+          if [[ -z "$built_asset" ]]; then
+            echo "::error::Could not identify the built frontend entry asset"
+            exit 1
+          fi
+          if ! grep --fixed-strings --quiet "$api_origin" "$built_asset"; then
+            echo "::error::Built frontend entry asset does not reference the Cloud Run API"
+            exit 1
+          fi
+
       - name: Deploy Vercel output
         id: deploy
         shell: bash
@@ -129,21 +143,34 @@ jobs:
           echo "url=${deployment_url}" >> "$GITHUB_OUTPUT"
           echo "Frontend production: ${deployment_url}" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Verify production frontend references the API
+      - name: Verify public production alias references the API
         shell: bash
         env:
           PRODUCTION_ORIGIN: https://incheon-care-map.vercel.app
         run: |
+          set -euo pipefail
           production_origin="${PRODUCTION_ORIGIN%/}"
-          app_html="$(curl --fail --location --silent --show-error --retry 12 --retry-all-errors --retry-delay 5 "${production_origin}/")"
+          app_html_file="$(mktemp)"
+          asset_file="$(mktemp)"
+          trap 'rm -f "$app_html_file" "$asset_file"' EXIT
+
+          curl --fail --location --silent --show-error \
+            --retry 12 --retry-all-errors --retry-delay 5 \
+            --output "$app_html_file" "${production_origin}/"
+          app_html="$(cat "$app_html_file")"
           asset_path="$(printf '%s' "$app_html" | grep -oE '/assets/index-[A-Za-z0-9_-]+\.js' | head -1)"
           if [[ -z "$asset_path" ]]; then
             echo "::error::Could not identify the production frontend entry asset"
             exit 1
           fi
-          curl --fail --location --silent --show-error --retry 12 --retry-all-errors --retry-delay 5 \
-            "${production_origin}${asset_path}" \
-            | grep --fixed-strings 'https://incheon-care-api-vy3v2ludma-du.a.run.app' >/dev/null
+          curl --fail --location --silent --show-error \
+            --retry 12 --retry-all-errors --retry-delay 5 \
+            --output "$asset_file" "${production_origin}${asset_path}"
+          if ! grep --fixed-strings --quiet \
+            'https://incheon-care-api-vy3v2ludma-du.a.run.app' "$asset_file"; then
+            echo "::error::Public production entry asset does not reference the Cloud Run API"
+            exit 1
+          fi
 
   deploy-backend-production:
     name: Deploy backend production

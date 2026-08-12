@@ -5,12 +5,12 @@
 - Project: private hackathon MVP, "I5 도시 돌봄" / Incheon care-context map.
 - Frontend: React 19, TypeScript, Vite 8, MapLibre, static assets from `public/data/`.
 - Frontend production: `https://incheon-care-map.vercel.app` is live.
-- Runtime data boundary: this branch introduces Cloud Run API-first loading while retaining `public/data/` as the outage/local fallback. After merge, verify the deployed bundle references the production API.
+- Runtime data boundary: Cloud Run API-first loading is merged while `public/data/` remains the outage/local fallback. Production CI verifies both the built bundle and the public Vercel alias reference the API.
 - Deployment owner: GitHub Actions workflow `CI / Production Deploy`.
 - Backend local source: Node 24 read-only API for curated `public/data/`, with `src/`, 41 tests, coverage gate, Dockerfile, `.dockerignore`, and README.
-- Backend bootstrap: `https://incheon-care-api-vy3v2ludma-du.a.run.app/health` is live. Treat this as bootstrap proof, not proof that the latest follow-up source/CD path has deployed.
-- Backend health convention: `/health` is canonical external health; `/healthz` is a compatibility alias in the current source/tests.
-- Cloud Run CD status: workflow contains PR validation for frontend+backend and `main` sibling deploy jobs for Vercel and Cloud Run. This branch still needs merge and post-deploy verification.
+- Backend production: `https://incheon-care-api-vy3v2ludma-du.a.run.app/health` is live. Match the successful `main` run, revision commit label, and image digest before claiming an exact commit is deployed.
+- Backend health convention: `/health` is canonical externally. `/healthz` exists in source/tests, but Cloud Run's frontend intercepts that path and returns its own 404, so external smoke tests use `/health`.
+- Cloud Run CD status: the merged workflow validates pull requests and runs sibling Vercel and Cloud Run deploy jobs after successful `main` validation.
 - GCP auth: use Workload Identity Federation only. Do not add JSON service-account keys.
 - GCP DB: Firestore Standard Native `(default)` is provisioned in `asia-northeast3`; the runtime service account has `roles/datastore.user`. Current API routes do not use it. Keep static map snapshots in `public/data/` and reserve Firestore for future server-side variable AI reports or notes.
 
@@ -51,8 +51,8 @@ These values are from `public/data/summary.json` and `public/data/validation.jso
 - Do not say it identifies isolated people, household risk, or death-by-isolation risk.
 - Do not say a composite care-priority score exists.
 - Do not say utility data detects current Incheon household anomalies.
-- Do not say the latest backend source is deployed through `main` CI/CD until the follow-up PR is merged and the resulting Cloud Run revision is verified.
-- Do not say `/healthz` is live on the bootstrap URL unless you verify it. The source-level alias is tested locally; the bootstrap service proof is `/health`.
+- Do not say a specific backend commit is live without matching the successful `main` run, Cloud Run revision label, and image digest.
+- Do not use external `/healthz` as Cloud Run proof. The source-level alias is tested locally; the production external proof is `/health`.
 - Do not treat VWorld-derived files as cleared for public or commercial redistribution.
 
 ## Deployment Contract
@@ -102,7 +102,7 @@ curl -fsS https://incheon-care-map.vercel.app/ >/tmp/incheon-care-map.html
 curl -fsS https://incheon-care-api-vy3v2ludma-du.a.run.app/health
 ```
 
-Current backend expectation: local tests and Docker pass, bootstrap `/health` is live, and source/CD follow-up work still needs merge plus Cloud Run revision verification.
+Current backend expectation: local tests and Docker pass, production `/health` is live, and every exact deployment claim is tied to a successful `main` run plus its Cloud Run revision/digest.
 
 ## Next Work Procedure
 
@@ -112,6 +112,6 @@ Current backend expectation: local tests and Docker pass, bootstrap `/health` is
 4. Keep public data claims tied to `public/data/manifest.json` and validation files.
 5. Keep deployment claims tied to `.github/workflows/ci-deploy.yml` and `docs/DEPLOYMENT.md`.
 6. Keep `/health` as the canonical external health endpoint and `/healthz` as compatibility alias unless the backend contract changes.
-7. Preserve static fallback while the frontend runtime API follow-up PR is pending.
+7. Preserve static fallback as the explicit API-outage and local-development path.
 8. Run the relevant verification commands.
-9. Report exact pass/fail results, bootstrap-vs-source deployment status, and that Firestore is provisioned but intentionally unused by current routes.
+9. Report exact pass/fail results, live revision/digest evidence, and that Firestore is provisioned but intentionally unused by current routes.

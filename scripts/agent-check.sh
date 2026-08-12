@@ -39,6 +39,8 @@ grep -q '^  deploy-backend-production:' .github/workflows/ci-deploy.yml || fail 
 grep -q 'refs/heads/main' .github/workflows/ci-deploy.yml || fail "workflow must gate production deploy on main"
 grep -q 'needs: validate' .github/workflows/ci-deploy.yml || fail "production deploy jobs must depend on validation"
 grep -q 'vercel deploy --prebuilt --prod' .github/workflows/ci-deploy.yml || fail "frontend deploy must use Vercel production deploy"
+grep -q 'find .vercel/output/static/assets' .github/workflows/ci-deploy.yml || fail "frontend deploy must inspect the built entry asset"
+grep -q 'PRODUCTION_ORIGIN: https://incheon-care-map.vercel.app' .github/workflows/ci-deploy.yml || fail "frontend smoke must use the public production alias"
 grep -q 'google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093' .github/workflows/ci-deploy.yml || fail "backend deploy must use commit-pinned keyless WIF auth"
 grep -q 'id-token: write' .github/workflows/ci-deploy.yml || fail "backend deploy must request OIDC id-token permission"
 grep -q 'gcloud auth configure-docker' .github/workflows/ci-deploy.yml || fail "backend deploy must configure Artifact Registry auth"

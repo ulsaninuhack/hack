@@ -17,7 +17,7 @@ This repository is a private hackathon MVP for an Incheon public aggregate care-
 - `docs/DEPLOYMENT.md`: deployment contract, Vercel secrets, and operations.
 - `backend/`: Node 24 read-only API for curated `public/data/` exports. It has `src/`, tests, `package-lock.json`, a Dockerfile, and README. Local tests and Docker verification pass.
 
-The current frontend production URL is `https://incheon-care-map.vercel.app`. The current bootstrap Cloud Run URL is `https://incheon-care-api-vy3v2ludma-du.a.run.app`; `/health` is the canonical external health endpoint. `/healthz` is a source-level compatibility alias in the backend code and tests. Do not treat the bootstrap service as proof that the latest source has been deployed through the follow-up CI/CD path.
+The frontend production URL is `https://incheon-care-map.vercel.app`. The Cloud Run production URL is `https://incheon-care-api-vy3v2ludma-du.a.run.app`; `/health` is the canonical external health endpoint. `/healthz` remains a source-level compatibility alias, but the Cloud Run frontend intercepts that path before it reaches the container, so deployment smoke tests must use `/health`. Match the latest successful `main` run, Cloud Run revision label, and deployed digest before claiming that a specific commit is live.
 
 ## Data Interpretation Rules
 
@@ -94,7 +94,7 @@ curl -fsS https://incheon-care-map.vercel.app/ >/tmp/incheon-care-map.html
 curl -fsS https://incheon-care-api-vy3v2ludma-du.a.run.app/health
 ```
 
-At this handoff, frontend production and the bootstrap backend `/health` are live. This branch introduces runtime API-first loading with a static fallback, but it is not deployment proof until the branch has merged and the main-branch Vercel and Cloud Run jobs pass. Firestore exists but is intentionally outside the current request path.
+Frontend production and the Cloud Run backend `/health` are live. API-first loading is merged and the Vercel production environment points at Cloud Run; `public/data/` remains the intentional outage and local-development fallback. Firestore exists but is intentionally outside the current request path.
 
 ## Safety Guardrails
 
@@ -111,7 +111,7 @@ At this handoff, frontend production and the bootstrap backend `/health` are liv
 2. Read `README.md`, this file, `docs/AGENT_HANDOFF.md`, and the specific files you plan to touch.
 3. If the task affects labels, metrics, or data claims, read `data/metadata/CARE_PRIORITY_METRIC_SPEC.md` and `public/data/manifest.json`.
 4. If the task affects deployment, read `docs/DEPLOYMENT.md`, `.github/workflows/ci-deploy.yml`, `vercel.json`, and `.vercelignore`.
-5. If the task affects backend/frontend integration, preserve the current static fallback until the runtime API follow-up PR is complete.
+5. If the task affects backend/frontend integration, preserve the current static fallback as the explicit outage and local-development path.
 6. Make the smallest coherent change.
 7. Run the relevant verification commands and record exactly what passed or failed.
 8. Update handoff notes when current state or next steps change.
