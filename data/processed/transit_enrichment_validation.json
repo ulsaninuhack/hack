@@ -1,0 +1,168 @@
+{
+  "pipeline": {
+    "name": "build_transit_enrichment",
+    "version": 1,
+    "deterministic": true,
+    "schedule_fields_available": false,
+    "schedule_fields_omitted": [
+      "earliest_service_time",
+      "latest_service_time"
+    ]
+  },
+  "join_contract": {
+    "key": [
+      "stop_number_exact_after_nfkc_trim",
+      "stop_name_nfkc_casefold_alphanumeric"
+    ],
+    "matched": "exact composite key identifies one master row",
+    "unmatched": "exact composite key identifies no master row; stop-number-only candidates are diagnostic only",
+    "ambiguous": "exact composite key identifies more than one master row; no master fields assigned",
+    "fuzzy_matching": false,
+    "stop_number_only_imputation": false
+  },
+  "metric_contract": {
+    "ridership_unit": "boarding_and_alighting_events_reported_for_the_source_period",
+    "unique_people": false,
+    "cash_alightings_field_available": false,
+    "daily_average": "source_reported_and_reconciled_against_30_day_June_2026_total",
+    "map_points": "matched rows with valid WGS84 coordinates and master in_incheon=true"
+  },
+  "sources": {
+    "bus_stop_master": {
+      "path": "processed/transit_bus_stops.csv",
+      "encoding": "UTF-8",
+      "rows": 7237,
+      "sha256": "40b14c05ed154285dc3ee95b294ca1e051a539b60c42b32b86ca24e422dc3311",
+      "distinct_place_ids": 7237,
+      "duplicate_composite_key_groups": 2,
+      "duplicate_stop_number_groups": 51
+    },
+    "route_stop_sequence": {
+      "dataset_id": "15048265",
+      "source_url": "https://www.data.go.kr/data/15048265/fileData.do",
+      "path": "raw/transit/route_bus_route_stop_sequence_20251231.csv",
+      "encoding": "CP949",
+      "reference_date": "2025-12-31",
+      "rows": 33029,
+      "sha256": "adba0088ad1abd5b6a4ff78b411974d70e599c63b5997b89f2a1566f4f1b1b3f",
+      "distinct_route_ids": 447,
+      "distinct_route_numbers": 440,
+      "distinct_stop_numbers": 6891,
+      "distinct_stop_composite_keys": 6919
+    },
+    "stop_usage": {
+      "dataset_id": "15048264",
+      "source_url": "https://www.data.go.kr/data/15048264/fileData.do",
+      "path": "raw/transit/ridership_bus_stop_usage_20260630.csv",
+      "encoding": "UTF-8 with BOM",
+      "reference_date": "2026-06-30",
+      "reference_date_provenance": "portal_metadata_and_filename_not_record_field",
+      "rows": 6760,
+      "sha256": "6833621b3f1e6e6f45db58734b6e576ab362fb520656ea1ed18d4d4d8569ee40",
+      "distinct_stop_numbers": 6738,
+      "duplicate_stop_number_extra_rows": 22,
+      "distinct_stop_composite_keys": 6760,
+      "exact_duplicate_source_rows": 0
+    }
+  },
+  "route_stops": {
+    "match_status_counts": {
+      "ambiguous": 2,
+      "matched": 32868,
+      "unmatched": 159
+    },
+    "match_coverage_percent": 99.51255,
+    "point_status_counts": {
+      "ambiguous": 2,
+      "incheon_map_ready": 31292,
+      "unmatched": 159,
+      "valid_wgs84_outside_incheon_scope": 1576
+    },
+    "supply_rows": 6919,
+    "supply_route_row_count_sum": 33029,
+    "distinct_supply_route_ids": 447,
+    "matched_place_id_duplicate_extra_rows": 0
+  },
+  "stop_usage": {
+    "match_status_counts": {
+      "matched": 6667,
+      "unmatched": 93
+    },
+    "match_coverage_percent": 98.62426,
+    "point_status_counts": {
+      "incheon_map_ready": 6231,
+      "unmatched": 93,
+      "valid_wgs84_outside_incheon_scope": 436
+    },
+    "source_totals": {
+      "boardings": 24653561,
+      "alightings": 23719800,
+      "board_alightings": 48373361
+    },
+    "full_output_totals": {
+      "boardings": 24653561,
+      "alightings": 23719800,
+      "board_alightings": 48373361
+    },
+    "incheon_map_point_totals": {
+      "boardings": 23066655,
+      "alightings": 22155788,
+      "board_alightings": 45222443
+    },
+    "matched_place_id_duplicate_extra_rows": 0,
+    "row_consistency_counts": {
+      "boarding_card_plus_cash_equal_total": 6760,
+      "alighting_card_equal_total": 6760,
+      "daily_average_within_0_01_of_30_day_total": 6760
+    }
+  },
+  "assertions": {
+    "route_source_rows_preserved": true,
+    "usage_source_rows_preserved": true,
+    "route_supply_partitions_all_route_rows": true,
+    "route_issue_table_exact": true,
+    "usage_points_are_incheon_map_ready_only": true,
+    "usage_issue_table_is_points_complement": true,
+    "usage_totals_preserved": true,
+    "usage_point_coordinates_are_valid_wgs84": true,
+    "usage_points_are_incheon_scope": true,
+    "matched_rows_have_one_composite_candidate": true,
+    "unmatched_rows_have_zero_composite_candidates": true,
+    "ambiguous_rows_have_multiple_composite_candidates": true,
+    "boarding_components_reconcile_every_row": true,
+    "alighting_card_reconciles_every_row": true,
+    "reported_daily_average_reconciles_to_30_day_period": true
+  },
+  "outputs": {
+    "route_stops": {
+      "path": "processed/transit_route_stops.csv",
+      "rows": 33029,
+      "sha256": "90ff536859878031f5530cd8dcfaf3146be7ec921286c294fd323bc657708284"
+    },
+    "route_stop_supply": {
+      "path": "processed/transit_route_stops_supply.csv",
+      "rows": 6919,
+      "sha256": "3480fc252cf07b8a5707dc8713b47b0f7f250336dd54ea280a1e7033aabb0b5c"
+    },
+    "route_stop_issues": {
+      "path": "processed/transit_route_stops_issues.csv",
+      "rows": 161,
+      "sha256": "35be2c43d7ee020eeb7bea1f96c2bc95daddc018e55139df18657f3e4e478370"
+    },
+    "stop_usage": {
+      "path": "processed/transit_stop_usage.csv",
+      "rows": 6760,
+      "sha256": "d9731f3d136a1fd52f98dd6e23632bc02441e600207d8ca800282f47370bb7d8"
+    },
+    "stop_usage_points": {
+      "path": "processed/transit_stop_usage_points.csv",
+      "rows": 6231,
+      "sha256": "e35f2c38ba6d4bbf12a125cbd4c2283544e5e689cc93db000efbbb51d34d2d8b"
+    },
+    "stop_usage_issues": {
+      "path": "processed/transit_stop_usage_issues.csv",
+      "rows": 529,
+      "sha256": "5214d8b8349f5aeb93c6ec41abcc749f351d167e99bea77cb9ec5b9cb9dd5fd6"
+    }
+  }
+}

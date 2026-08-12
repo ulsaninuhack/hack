@@ -1,0 +1,22 @@
+# Local Python dependencies and caches
+.deps/
+**/__pycache__/
+*.py[cod]
+
+# Local scratch workspace
+tmp/
+
+# OS/editor files
+.DS_Store
+*.swp
+*.swo
+
+# Secrets and local API-key files
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# VWorld raw and derived files are intentionally retained for this hackathon
+# repository. Review LICENSES.md before copying or reusing those assets.

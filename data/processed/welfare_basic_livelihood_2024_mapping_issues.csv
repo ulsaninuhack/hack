@@ -1,0 +1,14 @@
+﻿source_reference_date,source_district_name_2024,source_dong_name_2024,source_geography_type,mapping_status,mapping_method,current_candidate_count,current_candidate_admin_dong_codes_20260701,current_candidate_district_names_20260701,current_candidate_dong_names_20260701,recipient_count_living_all_ages,recipient_count_living_age_65_plus,recipient_count_living_age_75_plus,recipient_count_living_age_85_plus,recipient_count_medical_all_ages,recipient_count_medical_age_65_plus,recipient_count_medical_age_75_plus,recipient_count_medical_age_85_plus,recipient_count_housing_all_ages,recipient_count_housing_age_65_plus,recipient_count_housing_age_75_plus,recipient_count_housing_age_85_plus,recipient_count_education_all_ages,recipient_count_education_age_65_plus,recipient_count_education_age_75_plus,recipient_count_education_age_85_plus
+2024-12-31,중구,중구,district_named_non_admin_record,excluded_district_named_record,not_a_current_admin_dong,0,,,,353,248,217,134,82,21,17,9,1,0,0,0,0,0,0,0
+2024-12-31,중구,운서동,admin_dong_snapshot_2024,one_to_many_split_unresolved,pre_split_source_requires_nonpublic_allocation_key,2,2815554000|2815555000,영종구|영종구,운서1동|운서2동,562,263,148,38,39,15,3,0,476,152,105,28,17,0,0,0
+2024-12-31,동구,동구,district_named_non_admin_record,excluded_district_named_record,not_a_current_admin_dong,0,,,,33,19,18,14,19,10,8,5,0,0,0,0,0,0,0,0
+2024-12-31,미추홀구,미추홀구,district_named_non_admin_record,excluded_district_named_record,not_a_current_admin_dong,0,,,,609,485,415,258,20,20,14,7,1,1,1,1,0,0,0,0
+2024-12-31,연수구,연수구,district_named_non_admin_record,excluded_district_named_record,not_a_current_admin_dong,0,,,,417,328,305,200,39,33,28,17,4,4,4,3,0,0,0,0
+2024-12-31,남동구,남동구,district_named_non_admin_record,excluded_district_named_record,not_a_current_admin_dong,0,,,,570,514,430,299,60,57,44,18,2,0,0,0,0,0,0,0
+2024-12-31,부평구,부평구,district_named_non_admin_record,excluded_district_named_record,not_a_current_admin_dong,0,,,,497,222,200,142,46,42,30,12,0,0,0,0,0,0,0,0
+2024-12-31,계양구,계양구,district_named_non_admin_record,excluded_district_named_record,not_a_current_admin_dong,0,,,,160,119,98,62,18,18,16,8,18,2,0,0,0,0,0,0
+2024-12-31,서구,서구,district_named_non_admin_record,excluded_district_named_record,not_a_current_admin_dong,0,,,,1257,921,678,401,61,52,37,19,4,2,2,1,0,0,0,0
+2024-12-31,서구,검단4동,admin_dong_snapshot_2024,retired_legacy_unit_unresolved,no_current_admin_dong_equivalent_asserted,0,,,,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0
+2024-12-31,서구,아라동,admin_dong_snapshot_2024,one_to_many_split_unresolved,pre_split_source_requires_nonpublic_allocation_key,2,2829057000|2829058000,검단구|검단구,아라1동|아라2동,1137,525,204,44,114,52,24,3,765,265,134,36,27,0,0,0
+2024-12-31,강화군,강화군,district_named_non_admin_record,excluded_district_named_record,not_a_current_admin_dong,0,,,,462,254,190,115,16,14,11,2,0,0,0,0,0,0,0,0
+2024-12-31,옹진군,옹진군,district_named_non_admin_record,excluded_district_named_record,not_a_current_admin_dong,0,,,,135,33,23,14,4,1,1,0,0,0,0,0,0,0,0,0

@@ -1,0 +1,144 @@
+{
+  "policy_version": "public_demo_conservative_v1",
+  "purpose": "Conservative public-release fallback exports; canonical/raw inputs remain unchanged. The internal demo default, when built, is demo_full_facility_points.geojson.",
+  "layer_role": "public_release_fallback",
+  "internal_demo_default": "demo_full_facility_points.geojson",
+  "facility_policy": {
+    "exact_point_allowed_only_for": "non-sensitive public-facing service facilities with valid source coordinates",
+    "point_properties_allowed": [
+      "public_facility_id",
+      "facility_name",
+      "district_scope_20260701",
+      "district_assignment_status",
+      "legal_dong_general",
+      "category_major",
+      "public_service_category",
+      "source_as_of_date_latest"
+    ],
+    "always_removed": [
+      "address",
+      "capacity",
+      "capacity_max_reported",
+      "current_occupancy",
+      "current_occupancy_max_reported",
+      "designation_date",
+      "facility_id",
+      "installation_date",
+      "operator_name",
+      "phone",
+      "postal_code",
+      "source_facility_code",
+      "source_facility_codes",
+      "source_files",
+      "staff_count",
+      "staff_count_max_reported",
+      "우편번호",
+      "전화번호",
+      "정원",
+      "종사자수",
+      "주소",
+      "현원"
+    ],
+    "sensitive_facility_handling": "district aggregate only; never exact point or facility name",
+    "sensitive_categories": [
+      {
+        "bucket": "노인 거주·요양",
+        "match_terms": [
+          "노인요양시설",
+          "노인의료복지시설",
+          "노인요양공동생활가정",
+          "치매전담형노인요양공동생활가정",
+          "노인주거복지시설",
+          "노인양로시설",
+          "노인공동생활가정",
+          "노인복지주택",
+          "노인전문요양시설",
+          "단기보호",
+          "학대피해노인전용쉼터"
+        ]
+      },
+      {
+        "bucket": "장애인 거주",
+        "match_terms": [
+          "장애인거주시설",
+          "장애인 거주시설",
+          "장애인공동생활가정",
+          "장애인단기거주시설",
+          "피해장애아동쉼터"
+        ]
+      },
+      {
+        "bucket": "정신건강 보호·재활",
+        "match_terms": [
+          "정신재활시설",
+          "정신요양시설",
+          "정신건강복지"
+        ]
+      },
+      {
+        "bucket": "피해자·아동·청소년 보호",
+        "match_terms": [
+          "공동생활시설",
+          "공동생활가정",
+          "그룹홈",
+          "쉼터",
+          "보호시설",
+          "아동양육시설",
+          "아동일시보호시설",
+          "한부모가족복지시설",
+          "청소년복지시설",
+          "폭력피해",
+          "성매매피해",
+          "학대피해"
+        ]
+      },
+      {
+        "bucket": "기타 생활·거주",
+        "match_terms": [
+          "생활시설",
+          "단기시설",
+          "주거복지",
+          "노숙인요양시설",
+          "노숙인자활시설"
+        ]
+      }
+    ],
+    "rare_sensitive_bucket_rule": "District/category counts below 3 are rolled into a generic district-level sensitive bucket only when the combined generic bucket also reaches the threshold; otherwise they remain available only in the all-sensitive district total.",
+    "shared_coordinate_rule": "A non-sensitive service point is withheld if its exact coordinate is shared by a sensitive facility.",
+    "administrative_reform_rule": {
+      "reference_date": "2026-07-01",
+      "동구": "제물포구 exact",
+      "중구": "제물포구·영종구 aggregate, not split without exact assignment",
+      "서구": "서구·검단구 aggregate, not split without exact assignment"
+    }
+  },
+  "demographic_policy": {
+    "small_cell_threshold": 5,
+    "suppression_rule": "If any selected aggregate count in a row is below the threshold, all demographic counts and derived rates for that row are set to null.",
+    "bubble_location_rule": "Representative geometry-zone point, not a household or person location.",
+    "interpretation_rule": "65+ one-person household counts are observed aggregates, not counts of welfare non-recipients, unmet need, depression, solitary-death risk, or individual cases."
+  },
+  "canonical_inputs_preserved": [
+    "facilities_canonical.csv",
+    "facilities_map_points.csv",
+    "demographics_admin_dong_202607.csv",
+    "map_admin_dong_demographics_202607.geojson",
+    "map_bubbles_age_65_plus_one_person_202607.geojson"
+  ],
+  "full_demo_policy": {
+    "output": "demo_full_facility_points.geojson",
+    "role": "internal_hackathon_demo_default",
+    "input": "facilities_geocoded_private.csv",
+    "intentional_scope": "Includes official facility name, type, official address and point for every facility with a usable coordinate, including residential/protective facility types.",
+    "excluded": [
+      "raw emergency-service person/household records",
+      "phone",
+      "capacity and current occupancy",
+      "staff count",
+      "operator and source facility codes",
+      "private geocoding QA/PNU fields",
+      "personal risk, eligibility or non-recipient inference"
+    ],
+    "redistribution_note": "Internal/private demo only; review LICENSES.md before redistribution."
+  }
+}

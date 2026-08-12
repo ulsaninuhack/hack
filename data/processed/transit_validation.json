@@ -1,0 +1,155 @@
+{
+  "generated_at_utc": "2026-08-12T08:47:07.538888+00:00",
+  "schema": [
+    "source_date",
+    "mode",
+    "place_id",
+    "source_id",
+    "source_code",
+    "name",
+    "source_district",
+    "district",
+    "dong",
+    "admin_dong_code",
+    "latitude",
+    "longitude",
+    "coordinate_status",
+    "in_incheon"
+  ],
+  "incheon_validation_bounds_wgs84": {
+    "min_longitude": 124.5,
+    "max_longitude": 126.85,
+    "min_latitude": 37.15,
+    "max_latitude": 37.9
+  },
+  "coordinate_findings": {
+    "bus": "Source `위도` contains longitude and source `경도` contains latitude; normalized columns intentionally swap them after a median-range assertion.",
+    "subway": "Source X/Y values are EPSG:3857 metres and are transformed to WGS84 with the spherical Web Mercator inverse formula."
+  },
+  "inputs": {
+    "bus": {
+      "path": "raw/transit/incheon_bus_stops_20260228.csv",
+      "encoding": "cp949"
+    },
+    "subway": {
+      "path": "raw/transit/incheon_subway_stations_20250919.csv",
+      "encoding": "utf-8-sig",
+      "source_reference_date": "2025-09-18",
+      "portal_publication_date": "2025-09-19"
+    }
+  },
+  "bus": {
+    "rows": 7237,
+    "geocoded_rows": 7085,
+    "map_ready_incheon_rows": 6482,
+    "missing_district_rows": 0,
+    "missing_dong_rows": 3,
+    "coordinate_status_counts": {
+      "missing": 152,
+      "outside_incheon_bounds": 212,
+      "valid_header_swapped": 6873
+    },
+    "coordinate_bounds_all_geocoded": {
+      "min_longitude": 126.2191277,
+      "max_longitude": 127.1272223,
+      "min_latitude": 37.224587,
+      "max_latitude": 37.8238271
+    },
+    "current_district_counts": {
+      "강화군": 1421,
+      "검단구": 383,
+      "계양구": 450,
+      "기타": 213,
+      "남동구": 749,
+      "미추홀구": 507,
+      "부평구": 680,
+      "서해구": 755,
+      "연수구": 605,
+      "영종구": 523,
+      "옹진군": 204,
+      "제물포구": 313,
+      "코드정보 없음": 434
+    },
+    "duplicates": {
+      "duplicate_place_id_groups": 0,
+      "duplicate_place_id_extra_rows": 0,
+      "duplicate_source_id_groups": 0,
+      "duplicate_source_id_extra_rows": 0,
+      "duplicate_name_groups": 2463,
+      "duplicate_name_extra_rows": 2940,
+      "duplicate_coordinate_groups": 0,
+      "duplicate_coordinate_extra_rows": 0
+    }
+  },
+  "subway": {
+    "rows": 101,
+    "geocoded_rows": 101,
+    "map_ready_incheon_rows": 101,
+    "missing_district_rows": 0,
+    "missing_dong_rows": 0,
+    "coordinate_status_counts": {
+      "valid_epsg3857_to_wgs84": 101
+    },
+    "coordinate_bounds_all_geocoded": {
+      "min_longitude": 126.4236477,
+      "max_longitude": 126.7596469,
+      "min_latitude": 37.3780163,
+      "max_latitude": 37.6026653
+    },
+    "current_district_counts": {
+      "검단구": 9,
+      "계양구": 8,
+      "남동구": 16,
+      "미추홀구": 10,
+      "부평구": 13,
+      "서해구": 14,
+      "연수구": 16,
+      "영종구": 11,
+      "제물포구": 4
+    },
+    "duplicates": {
+      "duplicate_place_id_groups": 0,
+      "duplicate_place_id_extra_rows": 0,
+      "duplicate_source_id_groups": 2,
+      "duplicate_source_id_extra_rows": 3,
+      "duplicate_name_groups": 6,
+      "duplicate_name_extra_rows": 6,
+      "duplicate_coordinate_groups": 0,
+      "duplicate_coordinate_extra_rows": 0
+    }
+  },
+  "map_ready": {
+    "rows": 6583,
+    "mode_counts": {
+      "bus": 6482,
+      "subway": 101
+    },
+    "current_district_counts": {
+      "강화군": 1409,
+      "검단구": 392,
+      "계양구": 448,
+      "남동구": 765,
+      "미추홀구": 517,
+      "부평구": 692,
+      "서해구": 766,
+      "연수구": 617,
+      "영종구": 531,
+      "옹진군": 129,
+      "제물포구": 317
+    },
+    "coordinate_bounds": {
+      "min_longitude": 126.2191277,
+      "max_longitude": 126.7812231,
+      "min_latitude": 37.2331547,
+      "max_latitude": 37.8238271
+    }
+  },
+  "notes": [
+    "Mode-specific outputs preserve all source records, including missing coordinates and out-of-scope route stops.",
+    "transit_points.csv contains only geocoded records assigned to an Incheon source district and inside the broad Incheon envelope.",
+    "The district field applies the 2026-07-01 Incheon reorganization; source_district preserves the source-era value.",
+    "The dong field preserves the source label. Records such as pre-split 운서동 require a current-boundary spatial join before dong-level aggregation.",
+    "Some subway 배경일련번호 values are reused across multiple station rows, so place_id is a deterministic row fingerprint rather than the raw background ID.",
+    "Same-name subway rows can represent interchange stations or distinct rail records and are intentionally not deduplicated."
+  ]
+}

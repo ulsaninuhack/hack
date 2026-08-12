@@ -1,0 +1,33 @@
+{
+  "row_count": 162,
+  "unique_current_admin_codes": 162,
+  "unique_current_dong_names": 162,
+  "population_rows_rekeyed_to_new_admin_code": 48,
+  "population_rows_reassigned_to_new_district_name": 48,
+  "district_count": 11,
+  "age_65_plus_column_count_per_age_table": 92,
+  "checks": {
+    "mois_current_keys_are_unique": true,
+    "population_dong_names_match_current_mois_names": true,
+    "july_household_keys_match_current_mois_keys": true,
+    "july_one_person_keys_match_current_mois_keys": true,
+    "population_sex_and_age_totals_reconcile": true,
+    "one_person_sex_and_age_totals_reconcile": true,
+    "household_size_totals_reconcile": true,
+    "one_person_totals_match_across_household_sources": true
+  },
+  "population_reference_date": "2026-06-30",
+  "household_reference_date": "2026-07-31",
+  "one_person_age_reference_date": "2026-07-31",
+  "current_key_reference_date": "2026-07-01",
+  "inputs": {
+    "population": "raw/demographics/korea_population_by_sex_age_admin_dong_20260630.csv",
+    "household_size": "raw/demographics/korea_households_by_size_admin_dong_20260731.csv",
+    "one_person_by_sex_age": "raw/demographics/korea_one_person_households_by_sex_age_admin_dong_20260731.csv",
+    "mois_admin_codes": "raw/boundaries/mois_admin_codes_20260701.zip"
+  },
+  "outputs": {
+    "admin_dong": "processed/demographics_admin_dong_202607.csv",
+    "district_summary": "processed/demographics_district_summary_202607.csv"
+  }
+}

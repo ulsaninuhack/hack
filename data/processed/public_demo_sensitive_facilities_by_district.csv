@@ -1,0 +1,35 @@
+﻿district_scope_20260701,district_assignment_status,sensitive_category,facility_count,location_precision
+강화군,exact_unchanged_district_name,노인 거주·요양,67,district_aggregate_only
+강화군,exact_unchanged_district_name,장애인 거주,12,district_aggregate_only
+강화군,exact_unchanged_district_name,피해자·아동·청소년 보호,9,district_aggregate_only
+계양구,exact_unchanged_district_name,노인 거주·요양,103,district_aggregate_only
+계양구,exact_unchanged_district_name,장애인 거주,4,district_aggregate_only
+계양구,exact_unchanged_district_name,피해자·아동·청소년 보호,7,district_aggregate_only
+계양구,exact_unchanged_district_name,기타 민감 시설(소수 범주 통합),3,district_aggregate_only
+남동구,exact_unchanged_district_name,노인 거주·요양,131,district_aggregate_only
+남동구,exact_unchanged_district_name,장애인 거주,3,district_aggregate_only
+남동구,exact_unchanged_district_name,피해자·아동·청소년 보호,17,district_aggregate_only
+남동구,exact_unchanged_district_name,기타 민감 시설(소수 범주 통합),3,district_aggregate_only
+미추홀구,exact_unchanged_district_name,기타 생활·거주,3,district_aggregate_only
+미추홀구,exact_unchanged_district_name,노인 거주·요양,74,district_aggregate_only
+미추홀구,exact_unchanged_district_name,장애인 거주,12,district_aggregate_only
+미추홀구,exact_unchanged_district_name,피해자·아동·청소년 보호,17,district_aggregate_only
+부평구,exact_unchanged_district_name,노인 거주·요양,77,district_aggregate_only
+부평구,exact_unchanged_district_name,장애인 거주,13,district_aggregate_only
+부평구,exact_unchanged_district_name,피해자·아동·청소년 보호,17,district_aggregate_only
+부평구,exact_unchanged_district_name,기타 민감 시설(소수 범주 통합),3,district_aggregate_only
+서구·검단구(미배분),aggregate_only_pre_reform_seogu_cannot_be_split_without_exact_location,노인 거주·요양,121,district_aggregate_only
+서구·검단구(미배분),aggregate_only_pre_reform_seogu_cannot_be_split_without_exact_location,장애인 거주,19,district_aggregate_only
+서구·검단구(미배분),aggregate_only_pre_reform_seogu_cannot_be_split_without_exact_location,피해자·아동·청소년 보호,12,district_aggregate_only
+서구·검단구(미배분),aggregate_only_pre_reform_seogu_cannot_be_split_without_exact_location,기타 민감 시설(소수 범주 통합),3,district_aggregate_only
+연수구,exact_unchanged_district_name,노인 거주·요양,69,district_aggregate_only
+연수구,exact_unchanged_district_name,장애인 거주,18,district_aggregate_only
+연수구,exact_unchanged_district_name,정신건강 보호·재활,3,district_aggregate_only
+연수구,exact_unchanged_district_name,피해자·아동·청소년 보호,3,district_aggregate_only
+옹진군,exact_unchanged_district_name,노인 거주·요양,15,district_aggregate_only
+옹진군,exact_unchanged_district_name,장애인 거주,3,district_aggregate_only
+제물포구,exact_pre_reform_donggu_to_jemulpogu,노인 거주·요양,13,district_aggregate_only
+제물포구,exact_pre_reform_donggu_to_jemulpogu,기타 민감 시설(소수 범주 통합),4,district_aggregate_only
+제물포구·영종구(미배분),aggregate_only_pre_reform_junggu_cannot_be_split_without_exact_location,노인 거주·요양,36,district_aggregate_only
+제물포구·영종구(미배분),aggregate_only_pre_reform_junggu_cannot_be_split_without_exact_location,피해자·아동·청소년 보호,9,district_aggregate_only
+제물포구·영종구(미배분),aggregate_only_pre_reform_junggu_cannot_be_split_without_exact_location,기타 민감 시설(소수 범주 통합),3,district_aggregate_only

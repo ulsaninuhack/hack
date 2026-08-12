@@ -1,0 +1,169 @@
+{
+  "district_basis": "source-era canonical district; juso_current_district is retained per row",
+  "districts": [
+    {
+      "best_coordinate_available": 160,
+      "best_coordinate_available_pct": 82.4742,
+      "existing_source_coordinate": 0,
+      "facilities": 194,
+      "geocode_status_counts": {
+        "matched_juso_pnu_no_vworld_geometry": 28,
+        "matched_vworld_pnu": 160,
+        "no_juso_address_match": 1,
+        "road_not_parsed": 5
+      },
+      "new_offline_coordinate_used": 160,
+      "source_district": "강화군",
+      "unique_juso_pnu_matches": 188,
+      "vworld_geocoded": 160
+    },
+    {
+      "best_coordinate_available": 413,
+      "best_coordinate_available_pct": 92.3937,
+      "existing_source_coordinate": 0,
+      "facilities": 447,
+      "geocode_status_counts": {
+        "building_number_not_parsed": 4,
+        "matched_juso_pnu_no_vworld_geometry": 14,
+        "matched_vworld_pnu": 413,
+        "no_juso_address_match": 4,
+        "road_not_parsed": 12
+      },
+      "new_offline_coordinate_used": 413,
+      "source_district": "계양구",
+      "unique_juso_pnu_matches": 427,
+      "vworld_geocoded": 413
+    },
+    {
+      "best_coordinate_available": 574,
+      "best_coordinate_available_pct": 93.1818,
+      "existing_source_coordinate": 0,
+      "facilities": 616,
+      "geocode_status_counts": {
+        "matched_juso_pnu_no_vworld_geometry": 36,
+        "matched_vworld_pnu": 574,
+        "no_juso_address_match": 1,
+        "road_not_parsed": 5
+      },
+      "new_offline_coordinate_used": 574,
+      "source_district": "남동구",
+      "unique_juso_pnu_matches": 610,
+      "vworld_geocoded": 574
+    },
+    {
+      "best_coordinate_available": 89,
+      "best_coordinate_available_pct": 90.8163,
+      "existing_source_coordinate": 0,
+      "facilities": 98,
+      "geocode_status_counts": {
+        "building_number_not_parsed": 1,
+        "matched_juso_pnu_no_vworld_geometry": 8,
+        "matched_vworld_pnu": 89
+      },
+      "new_offline_coordinate_used": 89,
+      "source_district": "동구",
+      "unique_juso_pnu_matches": 97,
+      "vworld_geocoded": 89
+    },
+    {
+      "best_coordinate_available": 477,
+      "best_coordinate_available_pct": 96.1694,
+      "existing_source_coordinate": 208,
+      "facilities": 496,
+      "geocode_status_counts": {
+        "ambiguous_juso_pnu": 1,
+        "building_number_not_parsed": 2,
+        "matched_juso_pnu_no_vworld_geometry": 19,
+        "matched_vworld_pnu": 468,
+        "no_juso_address_match": 3,
+        "road_not_parsed": 3
+      },
+      "new_offline_coordinate_used": 269,
+      "source_district": "미추홀구",
+      "unique_juso_pnu_matches": 487,
+      "vworld_geocoded": 468
+    },
+    {
+      "best_coordinate_available": 434,
+      "best_coordinate_available_pct": 92.1444,
+      "existing_source_coordinate": 0,
+      "facilities": 471,
+      "geocode_status_counts": {
+        "ambiguous_juso_pnu": 1,
+        "matched_juso_pnu_no_vworld_geometry": 27,
+        "matched_vworld_pnu": 434,
+        "no_juso_address_match": 8,
+        "road_not_parsed": 1
+      },
+      "new_offline_coordinate_used": 434,
+      "source_district": "부평구",
+      "unique_juso_pnu_matches": 461,
+      "vworld_geocoded": 434
+    },
+    {
+      "best_coordinate_available": 451,
+      "best_coordinate_available_pct": 85.4167,
+      "existing_source_coordinate": 0,
+      "facilities": 528,
+      "geocode_status_counts": {
+        "building_number_not_parsed": 1,
+        "matched_juso_pnu_no_vworld_geometry": 68,
+        "matched_vworld_pnu": 451,
+        "no_juso_address_match": 3,
+        "road_not_parsed": 5
+      },
+      "new_offline_coordinate_used": 451,
+      "source_district": "서구",
+      "unique_juso_pnu_matches": 519,
+      "vworld_geocoded": 451
+    },
+    {
+      "best_coordinate_available": 317,
+      "best_coordinate_available_pct": 90.5714,
+      "existing_source_coordinate": 17,
+      "facilities": 350,
+      "geocode_status_counts": {
+        "matched_juso_pnu_no_vworld_geometry": 28,
+        "matched_vworld_pnu": 314,
+        "no_juso_address_match": 1,
+        "road_not_parsed": 7
+      },
+      "new_offline_coordinate_used": 300,
+      "source_district": "연수구",
+      "unique_juso_pnu_matches": 342,
+      "vworld_geocoded": 314
+    },
+    {
+      "best_coordinate_available": 16,
+      "best_coordinate_available_pct": 39.0244,
+      "existing_source_coordinate": 0,
+      "facilities": 41,
+      "geocode_status_counts": {
+        "matched_juso_pnu_no_vworld_geometry": 25,
+        "matched_vworld_pnu": 16
+      },
+      "new_offline_coordinate_used": 16,
+      "source_district": "옹진군",
+      "unique_juso_pnu_matches": 41,
+      "vworld_geocoded": 16
+    },
+    {
+      "best_coordinate_available": 130,
+      "best_coordinate_available_pct": 84.9673,
+      "existing_source_coordinate": 0,
+      "facilities": 153,
+      "geocode_status_counts": {
+        "ambiguous_juso_pnu": 2,
+        "matched_juso_pnu_no_vworld_geometry": 17,
+        "matched_vworld_pnu": 130,
+        "road_not_parsed": 4
+      },
+      "new_offline_coordinate_used": 130,
+      "source_district": "중구",
+      "unique_juso_pnu_matches": 147,
+      "vworld_geocoded": 130
+    }
+  ],
+  "pipeline_version": 1,
+  "privacy_scope": "private_analysis_only"
+}

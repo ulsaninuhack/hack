@@ -1,0 +1,82 @@
+{
+  "status": "pass",
+  "policy_version": "public_demo_conservative_v1",
+  "checks": {
+    "all_expected_outputs_exist": true,
+    "forbidden_columns_absent": true,
+    "no_sensitive_exact_points": true,
+    "no_public_small_demographic_cells": true,
+    "no_rare_sensitive_subtype_aggregate_cells": true,
+    "public_points_have_only_point_geometry": true
+  },
+  "facility_stats": {
+    "canonical_facility_count": 3394,
+    "canonical_map_point_count": 225,
+    "sensitive_facility_count": 911,
+    "non_sensitive_facility_count": 2483,
+    "public_non_sensitive_point_count": 151,
+    "sensitive_map_points_withheld": 66,
+    "non_sensitive_points_withheld_due_to_shared_sensitive_coordinate": 8,
+    "invalid_coordinate_points_withheld": 0,
+    "sensitive_exact_points_published": 0,
+    "sensitive_district_aggregate_row_count": 34,
+    "sensitive_small_bucket_rows_rolled_up": 17,
+    "sensitive_facilities_withheld_from_rare_subtype_table": 5,
+    "sensitive_rule_matches": {
+      "공동생활가정": 38,
+      "공동생활시설": 2,
+      "그룹홈": 1,
+      "노숙인요양시설": 3,
+      "노인복지주택": 1,
+      "노인양로시설": 3,
+      "노인요양공동생활가정": 98,
+      "노인요양시설": 541,
+      "노인의료복지시설": 20,
+      "노인주거복지시설": 17,
+      "단기보호": 25,
+      "보호시설": 4,
+      "생활시설": 5,
+      "성매매피해": 4,
+      "쉼터": 20,
+      "아동양육시설": 9,
+      "장애인거주시설": 30,
+      "장애인공동생활가정": 56,
+      "정신요양시설": 2,
+      "정신재활시설": 14,
+      "주거복지": 1,
+      "청소년복지시설": 2,
+      "폭력피해": 4,
+      "피해장애아동쉼터": 2,
+      "학대피해노인전용쉼터": 1,
+      "한부모가족복지시설": 8
+    }
+  },
+  "demographic_stats": {
+    "admin_dong_row_count": 162,
+    "admin_dong_rows_suppressed": 0,
+    "map_geometry_feature_count": 156,
+    "map_geometry_features_suppressed": 0,
+    "bubble_feature_count": 156,
+    "bubble_features_suppressed": 0,
+    "small_cell_threshold": 5,
+    "source_minimum_count_by_field": {
+      "total_population": 233,
+      "population_age_65_plus": 115,
+      "total_households": 173,
+      "one_person_households": 100,
+      "one_person_households_age_65_plus": 57
+    }
+  },
+  "forbidden_property_findings": {},
+  "sensitive_point_findings": [],
+  "small_cell_findings": [],
+  "rare_sensitive_aggregate_findings": [],
+  "outputs": [
+    "public_demo_facility_points.geojson",
+    "public_demo_facility_counts_by_district.csv",
+    "public_demo_sensitive_facilities_by_district.csv",
+    "public_demo_admin_dong_demographics.csv",
+    "public_demo_map_admin_dong_demographics.geojson",
+    "public_demo_map_age65_one_person_bubbles.geojson"
+  ]
+}

@@ -1,0 +1,12 @@
+# Canonical source-data packs are versioned for reproducibility but are not
+# inputs to the web build. Leading slashes keep these rules root-scoped.
+/data/
+/work/i5-data/
+/raw/
+/processed/
+/metadata/
+
+# Runtime-safe map exports are intentionally deployed.
+!/public/
+!/public/data/
+!/public/data/**

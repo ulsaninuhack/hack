@@ -1,0 +1,19 @@
+node_modules/
+dist/
+coverage/
+.vercel/
+.playwright-cli/
+output/
+
+.env
+.env.*
+!.env.example
+
+*.log
+.DS_Store
+
+# Local Python build dependencies are reproducible from data/requirements.txt.
+data/.deps/
+**/__pycache__/
+*.py[cod]
+.vercel

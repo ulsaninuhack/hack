@@ -1,0 +1,52 @@
+{
+  "status": "pass",
+  "layer_role": "internal_hackathon_demo_default",
+  "public_release_fallback": "public_demo_facility_points.geojson",
+  "input": "facilities_geocoded_private.csv",
+  "checks": {
+    "output_exists_and_nonempty": true,
+    "geocoded_input_is_one_to_one_with_canonical": true,
+    "feature_count_matches_valid_input_coordinates": true,
+    "only_explicitly_allowed_properties": true,
+    "operational_and_personal_fields_absent": true,
+    "all_geometries_are_valid_incheon_envelope_points": true,
+    "output_facility_ids_are_unique": true,
+    "identity_address_and_type_match_canonical_facilities": true,
+    "all_coordinate_eligible_sensitive_facilities_are_included": true,
+    "no_emergency_or_person_record_input_joined": true
+  },
+  "stats": {
+    "canonical_facility_count": 3394,
+    "geocoded_input_row_count": 3394,
+    "full_demo_point_count": 3061,
+    "coordinate_coverage_of_canonical": 0.90188568,
+    "invalid_or_missing_coordinate_count": 333,
+    "missing_official_address_count": 0,
+    "sensitive_facilities_with_valid_coordinate": 820,
+    "sensitive_facilities_in_full_demo": 820,
+    "coordinate_source_counts": {
+      "juso_pnu_vworld_representative_point": 2836,
+      "source_dataset_coordinate": 225
+    },
+    "canonical_id_set_equals_geocoded_input_id_set": true,
+    "canonical_ids_missing_from_geocoded_input": [],
+    "unknown_geocoded_input_ids": [],
+    "duplicate_canonical_ids": [],
+    "duplicate_geocoded_input_ids": []
+  },
+  "unexpected_property_findings": {},
+  "forbidden_property_findings": {},
+  "invalid_geometry_findings": [],
+  "duplicate_output_ids": [],
+  "canonical_mismatch_findings": [],
+  "intentional_exact_point_policy": "All official facility types, including residential/protective types, are intentionally included for the internal demo when coordinates exist. This is not an individual-client map.",
+  "excluded_data": [
+    "raw emergency-service person/household records",
+    "phone",
+    "capacity",
+    "current occupancy",
+    "staff count",
+    "operator and source facility codes",
+    "personal eligibility, risk or non-recipient inference"
+  ]
+}

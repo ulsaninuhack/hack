@@ -1,0 +1,123 @@
+{
+  "status": "pass",
+  "script_version": 1,
+  "inputs": {
+    "boundary": "/Users/coldmans/Documents/Codex/2026-08-06/new-chat/work/i5-data/processed/boundary_incheon_admin_dong_20250630.geojson",
+    "crosswalk": "/Users/coldmans/Documents/Codex/2026-08-06/new-chat/work/i5-data/processed/boundary_current_to_geometry_crosswalk_20260701.csv",
+    "demographics": "/Users/coldmans/Documents/Codex/2026-08-06/new-chat/work/i5-data/processed/demographics_admin_dong_202607.csv",
+    "sha256": {
+      "boundary_sha256": "1ace8ff0d56daacddc60bcbcd85ab4436c02033341cd81738ba188a23ff45a20",
+      "crosswalk_sha256": "d17bfc40bd6fcd9e29c9d1f9c98c657c5f6317bb7e51f4f6896fb2ea1b641b2b",
+      "demographics_sha256": "a11dd92f8b99ff58138d0f8815e2433aedfe398462e60dc21d79bdb2d5a321f6"
+    }
+  },
+  "outputs": {
+    "table": "/Users/coldmans/Documents/Codex/2026-08-06/new-chat/work/i5-data/processed/map_demographics_by_geometry_zone_202607.csv",
+    "polygon_geojson": "/Users/coldmans/Documents/Codex/2026-08-06/new-chat/work/i5-data/processed/map_admin_dong_demographics_202607.geojson",
+    "bubble_geojson": "/Users/coldmans/Documents/Codex/2026-08-06/new-chat/work/i5-data/processed/map_bubbles_age_65_plus_one_person_202607.geojson",
+    "sha256": {
+      "table_sha256": "2c6bc0837b89bad290bbb4a669a2eb407113095943b972fc04897b8b3aeb7ded",
+      "polygon_geojson_sha256": "7d49bfe113675b86868fe2a9a9b3cdeaa543ba86122dcc29c2a38740ac63d063",
+      "bubble_geojson_sha256": "b64ff08cc2c995aa48775040960452567fe10c14453f09ec1d1f321f8f2d49ef"
+    }
+  },
+  "counts": {
+    "boundary_geometry_zones": 156,
+    "current_demographic_rows": 162,
+    "map_table_rows": 156,
+    "polygon_features": 156,
+    "bubble_features": 156,
+    "map_unit_status_counts": {
+      "aggregated_split": 2,
+      "exact": 150,
+      "parent_with_branch_office": 4
+    }
+  },
+  "totals": {
+    "input_current_162": {
+      "total_population": 3061002,
+      "population_age_65_plus": 598793,
+      "total_households": 1416363,
+      "one_person_households": 559691,
+      "one_person_households_age_65_plus": 172426
+    },
+    "output_geometry_156": {
+      "total_population": 3061002,
+      "population_age_65_plus": 598793,
+      "total_households": 1416363,
+      "one_person_households": 559691,
+      "one_person_households_age_65_plus": 172426
+    },
+    "totals_match": true
+  },
+  "dates": {
+    "geometry_base_date": "20250630",
+    "current_admin_reference_date": "20260701",
+    "population_reference_dates": [
+      "2026-06-30"
+    ],
+    "household_reference_dates": [
+      "2026-07-31"
+    ]
+  },
+  "bubble_metric": {
+    "name": "one_person_households_age_65_plus",
+    "label_ko": "65세 이상 1인 가구 수 (관측)",
+    "city_total": 172426,
+    "is_observed_count": true,
+    "interpretation_guardrail_ko": "관측된 65세 이상 1인 가구 규모이며 복지 미수급자 수 또는 고독사 위험자 수가 아님"
+  },
+  "determinism": {
+    "repeated_render_checks": {
+      "table_repeated_render_bytes_identical": true,
+      "polygon_repeated_render_bytes_identical": true,
+      "bubble_repeated_render_bytes_identical": true
+    },
+    "prior_run_with_same_inputs_found": true,
+    "prior_run_output_hashes_match": true,
+    "note": "The files contain no clock-dependent fields and are sorted by geometry_zone_id. On a subsequent run with identical inputs, prior_run_output_hashes_match must be true."
+  },
+  "issues": {
+    "unmapped_crosswalk_rows": [],
+    "invalid_or_empty_boundary_zones": [],
+    "source_date_conflicts": [],
+    "district_conflicts": [],
+    "name_conflicts": [],
+    "unreviewed_map_units": [],
+    "representative_point_outside_zones": [],
+    "rounded_bubble_points_outside_zones": [],
+    "non_wgs84_representative_points": []
+  },
+  "checks": {
+    "boundary_feature_count_is_156": true,
+    "crosswalk_row_count_is_162": true,
+    "demographic_row_count_is_162": true,
+    "all_crosswalk_rows_mapped": true,
+    "crosswalk_current_codes_unique": true,
+    "demographic_current_codes_unique": true,
+    "crosswalk_and_demographic_codes_match": true,
+    "crosswalk_and_boundary_zones_match": true,
+    "boundary_geometries_valid_and_nonempty": true,
+    "table_row_count_is_156": true,
+    "polygon_feature_count_is_156": true,
+    "bubble_feature_count_is_156": true,
+    "table_geometry_zone_ids_unique": true,
+    "polygon_geometry_zone_ids_unique": true,
+    "bubble_geometry_zone_ids_unique": true,
+    "all_output_zone_sets_equal_boundary": true,
+    "all_current_rows_contribute_exactly_once": true,
+    "additive_totals_preserved_exactly": true,
+    "ratios_recomputed_from_aggregated_counts": true,
+    "source_dates_consistent_within_map_units": true,
+    "district_names_consistent_across_join": true,
+    "dong_names_consistent_across_join": true,
+    "all_map_units_use_reviewed_mapping_status": true,
+    "map_unit_status_counts_are_expected": true,
+    "representative_points_are_covered_by_polygons": true,
+    "rounded_serialized_bubble_points_are_covered_by_polygons": true,
+    "representative_point_coordinates_are_wgs84": true,
+    "bubble_metric_is_observed_age_65_plus_one_person_count": true,
+    "repeated_render_bytes_are_identical": true,
+    "written_output_hashes_match_rendered_bytes": true
+  }
+}
