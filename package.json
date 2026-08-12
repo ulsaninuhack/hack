@@ -12,7 +12,11 @@
     "typecheck": "tsc -b",
     "preview": "vite preview",
     "prepare:data": "python3 scripts/prepare_web_data.py --source-dir data/processed --output-dir public/data",
-    "validate:data": "python3 scripts/prepare_web_data.py --source-dir data/processed --output-dir public/data --check"
+    "validate:data": "python3 scripts/prepare_web_data.py --source-dir data/processed --output-dir public/data --check",
+    "prepare:synthetic-data": "python3 scripts/generate_synthetic_care_ops.py",
+    "validate:synthetic-schema": "node scripts/validate_synthetic_schemas.mjs",
+    "validate:synthetic-data": "python3 scripts/generate_synthetic_care_ops.py --check && npm run validate:synthetic-schema",
+    "test:synthetic-data": "python3 -m unittest scripts.test_generate_synthetic_care_ops"
   },
   "dependencies": {
     "lucide-react": "1.31.0",
@@ -26,6 +30,8 @@
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
     "@vitejs/plugin-react": "6.0.5",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
     "typescript": "7.0.2",
     "vite": "8.2.1"
   }

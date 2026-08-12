@@ -27,6 +27,27 @@
 
 프론트엔드는 React 19·TypeScript 7·Vite 8·MapLibre GL JS 6으로 구성했고 OpenStreetMap 베이스맵을 사용한다. 백엔드는 Node.js 24로 작성한 읽기 전용 API며, 검증된 `public/data/`를 Docker 이미지에 번들해 Cloud Run에서 제공한다. 어느 현재 경로도 개인 데이터나 AI 추론 결과를 생성하지 않는다. 같은 GCP 프로젝트에는 향후 서버 측 AI 진단 리포트·메모를 저장할 Firestore가 준비되어 있지만, 현재 지도 요청과 정적 데이터 제공은 DB 장애와 분리되어 있다.
 
+## 합성 ContactOps 개발 데이터
+
+이웃연결단의 전화 안부 확인, 미응답·이상징후 후속조치, 방문 권고, 담당자 승인 흐름을 병렬 개발할 수 있도록 결정적 합성 계약을 제공한다. 현행 162개 읍면동마다 일반 표시명의 연결단원 1명과 합성 연락업무 20~50건을 생성한다. 현재 seed의 결과는 연결단원 162명, 합성 연락업무 5,869건이며 기준일 `2026-08-12`까지 연락해야 하는 업무는 3,616건이다. 선호 연락수단은 전화 5,291건, 방문 578건이고, fixture 생성 시점에 사전 승인된 방문은 0건이다.
+
+- `public/data/synthetic-workers.json`
+- `public/data/synthetic-households.json`
+- `public/data/synthetic-care-ops-manifest.json`
+- `data/schemas/synthetic-worker.schema.json`
+- `data/schemas/synthetic-household.schema.json`
+- `src/syntheticCareOpsTypes.ts`
+
+모든 레코드는 `synthetic=true`이고 이름·주소·전화번호가 없다. 좌표는 2025 지도구역 안에 생성한 합성 점이며 실제 주거 위치가 아니다. 중심 필드는 `next_contact_date`, `preferred_contact_method`, `consecutive_no_answer_count`, `follow_up_deadline`, `follow_up_status`, `visit_approval_status`, `transfer_status`, `last_contact_result`다. `visit_approval_status`는 규칙 권고 전에는 `null`이며, 방문 제약과 `max_route_distance_km`는 담당자가 명시 승인한 뒤에만 생긴다. UI·규칙 그래프 사용법과 162→156 공간 제약은 [`docs/SYNTHETIC_CARE_OPS_DATA.md`](docs/SYNTHETIC_CARE_OPS_DATA.md)를 따른다.
+
+현재 최소 데모는 LLM 없이 결정론적으로 돈다.
+
+```bash
+npm --prefix backend run demo:contact-ops
+```
+
+이 명령은 오늘 연락대상 큐 생성, 더미 연락결과 입력, 미응답·후속조치 규칙 검사, 방문 승격 권고, 담당자 명시 승인까지 텍스트로 보여 준다. LLM·음성 입력·경로 최적화는 아직 구현하지 않았다. 다음 순서는 전체 회귀검증, LLM 구조화·검토 레이어, 조건부 경로 게이트다.
+
 ## 지표 해석 원칙
 
 기본 표현은 다음 두 관찰 지표를 독립적으로 보여 준다.

@@ -7,12 +7,14 @@
 - Frontend production: `https://incheon-care-map.vercel.app` is live.
 - Runtime data boundary: Cloud Run API-first loading is merged while `public/data/` remains the outage/local fallback. Production CI verifies both the built bundle and the public Vercel alias reference the API.
 - Deployment owner: GitHub Actions workflow `CI / Production Deploy`.
-- Backend local source: Node 24 read-only API for curated `public/data/`, with `src/`, 41 tests, coverage gate, Dockerfile, `.dockerignore`, and README.
+- Backend local source: Node 24 read-only API for curated `public/data/`, with `src/`, 61 tests, coverage gate, Dockerfile, `.dockerignore`, and README.
 - Backend production: `https://incheon-care-api-vy3v2ludma-du.a.run.app/health` is live. Match the successful `main` run, revision commit label, and image digest before claiming an exact commit is deployed.
 - Backend health convention: `/health` is canonical externally. `/healthz` exists in source/tests, but Cloud Run's frontend intercepts that path and returns its own 404, so external smoke tests use `/health`.
 - Cloud Run CD status: the merged workflow validates pull requests and runs sibling Vercel and Cloud Run deploy jobs after successful `main` validation.
 - GCP auth: use Workload Identity Federation only. Do not add JSON service-account keys.
 - GCP DB: Firestore Standard Native `(default)` is provisioned in `asia-northeast3`; the runtime service account has `roles/datastore.user`. Current API routes do not use it. Keep static map snapshots in `public/data/` and reserve Firestore for future server-side variable AI reports or notes.
+- Synthetic ContactOps contract: deterministic fixtures now exist in `public/data/synthetic-workers.json` and `public/data/synthetic-households.json`, with JSON Schemas, TypeScript types, tests, and a manifest. They cover 162 current dongs with 162 generic workers and 5,869 synthetic contact tasks; 3,616 are due on the reference date, 5,291 prefer phone, 578 prefer visit, and 0 are preapproved visits. See `docs/SYNTHETIC_CARE_OPS_DATA.md` before wiring UI, LLM, voice, or routing.
+- ContactOps vertical slice: `backend/src/contact-ops.mjs` and `backend/scripts/demo-contact-ops.mjs` provide the deterministic queue -> dummy contact result -> rule graph -> visit recommendation -> manager approval demo. This completes steps 1-2 only. LLM, voice input, route optimization, and UI wiring for the slice are not implemented.
 
 ## Evidence Files
 
@@ -23,6 +25,8 @@
 | Metric contract | `data/metadata/CARE_PRIORITY_METRIC_SPEC.md` |
 | Runtime asset manifest | `public/data/manifest.json` |
 | Runtime validation status | `public/data/validation.json` |
+| Synthetic ContactOps contract | `docs/SYNTHETIC_CARE_OPS_DATA.md`, `public/data/synthetic-care-ops-manifest.json` |
+| ContactOps rule slice | `backend/src/contact-ops.mjs`, `backend/scripts/demo-contact-ops.mjs`, `backend/test/contact-ops.test.mjs` |
 | VWorld/public-release caution | `data/LICENSES.md` |
 | Deployment contract | `docs/DEPLOYMENT.md` |
 | CI/CD workflow | `.github/workflows/ci-deploy.yml` |
@@ -44,6 +48,12 @@ These values are from `public/data/summary.json` and `public/data/validation.jso
 | Facility coordinate coverage | 90.188568% |
 | Housing strict assignment coverage | 95.886634% |
 | Web data validation status | `pass` |
+| Synthetic workers | 162, one per current admin dong |
+| Synthetic contact tasks | 5,869, 20-50 per current admin dong |
+| Due contact tasks on 2026-08-12 | 3,616 |
+| Phone-preferred synthetic tasks | 5,291 |
+| Visit-preferred synthetic tasks | 578 |
+| Preapproved synthetic visits | 0 |
 
 ## Do Not Say
 
@@ -54,6 +64,9 @@ These values are from `public/data/summary.json` and `public/data/validation.jso
 - Do not say a specific backend commit is live without matching the successful `main` run, Cloud Run revision label, and image digest.
 - Do not use external `/healthz` as Cloud Run proof. The source-level alias is tested locally; the production external proof is `/health`.
 - Do not treat VWorld-derived files as cleared for public or commercial redistribution.
+- Do not say route optimization is the main product. The current product slice is phone-first contact queueing, follow-up rules, visit recommendation, and explicit manager approval.
+- Do not say LLM, voice input, or route optimization is implemented. They are next layers after deterministic rules and regression.
+- Do not say `max_route_distance_km` exists before approval. It is created only by explicit manager approval.
 
 ## Deployment Contract
 
@@ -63,7 +76,7 @@ Expected CI path:
 
 1. Commit-pinned `actions/checkout` v6 with `lfs: false`
 2. Commit-pinned `actions/setup-node` v6 with Node 24
-3. Frontend: `npm ci`, `npm run validate:data`, `npm run typecheck`, `npm run build`
+3. Frontend: `npm ci`, `npm run validate:data`, `npm run validate:synthetic-data`, `npm run test:synthetic-data`, `npm run typecheck`, `npm run build`
 4. Backend: `npm --prefix backend ci`, `npm --prefix backend run test:coverage`, Docker build
 5. For `main` only, Vercel deploys frontend production
 6. For `main` only, Cloud Run deploys backend production with WIF
@@ -80,8 +93,11 @@ npm ci
 npm run typecheck
 npm run build
 npm run validate:data
+npm run validate:synthetic-data
+npm run test:synthetic-data
 npm --prefix backend ci
 npm --prefix backend run test:coverage
+npm --prefix backend run demo:contact-ops
 bash scripts/agent-check.sh
 ```
 
@@ -102,7 +118,13 @@ curl -fsS https://incheon-care-map.vercel.app/ >/tmp/incheon-care-map.html
 curl -fsS https://incheon-care-api-vy3v2ludma-du.a.run.app/health
 ```
 
-Current backend expectation: local tests and Docker pass, production `/health` is live, and every exact deployment claim is tied to a successful `main` run plus its Cloud Run revision/digest.
+Current backend expectation: local tests and Docker pass, production `/health` is live, and every exact deployment claim is tied to a successful `main` run plus its Cloud Run revision/digest. The map build still runs `scripts/verify-map-worker.mjs` through `npm run build`; keep that worker check in regression.
+
+## ContactOps Next Order
+
+1. Regression first: re-run data validation, synthetic schema/data tests, backend coverage, frontend typecheck/build, and `bash scripts/agent-check.sh`. Confirm 162 current dongs still map onto 156 2025 geometry zones and the existing map/API fallback behavior still works.
+2. Add LLM only after deterministic rules stay green. Allowed LLM seams are voice/text note -> structured contact result, contradiction/missing-field review, and candidate visit/transfer reasons. Final visit approval and transfer remain deterministic rule plus manager action.
+3. Add route gating only for approved visits. Trigger route planning only when same-day approved visits are numerous, two-person/public-official accompaniment is needed, time/area/travel-mode constraints conflict, or reassignment is required. For one to three approved visits, show nearest-order guidance.
 
 ## Next Work Procedure
 

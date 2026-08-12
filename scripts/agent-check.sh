@@ -81,6 +81,9 @@ NODE
 ok "public runtime validation snapshot is pass with expected counts"
 ok "data interpretation caveats are present in runtime manifest"
 
+npm run validate:synthetic-data
+ok "synthetic CareOps fixtures are deterministic and current"
+
 if [ -d backend ]; then
   if [ -f backend/src/app.mjs ] && [ -f backend/src/data-store.mjs ] && [ -f backend/src/server.mjs ]; then
     ok "backend source files are present locally"

@@ -8,7 +8,7 @@ Read it before changing code, data, documentation, or deployment settings.
 This repository is a private hackathon MVP for an Incheon public aggregate care-context map.
 
 - `src/`: React 19, TypeScript, Vite 8, MapLibre browser application.
-- `public/data/`: curated runtime snapshots deployed to Vercel and bundled into the API image. The browser prefers the API when configured and retains these files as its fallback.
+- `public/data/`: curated runtime snapshots plus clearly labeled synthetic CareOps fixtures deployed to Vercel and bundled into the API image. The current map browser prefers the API for observed layers and retains the existing static files as fallback; the synthetic fixtures are a separate contact-queue, rule-graph, and conditional-routing development contract.
 - `scripts/prepare_web_data.py`: deterministic exporter from verified `data/processed/` files to `public/data/`.
 - `data/raw/`: original public source files, including large archives and geospatial files.
 - `data/processed/`: reproducible normalized outputs and validation files.
@@ -16,6 +16,7 @@ This repository is a private hackathon MVP for an Incheon public aggregate care-
 - `.github/workflows/ci-deploy.yml`: Node 24 validation for frontend and backend, then parallel `main` production deploy jobs for Vercel and Cloud Run.
 - `docs/DEPLOYMENT.md`: deployment contract, Vercel secrets, and operations.
 - `backend/`: Node 24 read-only API for curated `public/data/` exports. It has `src/`, tests, `package-lock.json`, a Dockerfile, and README. Local tests and Docker verification pass.
+- `scripts/generate_synthetic_care_ops.py`, `data/schemas/synthetic-*.schema.json`, `backend/src/contact-ops.mjs`, `backend/scripts/demo-contact-ops.mjs`, and `docs/SYNTHETIC_CARE_OPS_DATA.md`: deterministic contact-first fixtures and rule-graph slice for 162 current dongs. These are synthetic operational tasks, not people or inferred risk.
 
 The frontend production URL is `https://incheon-care-map.vercel.app`. The Cloud Run production URL is `https://incheon-care-api-vy3v2ludma-du.a.run.app`; `/health` is the canonical external health endpoint. `/healthz` remains a source-level compatibility alias, but the Cloud Run frontend intercepts that path before it reaches the container, so deployment smoke tests must use `/health`. Match the latest successful `main` run, Cloud Run revision label, and deployed digest before claiming that a specific commit is live.
 
@@ -31,6 +32,9 @@ Do not overclaim what the public aggregate data can prove.
 - The map uses 2025-06-30 geometry zones and maps 2026-07-01 current admin-dong statistics onto them. Do not invent 162 current polygons from the 156 geometry zones.
 - Welfare benefit categories can overlap by person. Do not sum benefit categories into a distinct person count, and do not subtract welfare counts from household counts.
 - Utility data is not current Incheon household anomaly data. Jeongeup smart-meter data is model/UX demo only and must be labeled as not Incheon observed data.
+- Synthetic ContactOps fixtures model phone-first work management. They do not estimate real care demand, personal risk, welfare eligibility, non-recipient counts, or actual 이웃연결단 workload.
+- The synthetic workflow begins with `visit_approval_status=null`. Deterministic rules may set `recommended`, but only an explicit manager decision may set `approved` or `rejected`.
+- `max_route_distance_km` and route constraints exist only after explicit human approval. Do not add maximum-distance or routing fields to unapproved generated tasks.
 
 Use `data/metadata/CARE_PRIORITY_METRIC_SPEC.md`, `data/README.md`, and `public/data/manifest.json` as the evidence chain before changing UI labels, metric names, or presentation claims.
 
@@ -72,8 +76,11 @@ npm ci
 npm run typecheck
 npm run build
 npm run validate:data
+npm run validate:synthetic-data
+npm run test:synthetic-data
 npm --prefix backend ci
 npm --prefix backend run test:coverage
+npm --prefix backend run demo:contact-ops
 sh scripts/agent-check.sh
 ```
 
@@ -96,12 +103,18 @@ curl -fsS https://incheon-care-api-vy3v2ludma-du.a.run.app/health
 
 Frontend production and the Cloud Run backend `/health` are live. API-first loading is merged and the Vercel production environment points at Cloud Run; `public/data/` remains the intentional outage and local-development fallback. Firestore exists but is intentionally outside the current request path.
 
+The ContactOps schema conversion and text vertical slice are complete at the deterministic-rule layer: generated fixtures cover 162 current dongs, the reference manifest has 5,869 contact tasks, 3,616 due tasks, 5,291 phone-preferred tasks, 578 visit-preferred tasks, and 0 preapproved visits. `npm --prefix backend run demo:contact-ops` demonstrates queue -> dummy contact result -> rule findings -> visit recommendation -> manager approval. LLM, voice input, route optimization, and UI wiring for this slice are not implemented yet.
+
 ## Safety Guardrails
 
 - Preserve user or other-agent edits. Do not revert unrelated changes.
 - Keep changes narrowly scoped to the requested files or feature.
 - Do not commit secrets, `.vercel/`, `.env*`, build output, or dependency directories.
 - Do not add personal data, household-level records, generated personal addresses, or real-looking synthetic residents.
+- Synthetic ContactOps records must stay generic (`연결단원 001`, `SYN-HH-*`), point to no address, carry `synthetic=true`, and keep `contact`, `workflow`, `visit_context`, and `approved_visit_constraints` as operational state only. Never relabel them as personal risk.
+- ContactOps records must use safe Korean terms such as `연락업무`, `안부 확인`, `후속조치`, `방문 권고`, `담당자 승인`, and `행정복지센터 이관`. Avoid terms that imply confirmed personal status, such as `고위험자`, `미수혜자`, `위험도`, or `개인 예측`.
+- LLM may later structure voice/text notes, flag contradictions or missing fields, and propose visit/transfer candidates with reasons. LLM must not approve visits, confirm transfers, or override deterministic no-answer/deadline rules.
+- Route planning is conditional only. Use it after approved same-day visit volume, two-person/public-official accompaniment, time/area/travel-mode conflicts, or reassignment needs justify it. For one to three approved visits, show a simple nearest-order suggestion instead of VRP.
 - Do not turn observation layers into a composite risk score without a documented metric version, data basis, backtest, and fairness review.
 - Do not treat browser screenshots, draft text, or visible chat notes as deployment proof. Re-run commands or inspect CI/deployment records.
 
@@ -114,4 +127,5 @@ Frontend production and the Cloud Run backend `/health` are live. API-first load
 5. If the task affects backend/frontend integration, preserve the current static fallback as the explicit outage and local-development path.
 6. Make the smallest coherent change.
 7. Run the relevant verification commands and record exactly what passed or failed.
-8. Update handoff notes when current state or next steps change.
+8. After ContactOps step 1-2 changes, run regression before adding LLM or routing: keep 162 current dongs mapped to 156 2025 geometry zones, preserve map/API fallback behavior, and verify the map worker step in `npm run build`.
+9. Update handoff notes when current state or next steps change.

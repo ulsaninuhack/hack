@@ -33,6 +33,24 @@ npm test
 npm run test:coverage
 ```
 
+## ContactOps Text Demo
+
+The backend package also contains the deterministic contact-first vertical slice. It does not call an LLM, voice API, database, or route optimizer.
+
+From the repository root:
+
+```bash
+npm --prefix backend run demo:contact-ops
+```
+
+The demo loads `public/data/synthetic-households.json` and prints:
+
+1. today's contact queue
+2. a dummy `no_answer` contact result
+3. deterministic rule findings
+4. a visit recommendation with no automatic approval
+5. an explicit manager approval that creates approved-visit route constraints
+
 ## Container
 
 The Dockerfile intentionally copies the already-curated `public/data` output into the image. Build with the repository root as context:
