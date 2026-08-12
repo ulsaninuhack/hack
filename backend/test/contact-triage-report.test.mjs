@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { copyFile, mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { describe, test } from 'node:test';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 function runReport() {
   return spawnSync(process.execPath, ['scripts/report-contact-triage.mjs'], {
@@ -45,5 +48,39 @@ describe('deterministic synthetic triage distribution report', () => {
     assert.equal(first.status, 0, first.stderr);
     assert.equal(second.status, 0, second.stderr);
     assert.equal(second.stdout, first.stdout);
+  });
+
+  test('uses DATA_DIR when the runtime fixture is outside the repository tree', async () => {
+    const dataDirectory = await mkdtemp(join(tmpdir(), 'contact-triage-report-'));
+    const isolatedRoot = await mkdtemp(join(tmpdir(), 'contact-triage-runtime-'));
+    try {
+      await copyFile(
+        new URL('../../public/data/synthetic-households.json', import.meta.url),
+        join(dataDirectory, 'synthetic-households.json'),
+      );
+      const isolatedBackend = join(isolatedRoot, 'backend');
+      const isolatedScripts = join(isolatedBackend, 'scripts');
+      const isolatedSource = join(isolatedBackend, 'src');
+      await mkdir(isolatedScripts, { recursive: true });
+      await mkdir(isolatedSource, { recursive: true });
+      await copyFile(
+        new URL('../scripts/report-contact-triage.mjs', import.meta.url),
+        join(isolatedScripts, 'report-contact-triage.mjs'),
+      );
+      await copyFile(
+        new URL('../src/contact-triage-scoring.mjs', import.meta.url),
+        join(isolatedSource, 'contact-triage-scoring.mjs'),
+      );
+      const result = spawnSync(process.execPath, ['scripts/report-contact-triage.mjs'], {
+        cwd: isolatedBackend,
+        encoding: 'utf8',
+        env: { ...process.env, DATA_DIR: dataDirectory },
+      });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(JSON.parse(result.stdout).전체_건수, 5_869);
+    } finally {
+      await rm(dataDirectory, { recursive: true, force: true });
+      await rm(isolatedRoot, { recursive: true, force: true });
+    }
   });
 });

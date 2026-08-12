@@ -72,8 +72,8 @@ jobs:
       - name: Install Chromium for operations E2E
         run: npx playwright install --with-deps chromium
 
-      - name: Test the surveyor-to-manager browser flow
-        run: npm run test:e2e:p2
+      - name: Test the surveyor-to-manager browser flows
+        run: npm run test:e2e:ops
 
       - name: Verify objective overnight UI evidence
         run: npm run verify:overnight
@@ -87,6 +87,9 @@ jobs:
             artifacts/playwright/
             artifacts/playwright-report/
             artifacts/screenshots/
+            artifacts/axe/
+            artifacts/p8-evidence.json
+            test-results/
           if-no-files-found: warn
           retention-days: 7
 
@@ -98,6 +101,49 @@ jobs:
 
       - name: Build backend container
         run: docker build --file backend/Dockerfile --tag incheon-care-api:ci .
+
+      - name: Smoke backend container operations routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          container_name="incheon-care-api-ci-${GITHUB_RUN_ID}"
+          docker run --detach --rm \
+            --name "$container_name" \
+            --publish 127.0.0.1:18084:8080 \
+            --env CORS_ORIGINS=http://127.0.0.1:4175 \
+            --env CONTACT_OPS_STATE_BACKEND=memory \
+            incheon-care-api:ci >/dev/null
+          trap 'docker stop "$container_name" >/dev/null 2>&1 || true' EXIT
+
+          for attempt in {1..20}; do
+            if curl --fail --silent --show-error \
+              http://127.0.0.1:18084/health >/tmp/container-health.json; then
+              break
+            fi
+            if [[ "$attempt" -eq 20 ]]; then
+              docker logs "$container_name"
+              exit 1
+            fi
+            sleep 1
+          done
+
+          session_id="ci-container-session-${GITHUB_RUN_ID}"
+          curl --fail --silent --show-error \
+            --header "X-Demo-Session-ID: ${session_id}" \
+            http://127.0.0.1:18084/api/v1/contact-ops/manager-breadth \
+            >/tmp/container-manager-breadth.json
+          curl --fail --silent --show-error \
+            --header "X-Demo-Session-ID: ${session_id}" \
+            http://127.0.0.1:18084/api/v1/contact-ops/operations-map \
+            >/tmp/container-operations-map.json
+
+          jq --exit-status \
+            '.apiVersion == "v1" and .data.synthetic == true and .data.tuning_warning.current_mild_signal_count == 664' \
+            /tmp/container-manager-breadth.json >/dev/null
+          jq --exit-status \
+            '.apiVersion == "v1" and .data.geometry_zone_count == 156 and .data.current_admin_dong_count == 162' \
+            /tmp/container-operations-map.json >/dev/null
+          [[ "$(docker exec "$container_name" id -u)" == "1000" ]]
 
   deploy-frontend-production:
     name: Deploy frontend production
@@ -190,11 +236,9 @@ jobs:
 
       - name: Verify public production alias references the API
         shell: bash
-        env:
-          PRODUCTION_ORIGIN: https://incheon-care-map.vercel.app
         run: |
           set -euo pipefail
-          production_origin="${PRODUCTION_ORIGIN%/}"
+          production_origin="https://incheon-care-map.vercel.app"
           app_html_file="$(mktemp)"
           asset_file="$(mktemp)"
           trap 'rm -f "$app_html_file" "$asset_file"' EXIT
@@ -391,6 +435,8 @@ jobs:
 
       - name: Record backend deployment
         run: |
-          echo "Backend image tag: ${IMAGE}" >> "$GITHUB_STEP_SUMMARY"
-          echo "Deployed image digest: ${{ steps.image.outputs.image }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "Cloud Run service: ${{ steps.deploy.outputs.url }}" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "Backend image tag: ${IMAGE}"
+            echo "Deployed image digest: ${{ steps.image.outputs.image }}"
+            echo "Cloud Run service: ${{ steps.deploy.outputs.url }}"
+          } >> "$GITHUB_STEP_SUMMARY"

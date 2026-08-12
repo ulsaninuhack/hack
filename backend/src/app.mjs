@@ -16,6 +16,8 @@ const ALLOWED_PREFLIGHT_HEADERS = new Set(['accept', 'content-type', 'x-request-
 const CASE_ID_PATTERN = /^SYN-HH-\d{10}-\d{4}$/;
 const WORKER_ID_PATTERN = /^SYN-W-\d{10}-01$/;
 const SESSION_ID_PATTERN = /^[A-Za-z0-9_-]{16,128}$/;
+const SURVEYOR_DISPLAY_ID_PATTERN = /^연결단원 [0-9]{3}$/;
+const AUDIO_FILE_REFERENCE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,119}\.(?:wav|mp3)$/i;
 
 class ApiError extends Error {
   constructor(status, code, message, details) {
@@ -502,7 +504,7 @@ function caseIdFrom(pathname, suffix = '') {
   if (!CASE_ID_PATTERN.test(id)) throw new ApiError(400, 'INVALID_PATH', 'caseId must be a synthetic case ID');
   return id;
 }
-async function routeContactOps(request, url, service) {
+async function routeContactOps(request, url, service, { enableDemoSessionReset = false } = {}) {
   if (!service) throw new ApiError(503, 'CONTACT_OPS_UNAVAILABLE', 'ContactOps state is unavailable');
   const readSession = () => sessionFor(request);
   if (request.method === 'GET' && url.pathname === '/api/v1/contact-ops/today') {
@@ -517,15 +519,65 @@ async function routeContactOps(request, url, service) {
     assertKnownQuery(url.searchParams, new Set(['district']));
     return service.getVisitRecommendations({ sessionId: readSession(), district: url.searchParams.get('district') });
   }
+  if (request.method === 'GET' && url.pathname === '/api/v1/contact-ops/manager-breadth') {
+    assertKnownQuery(url.searchParams, new Set());
+    return service.getManagerBreadth({ sessionId: readSession() });
+  }
+  if (request.method === 'GET' && url.pathname === '/api/v1/contact-ops/operations-map') {
+    assertKnownQuery(url.searchParams, new Set());
+    return service.getOperationsMap({ sessionId: readSession() });
+  }
   if (request.method === 'GET' && url.pathname.startsWith('/api/v1/contact-ops/cases/')) return service.getCase({ sessionId: readSession(), caseId: caseIdFrom(url.pathname) });
   if (request.method !== 'POST') throw new ApiError(405, 'METHOD_NOT_ALLOWED', 'ContactOps supports GET, POST, and OPTIONS');
   if (!/^application\/json(?:;|$)/i.test(String(request.headers['content-type'] || ''))) throw new ApiError(415, 'UNSUPPORTED_MEDIA_TYPE', 'Content-Type must be application/json');
   const sessionId = sessionFor(request, { required: true }); const body = await readBody(request);
+  if (url.pathname === '/api/v1/contact-ops/session-reset') {
+    if (!enableDemoSessionReset) throw new ApiError(404, 'NOT_FOUND', 'Route not found');
+    exactBody(body, ['expected_marker']);
+    if (body.expected_marker !== '[합성]') throw new ApiError(400, 'INVALID_BODY', 'expected_marker must be [합성]');
+    return service.resetDemoSession({ sessionId });
+  }
   const mappings = [
     ['/contact-results', ['expected_revision', 'contact_date', 'contact_result', 'observations'], 'recordContactResult', (b) => { assertIsoDateValue(b.contact_date, 'contact_date'); return { expectedRevision: b.expected_revision, contactDate: b.contact_date, contactResult: b.contact_result, observations: b.observations }; }],
     ['/triage/recalculate', ['expected_revision', 'reference_date'], 'recalculateTriage', (b) => ({ expectedRevision: b.expected_revision, referenceDate: b.reference_date })],
   ];
-  if (url.pathname.endsWith('/ai-observations')) throw new ApiError(501, 'FEATURE_NOT_AVAILABLE', 'AI observations are reserved for P3');
+  if (url.pathname.endsWith('/ai-observations')) {
+    const caseId = caseIdFrom(url.pathname, '/ai-observations');
+    if (body?.mode === 'candidate') {
+      const textMode = Object.hasOwn(body, 'consented_masked_text');
+      const audioMode = Object.hasOwn(body, 'validated_file_reference');
+      exactBody(body, textMode
+        ? ['mode', 'expected_revision', 'contact_date', 'surveyor_id', 'consented_masked_text']
+        : ['mode', 'expected_revision', 'contact_date', 'surveyor_id', 'validated_file_reference']);
+      assertIsoDateValue(body.contact_date, 'contact_date');
+      if (!SURVEYOR_DISPLAY_ID_PATTERN.test(body.surveyor_id || '') || textMode === audioMode) {
+        throw new ApiError(400, 'INVALID_BODY', 'Candidate requires one consented text or validated file reference');
+      }
+      if (textMode && (typeof body.consented_masked_text !== 'string'
+          || body.consented_masked_text.trim() === '' || body.consented_masked_text.length > 15_000)) {
+        throw new ApiError(400, 'INVALID_BODY', 'consented_masked_text is invalid');
+      }
+      if (audioMode && !AUDIO_FILE_REFERENCE_PATTERN.test(body.validated_file_reference || '')) {
+        throw new ApiError(400, 'INVALID_BODY', 'validated_file_reference is invalid');
+      }
+      return service.createAiObservation({
+        mode: 'candidate', sessionId, caseId, expectedRevision: body.expected_revision,
+        contactDate: body.contact_date, surveyorId: body.surveyor_id,
+        source: textMode
+          ? { kind: 'text', text: body.consented_masked_text }
+          : { kind: 'audio', fileReference: body.validated_file_reference },
+      });
+    }
+    exactBody(body, ['mode', 'expected_revision', 'contact_date', 'confirmed', 'candidate']);
+    assertIsoDateValue(body.contact_date, 'contact_date');
+    if (body.mode !== 'confirm' || body.confirmed !== true) {
+      throw new ApiError(400, 'INVALID_BODY', 'Explicit user confirmation is required');
+    }
+    return service.createAiObservation({
+      mode: 'confirm', sessionId, caseId, expectedRevision: body.expected_revision,
+      contactDate: body.contact_date, confirmed: body.confirmed, candidate: body.candidate,
+    });
+  }
   for (const [suffix, keys, method, convert] of mappings) if (url.pathname.endsWith(suffix)) {
     const caseId = caseIdFrom(url.pathname, suffix); exactBody(body, keys);
     return service[method]({ sessionId, caseId, ...convert(body) });
@@ -573,6 +625,7 @@ export function createApiHandler({
   rateLimitPerMinute = Number(process.env.RATE_LIMIT_PER_MINUTE || 600),
   logger = null,
   contactOpsService = null,
+  enableDemoSessionReset = false,
 }) {
   if (!store) throw new Error('store is required');
   if (!Number.isSafeInteger(rateLimitPerMinute) || rateLimitPerMinute < 0 || rateLimitPerMinute > 100_000) {
@@ -629,7 +682,7 @@ export function createApiHandler({
       }
 
       const result = isOps
-        ? { body: { apiVersion: API_VERSION, data: await routeContactOps(request, url, contactOpsService) }, cacheable: false }
+        ? { body: { apiVersion: API_VERSION, data: await routeContactOps(request, url, contactOpsService, { enableDemoSessionReset }) }, cacheable: false }
         : routeRequest(store, url);
       sendJson(request, response, 200, result.body, context, result.cacheable);
     } catch (error) {

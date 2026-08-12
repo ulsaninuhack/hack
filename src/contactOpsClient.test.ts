@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { emptyObservations, loadTodayQueue, submitContact, submitDecision } from './contactOpsClient'
+import { emptyObservations, loadManagerBreadth, loadOperationsMap, loadTodayQueue, submitContact, submitDecision } from './contactOpsClient'
 
 afterEach(() => { vi.restoreAllMocks(); sessionStorage.clear() })
 
@@ -22,5 +22,25 @@ describe('ContactOps API client', () => {
     expect(String(fetchMock.mock.calls[0][1]?.body)).toContain('no_answer')
     expect(fetchMock.mock.calls[1][0]).toContain('/visit-decisions')
     expect(String(fetchMock.mock.calls[1][1]?.body)).toContain('max_route_distance_km')
+  })
+
+  it('loads the server-owned manager breadth projection through the operation API', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(response({
+      synthetic: true, displayMarker: '[합성]', transfer_recommendations: [], grade_distribution: {}, tuning_warning: {}, approved_visit_hint: {},
+    }))
+    await loadManagerBreadth()
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/contact-ops/manager-breadth', expect.objectContaining({
+      headers: expect.objectContaining({ 'X-Demo-Session-ID': expect.stringMatching(/^ui-demo-/) }),
+    }))
+  })
+
+  it('loads the 156-zone operations overlay only from the server-owned operations-map API', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(response({
+      synthetic: true, displayMarker: '[합성]', geometry_zone_count: 156, current_admin_dong_count: 162, public_context_label: '[MODEL OUTPUT — UNVALIDATED]', zones: [],
+    }))
+    await loadOperationsMap()
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/contact-ops/operations-map', expect.objectContaining({
+      headers: expect.objectContaining({ 'X-Demo-Session-ID': expect.stringMatching(/^ui-demo-/) }),
+    }))
   })
 })

@@ -22,7 +22,7 @@ export default defineConfig({
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: [
     {
-      command: `PORT=18082 CORS_ORIGINS=${frontendOrigin} CONTACT_OPS_STATE_BACKEND=memory npm --prefix backend start`,
+      command: `PORT=18082 CORS_ORIGINS=${frontendOrigin} CONTACT_OPS_STATE_BACKEND=memory CONTACT_OPS_ENABLE_TEST_RESET=1 npm --prefix backend start`,
       url: `${apiOrigin}/health`,
       reuseExistingServer: !process.env.CI,
       timeout: 30_000,

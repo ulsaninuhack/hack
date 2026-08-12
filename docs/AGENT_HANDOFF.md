@@ -5,6 +5,8 @@
 - Project: private hackathon MVP, "I5 도시 돌봄" / Incheon care-context map.
 - Frontend: React 19, TypeScript, Vite 8, MapLibre, static assets from `public/data/`.
 - Frontend production: `https://incheon-care-map.vercel.app` is live.
+- Current public review preview: `https://incheon-care-ops-preview.vercel.app`, backed by
+  the isolated preview API `https://incheon-care-api-preview-vy3v2ludma-du.a.run.app`.
 - Runtime data boundary: Cloud Run API-first loading is merged while `public/data/` remains the outage/local fallback. Production CI verifies both the built bundle and the public Vercel alias reference the API.
 - Deployment owner: GitHub Actions workflow `CI / Production Deploy`.
 - Backend local source: Node 24 API for curated read-only `public/data/` routes plus session-isolated synthetic ContactOps operations, with `src/`, tests, coverage gate, Dockerfile, `.dockerignore`, and README.
@@ -15,10 +17,15 @@
 - GCP auth: use Workload Identity Federation only. Do not add JSON service-account keys.
 - GCP DB: Firestore Standard Native `(default)` is provisioned in `asia-northeast3`; the runtime service account has `roles/datastore.user`. P1 uses it only for synthetic, session-isolated ContactOps overrides. Static health/map/facility/transit/summary routes remain independent of Firestore, and browser-direct access is prohibited.
 - Synthetic ContactOps contract: deterministic fixtures now exist in `public/data/synthetic-workers.json` and `public/data/synthetic-households.json`, with JSON Schemas, TypeScript types, tests, and a manifest. They cover 162 current dongs with 162 generic workers and 5,869 synthetic contact tasks; 3,616 are due on the reference date, 5,291 prefer phone, 578 prefer visit, and 0 are preapproved visits. See `docs/SYNTHETIC_CARE_OPS_DATA.md` before wiring voice output, scoring, UI, or routing.
-- ContactOps vertical slice: `backend/src/contact-ops.mjs`, `backend/src/contact-triage-scoring.mjs`, `backend/src/contact-ops-service.mjs`, and `backend/src/contact-ops-state.mjs` provide session-isolated API/state for queue -> contact result -> follow-up rules -> separate acute/vulnerability scores -> recommendation-only handoff -> manager approval. Production selects Firestore for synthetic overrides while static map routes remain independent. The standalone voice contract exists, but its output is not yet connected; `ai-observations` intentionally remains 501 until P3 instead of returning a fake candidate. Route optimization, Realtime input, and UI wiring remain unimplemented.
+- ContactOps vertical slice: `backend/src/contact-ops.mjs`, `backend/src/contact-triage-scoring.mjs`, `backend/src/contact-ops-service.mjs`, and `backend/src/contact-ops-state.mjs` provide session-isolated API/state for queue -> contact result -> follow-up rules -> separate acute/vulnerability scores -> recommendation-only handoff -> manager approval. Production selects Firestore for synthetic overrides while static map routes remain independent. `ai-observations` now connects the voice contract through Planner -> schema -> Korean DTO -> Critic and requires a separate explicit confirmation before existing deterministic rules run. Route optimization and Realtime input remain unimplemented; live model/audio quality remains a human gate.
+- Operations breadth: manager breadth exposes transfer review, separate distributions, the deterministic 664-case tuning warning, and 13 approved-visit nearest-order hints labeled not-VRP. Surveyor breadth exposes daily, repeated-no-answer, overdue, transfer, empty, loading, and recoverable-error states.
+- Operations map: `public/data/structural-context.json` and `GET /api/v1/contact-ops/operations-map` preserve 162 current dongs in 156 geometry zones. Public structure uses four equal midrank contributions with missingness and `[MODEL OUTPUT — UNVALIDATED]`; synthetic overlay color=max acute and size=max vulnerability with no combined score.
 - Triage evidence: all scores carry contribution traces, no composite score exists, and the deterministic 5,869-case simulation reports 664 mild-signal accumulation cases among 1,941 priority recommendations. This is a tuning warning from synthetic profiles, not an observed-person result. See `docs/CONTACT_TRIAGE_SCORING.md`.
-- Voice file input: the standalone `voice/` contract now supports both consented masked text and mock-verified WAV/MP3 transcription, but neither output mutates ContactOps without a future adapter.
+- Voice file input: `voice/` supports consented masked text and mock-verified WAV/MP3 transcription. Its adapter emits only a confirmation-required candidate; confirmed canonical observations are applied by the backend while scores and manager approval remain server-owned.
 - UI review contract: all UI milestones follow `docs/UI_UX_REVIEW_RUBRIC.md`; hard-ban copy is CI-gated, and each milestone must record its Vercel Preview URL plus Claude screenshot review in this file and `docs/PROGRESS.md`.
+- Latest P8 review milestone: the public preview completes the real synthetic queue ->
+  acute 62 recommendation -> manager-only approval loop with zero browser console errors.
+  PR/merge and production `main` verification remain separate gates.
 
 ## Evidence Files
 
@@ -73,7 +80,7 @@ These values are the current consumer contract for the 65+ relevant runtime laye
 - Do not use external `/healthz` as Cloud Run proof. The source-level alias is tested locally; the production external proof is `/health`.
 - Do not treat VWorld-derived files as cleared for public or commercial redistribution.
 - Do not say route optimization is the main product. The current product slice is phone-first contact queueing, follow-up rules, visit recommendation, and explicit manager approval.
-- Do not say voice input is complete or integrated with ContactOps. Consented, PII-masked text stage 3a and mock-verified audio-file stage 3b are implemented; actual Korean/telephone audio accuracy, Realtime input, ContactOps adaptation, and route optimization are not.
+- Do not say voice input is fully complete. Consented, PII-masked text stage 3a, mock-verified audio-file stage 3b, and the ContactOps Planner–Critic adapter are implemented; actual Korean/telephone audio accuracy, live-LLM usefulness, Realtime input, and route optimization are not.
 - Do not treat `voice` output fields such as `risk_score` or `visit_recommended` as an authoritative score, visit decision, or approval.
 - Do not say `max_route_distance_km` exists before approval. It is created only by explicit manager approval.
 
@@ -137,9 +144,9 @@ Current backend expectation: local tests and Docker pass, production `/health` i
 ## ContactOps Next Order
 
 1. Treat the 664 mild-signal accumulation cases as a tuning gate. Do not change weights without updating the golden set and rerunning the deterministic distribution report.
-2. Define and validate the upstream 0~50 dong-context normalization before injecting nonzero structural vulnerability scores. Do not invent weights in the runtime scorer.
-3. Integrate the existing text/file-to-JSON voice contract only after deterministic rules stay green. The adapter may map voice/text observations into a structured contact result, flag contradictions/missing fields, and provide candidate visit/transfer reasons. Voice-provided `risk_score` or `visit_recommended` is non-authoritative; final visit approval and transfer remain deterministic rule plus manager action.
-4. Add route gating only for approved visits. Trigger route planning only when same-day approved visits are numerous, two-person/public-official accompaniment is needed, time/area/travel-mode constraints conflict, or reassignment is required. For one to three approved visits, show nearest-order guidance.
+2. Keep the implemented 0~50 structural candidate frozen to its four transparent midrank indicators unless a new versioned metric contract and tests are approved. Never feed it into an automatic personal decision.
+3. Keep the implemented text/file Planner–Critic adapter confirmation-gated. Real Korean audio accuracy, live-LLM usefulness, and Realtime input remain human/future gates.
+4. Add route gating only for approved visits. The current 13-visit output is a nearest-order hint, not VRP. Trigger a future planner only when same-day approved volume, accompaniment, time/area/travel-mode conflicts, or reassignment justify it.
 
 ## Next Work Procedure
 

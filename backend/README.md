@@ -29,12 +29,15 @@ Synthetic ContactOps routes:
 
 - `GET /api/v1/contact-ops/today?referenceDate=&workerId=&district=`
 - `GET /api/v1/contact-ops/cases/:caseId`
+- `POST /api/v1/contact-ops/session-reset` — test/E2E only. It exists only when `CONTACT_OPS_ENABLE_TEST_RESET=1`, requires `X-Demo-Session-ID` and exactly `{ "expected_marker": "[합성]" }`, and idempotently removes only that session's synthetic overrides. Production leaves this route unavailable.
+- `GET /api/v1/contact-ops/manager-breadth` — session-scoped transfer recommendations, separate score distributions, deterministic tuning warning, and approved-only `VRP 아님` nearest-order hint; no query parameters
 - `POST /api/v1/contact-ops/cases/:caseId/contact-results`
 - `POST /api/v1/contact-ops/cases/:caseId/triage/recalculate`
 - `GET /api/v1/contact-ops/visit-recommendations?referenceDate=&workerId=&district=`
 - `POST /api/v1/contact-ops/cases/:caseId/visit-decisions`
-- `POST /api/v1/contact-ops/cases/:caseId/ai-observations` — reserved for P3 and
-  returns `501 FEATURE_NOT_AVAILABLE` until the real Planner-Critic adapter is present
+- `POST /api/v1/contact-ops/cases/:caseId/ai-observations` — returns a Planner/Critic
+  candidate for consented masked text or a validated server-side WAV/MP3 reference;
+  a separate request with `confirmed: true` is required before deterministic rules run
 
 `bbox` uses `minLongitude,minLatitude,maxLongitude,maxLatitude` and is limited to a five-degree span. List endpoints cap `limit` at 500 (`zones` at 200) and `offset` at 100,000. Invalid, duplicate, and unknown query parameters return a versioned JSON error.
 
@@ -46,11 +49,24 @@ npm test
 npm run test:coverage
 ```
 
-## ContactOps Text Demo
+## ContactOps demo and AI boundary
 
-The backend package also contains the deterministic contact-first vertical slice. It does not call an LLM, voice API, database, or route optimizer.
+The backend package contains the deterministic contact-first vertical slice. Queue,
+scoring, follow-up, and manager decisions do not depend on an LLM or route optimizer.
+Local state is memory-backed and production synthetic-session overrides use Firestore.
 
-P1 operations mutations require `X-Demo-Session-ID` (16–128 opaque alphanumeric, `_`, or `-` characters) and optimistic `expected_revision`. Local/default state is deterministic memory; Cloud Run selects Firestore through `CONTACT_OPS_STATE_BACKEND=firestore`, and stores synthetic records only. `POST /api/v1/contact-ops/cases/:caseId/ai-observations` is deliberately `501 FEATURE_NOT_AVAILABLE` until P3.
+Operations mutations require `X-Demo-Session-ID` (16–128 opaque alphanumeric, `_`, or
+`-` characters) and optimistic `expected_revision`. The AI endpoint first produces a
+non-authoritative candidate with Critic arrays; candidate generation does not mutate state.
+Only an explicit confirmation request can feed the validated canonical observations into
+the existing deterministic rules. It cannot approve a visit or complete an institution
+transfer.
+
+Live Planner/Critic calls are fail-closed unless `ENABLE_LIVE_CONTACT_OPS_AI=1` and an
+`OPENAI_API_KEY` are configured. CI proves the graph with deterministic injected clients;
+it does not prove live-model quality. Do not enable the live public endpoint in production
+until authentication or an edge quota and a finite rate limit are configured. Audio input
+is a validated server-side file reference, not a public upload endpoint.
 
 From the repository root:
 
@@ -85,4 +101,6 @@ docker run --rm -p 8080:8080 \
   incheon-care-context-api
 ```
 
-The image runs as the unprivileged `node` user. The repository-root `.dockerignore` retains only `backend/**` and `public/data/**`, keeping this Cloud Build context small.
+The image runs as the unprivileged `node` user. The repository-root `.dockerignore` retains
+only the exact backend, voice runtime/schema, and `public/data/**` inputs needed by the
+container, keeping this Cloud Build context small.

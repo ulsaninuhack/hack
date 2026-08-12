@@ -228,6 +228,19 @@ gcloud firestore databases delete \
 
 ## Verification and operations
 
+The validation job does more than build the backend image. It starts that exact image with
+memory state, verifies non-root UID 1000, and smokes `/health`, manager breadth, and the
+156-zone/162-dong operations map. Keep these container-runtime checks when changing report
+scripts, `DATA_DIR`, the Dockerfile, or bundled `public/data` paths; source-only tests cannot
+prove that the image can resolve its runtime assets.
+
+For review builds, the temporary public frontend alias is
+`https://incheon-care-ops-preview.vercel.app` and its isolated backend is
+`incheon-care-api-preview` in `asia-northeast3`. The preview backend must use a separate
+synthetic Firestore collection, exact preview-origin CORS, min 0 / max 1, and live AI
+disabled. Do not broaden production CORS or point preview mutations at the production
+collection. Recheck whether to retain or delete this temporary service by 2026-08-15 KST.
+
 Inspect repository configuration before merging:
 
 ```bash

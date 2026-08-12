@@ -136,9 +136,15 @@ describe('P1 frozen ContactOps HTTP contract', () => {
       assert.equal(result.response.status, 200);
       assert.equal(result.body.data.synthetic, true);
     }
-    const ai = await mutation('/api/v1/contact-ops/cases/SYN-HH-2812551000-0001/ai-observations', { ...base, consented_masked_text: 'synthetic observation' });
-    assert.equal(ai.response.status, 501);
-    assert.equal(ai.body.error.code, 'FEATURE_NOT_AVAILABLE');
+    const ai = await mutation('/api/v1/contact-ops/cases/SYN-HH-2812551000-0001/ai-observations', {
+      ...base,
+      mode: 'candidate',
+      contact_date: '2026-08-12',
+      surveyor_id: '연결단원 001',
+      consented_masked_text: 'SYN-HH-2812551000-0001 합성 관찰',
+    });
+    assert.equal(ai.response.status, 200);
+    assert.equal(calls.at(-1)[0], 'ai');
     const preflight = await request('/api/v1/contact-ops/cases/SYN-HH-2812551000-0001/contact-results', {
       method: 'OPTIONS', headers: {
         Origin: 'https://care.example', 'Access-Control-Request-Method': 'POST',

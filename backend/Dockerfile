@@ -2,7 +2,16 @@ FROM node:24-bookworm-slim@sha256:3638d9a6fe4030bd716be989438248074489337ba32756
 
 ENV NODE_ENV=production \
     PORT=8080 \
-    DATA_DIR=/app/data
+    DATA_DIR=/app/data \
+    VOICE_AUDIO_DIR=/tmp/contact-ops-audio
+
+WORKDIR /voice
+
+COPY --chown=node:node voice/package.json ./package.json
+COPY --chown=node:node voice/package-lock.json ./package-lock.json
+RUN npm ci --omit=dev
+COPY --chown=node:node voice/src ./src
+COPY --chown=node:node voice/schema ./schema
 
 WORKDIR /app
 
@@ -10,6 +19,7 @@ COPY --chown=node:node backend/package.json ./package.json
 COPY --chown=node:node backend/package-lock.json ./package-lock.json
 RUN npm ci --omit=dev
 COPY --chown=node:node backend/src ./src
+COPY --chown=node:node backend/scripts ./scripts
 COPY --chown=node:node public/data ./data
 
 USER node

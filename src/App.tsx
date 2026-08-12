@@ -16,7 +16,13 @@ import {
 import { loadData } from './data'
 import MapView from './MapView'
 import type { DataBundle, DongProperties, MetricKey } from './types'
-import { ManagerPage, SurveyorPage } from './Operations'
+import { ManagerPage, SurveyorPage, ZoneOperationsPanel } from './Operations'
+import { loadStructuralContext } from './structuralContext'
+import type { StructuralContext } from './structuralContext'
+import { loadOperationsMap } from './contactOpsClient'
+import type { OperationsMap } from './contactOpsClient'
+
+const P2_MIXED_SNAPSHOT_WARNING = '분자 2026-07-31 · 분모 2026-06-30 · 서로 다른 기준월의 참고 비율이며 동시점 비율이 아닙니다.'
 
 const METRICS: Array<{ key: MetricKey; short: string; label: string; description: string }> = [
   {
@@ -59,6 +65,10 @@ function PublicMapApp() {
   const [search, setSearch] = useState('')
   const [mobilePanel, setMobilePanel] = useState(false)
   const [showMethodology, setShowMethodology] = useState(false)
+  const [mapMode, setMapMode] = useState<'public' | 'operations'>('public')
+  const [structuralContext, setStructuralContext] = useState<StructuralContext | null>(null)
+  const [operationsMap, setOperationsMap] = useState<OperationsMap | null>(null)
+  const [selectedOperationsZoneId, setSelectedOperationsZoneId] = useState<string | null>(null)
   const methodologyButtonRef = useRef<HTMLButtonElement>(null)
   const methodologyCloseRef = useRef<HTMLButtonElement>(null)
   const methodologyDialogRef = useRef<HTMLElement>(null)
@@ -67,6 +77,18 @@ function PublicMapApp() {
     loadData().then(setData).catch((cause: unknown) => {
       setError(cause instanceof Error ? cause.message : '데이터를 불러오지 못했습니다.')
     })
+  }, [])
+
+  useEffect(() => {
+    let active = true
+    void Promise.all([loadStructuralContext(), loadOperationsMap()]).then(([context, operations]) => {
+      if (!active) return
+      setStructuralContext(context)
+      setOperationsMap(operations)
+    }).catch(() => {
+      // The public aggregate map remains usable if the optional P7 overlays fail.
+    })
+    return () => { active = false }
   }, [])
 
   useEffect(() => {
@@ -149,7 +171,7 @@ function PublicMapApp() {
       <section className="guardrail" role="note">
         <ShieldCheck size={17} />
         <p><strong>지역 검토를 돕는 공개 집계 지도입니다.</strong> 개인·가구의 위험이나 복지 미수혜를 판정하지 않습니다.</p>
-        <span>비율은 1인세대 2026.07.31 분자 + 인구 2026.06.30 분모의 혼합 스냅샷 · 동시점 비율 아님</span>
+        <span>{P2_MIXED_SNAPSHOT_WARNING}</span>
       </section>
 
       <main className="workspace">
@@ -219,7 +241,12 @@ function PublicMapApp() {
             <span>현재 채색 기준</span>
             <strong>{activeMetric.label}</strong>
             <p>{activeMetric.description}</p>
-            {metric === 'age_65_plus_one_person_share_of_age_65_plus_population' && <em>2026.07.31 분자 + 2026.06.30 분모 · 동시점 비율 아님</em>}
+            {metric === 'age_65_plus_one_person_share_of_age_65_plus_population' && <em>{P2_MIXED_SNAPSHOT_WARNING}</em>}
+          </div>
+
+          <div className="public-map-mode map-mode-toggle" role="group" aria-label="지도 표시 모드">
+            <button type="button" aria-pressed={mapMode === 'public'} onClick={() => setMapMode('public')}>공개 인구 맥락</button>
+            <button type="button" aria-pressed={mapMode === 'operations'} onClick={() => setMapMode('operations')}>[합성] 연락업무</button>
           </div>
 
           <MapView
@@ -230,13 +257,21 @@ function PublicMapApp() {
             showBubbles={showBubbles}
             facilityCategory={facilityCategory}
             selectedZoneId={selectedDong?.geometry_zone_id ?? null}
-            onSelectDong={(dong) => { setSelectedDong(dong); setMobilePanel(true) }}
+            mapMode={mapMode}
+            structuralScores={structuralContext ? Object.fromEntries(structuralContext.zones.map((zone) => [zone.geometry_zone_id, zone.score_0_50])) : undefined}
+            operationsByZone={operationsMap ? Object.fromEntries(operationsMap.zones.map((zone) => [zone.geometry_zone_id, zone.operations])) : undefined}
+            onSelectDong={(dong) => { setSelectedDong(dong); setSelectedOperationsZoneId(dong.geometry_zone_id); setMobilePanel(true) }}
           />
 
           <Legend metric={metric} showFacilities={showFacilities} showBubbles={showBubbles} showTransit={showTransit} />
 
           {selectedDong && (
             <DetailPanel dong={selectedDong} openMobile={mobilePanel} onClose={() => { setSelectedDong(null); setMobilePanel(false) }} />
+          )}
+          {mapMode === 'operations' && selectedOperationsZoneId && (
+            <div className="public-zone-operations">
+              <ZoneOperationsPanel zone={operationsMap?.zones.find((zone) => zone.geometry_zone_id === selectedOperationsZoneId) ?? null} />
+            </div>
           )}
         </section>
       </main>
@@ -249,9 +284,9 @@ function PublicMapApp() {
             <ol>
               <li><strong>채색</strong><span>65세 이상 인구 대비 주민등록상 65세 이상 1인세대의 관측 비율을 구역끼리 비교합니다.</span></li>
               <li><strong>노란 원</strong><span>65세 이상 1인세대 수를 면적 비례로 보여 줍니다. 대표점이며 실제 가구 위치가 아닙니다.</span></li>
-              <li><strong>참고 레이어</strong><span>공식 시설, 버스 승하차 이벤트, 건축물대장 연령을 별도로 겹쳐 봅니다. 합산 점수는 만들지 않습니다.</span></li>
+              <li><strong>참고 레이어</strong><span>공식 시설, 버스 승하차 이벤트, 건축물대장 연령을 서로 분리해 겹쳐 봅니다.</span></li>
             </ol>
-            <div className="method-warning"><ShieldCheck size={16} /><p>비율은 2026.07.31 세대 분자와 2026.06.30 인구 분모를 결합한 혼합 스냅샷으로, 동시점 비율이 아닙니다. 개인·가구의 위험이나 복지 미수혜를 판정하지 않습니다.</p></div>
+            <div className="method-warning"><ShieldCheck size={16} /><p>{P2_MIXED_SNAPSHOT_WARNING} 개인·가구의 위험이나 복지 미수혜를 판정하지 않습니다.</p></div>
             <a href="/data/manifest.json" target="_blank" rel="noreferrer">전체 데이터 명세 열기</a>
           </section>
         </div>
@@ -271,7 +306,7 @@ function DetailPanel({ dong, onClose, openMobile }: { dong: DongProperties; onCl
       <button className="panel-close" onClick={onClose} aria-label="상세 닫기"><X size={18} /></button>
       <div className="detail-location"><span>{dong.current_district_name_20260701}</span><h2>{dong.current_admin_dong_names_20260701.join(' · ')}</h2><small>{statusLabel}</small></div>
       <div className="detail-hero"><span>65세 이상 1인세대</span><strong>{dong.one_person_households_age_65_plus.toLocaleString()}<small>세대</small></strong><p>65세 이상 인구 대비 {(dong.age_65_plus_one_person_share_of_age_65_plus_population * 100).toFixed(1)}%</p></div>
-      <p className="mixed-snapshot-note">비율은 2026.07.31 세대 분자와 2026.06.30 인구 분모를 결합한 참고값이며 동시점 비율이 아닙니다.</p>
+      <p className="mixed-snapshot-note">{P2_MIXED_SNAPSHOT_WARNING}</p>
       <div className="detail-stats">
         <div><span>총인구</span><strong>{dong.total_population.toLocaleString()}명</strong></div>
         <div><span>65세 이상 인구</span><strong>{dong.population_age_65_plus.toLocaleString()}명</strong></div>
@@ -296,7 +331,7 @@ function Legend({ metric, showFacilities, showBubbles, showTransit }: { metric: 
       <div className="legend-gradient" />
       <div className="legend-labels">{labels.map((label) => <small key={label}>{label}</small>)}</div>
       {metric === 'housing_age_30_plus_share_valid_pct' && <p className="no-data-key"><i />회색 구역은 주택 연령 자료 없음</p>}
-      {metric === 'age_65_plus_one_person_share_of_age_65_plus_population' && <p className="snapshot-key">혼합 스냅샷 · 동시점 비율 아님</p>}
+      {metric === 'age_65_plus_one_person_share_of_age_65_plus_population' && <p className="snapshot-key">{P2_MIXED_SNAPSHOT_WARNING}</p>}
       {(showFacilities || showBubbles || showTransit) && (
         <div className="point-legend" aria-label="활성 점 레이어 기호">
           {showFacilities && <><span><i className="facility-point-symbol" />시설</span><span><i className="facility-cluster-symbol">12</i>시설 묶음</span></>}

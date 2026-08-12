@@ -20,7 +20,7 @@
     },
     "case_id": {
       "type": ["string", "null"],
-      "pattern": "^CASE-[0-9]{4,8}$"
+      "pattern": "^(?:CASE-[0-9]{4,8}|SYN-HH-[0-9]{10}-[0-9]{4})$"
     },
     "transcript": {
       "type": "string",

@@ -1,5 +1,7 @@
 import { createApiServer } from './app.mjs';
 import { readFile } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+import { createContactOpsAiRuntime } from './contact-ops-ai-runtime.mjs';
 import { createContactOpsService } from './contact-ops-service.mjs';
 import { createFirestoreContactOpsState, createMemoryContactOpsState } from './contact-ops-state.mjs';
 import { loadDataStore } from './data-store.mjs';
@@ -27,6 +29,11 @@ async function loadSyntheticHouseholds() {
   }
   return dataset.households;
 }
+async function loadStructuralContext() {
+  const directory = process.env.DATA_DIR || new URL('../../public/data/', import.meta.url);
+  const path = directory instanceof URL ? new URL('structural-context.json', directory) : `${directory}/structural-context.json`;
+  return JSON.parse(await readFile(path, 'utf8'));
+}
 
 async function loadContactOpsState(households) {
   const backend = process.env.CONTACT_OPS_STATE_BACKEND || 'memory';
@@ -40,8 +47,47 @@ async function loadContactOpsState(households) {
 }
 
 const store = await loadDataStore();
-const contactOpsService = createContactOpsService({ state: await loadContactOpsState(await loadSyntheticHouseholds()) });
-const server = createApiServer({ store, logger, contactOpsService });
+let contactOpsAiRuntime;
+async function loadContactOpsAiRuntime() {
+  if (!contactOpsAiRuntime) {
+    const voiceAdapter = await import('../../voice/src/contact-ops-adapter.mjs');
+    contactOpsAiRuntime = createContactOpsAiRuntime({
+      voiceAdapter,
+      audioDirectory: process.env.VOICE_AUDIO_DIR || '/tmp/contact-ops-audio',
+    });
+  }
+  return contactOpsAiRuntime;
+}
+const aiAdapter = Object.freeze({
+  async planContactOpsObservation(input) {
+    return (await loadContactOpsAiRuntime()).planContactOpsObservation(input);
+  },
+  async assertContactOpsObservationCandidate(value) {
+    return (await loadContactOpsAiRuntime()).assertContactOpsObservationCandidate(value);
+  },
+});
+let tuningReport;
+async function loadTuningReport() {
+  if (tuningReport) return structuredClone(tuningReport);
+  const result = spawnSync(process.execPath, ['scripts/report-contact-triage.mjs'], {
+    cwd: new URL('..', import.meta.url), encoding: 'utf8', env: process.env,
+  });
+  if (result.error || result.status !== 0) throw new Error('Canonical synthetic tuning report is unavailable');
+  tuningReport = JSON.parse(result.stdout);
+  return structuredClone(tuningReport);
+}
+const contactOpsService = createContactOpsService({
+  state: await loadContactOpsState(await loadSyntheticHouseholds()),
+  aiAdapter,
+  loadTuningReport,
+  structuralContext: await loadStructuralContext(),
+});
+const server = createApiServer({
+  store,
+  logger,
+  contactOpsService,
+  enableDemoSessionReset: process.env.CONTACT_OPS_ENABLE_TEST_RESET === '1',
+});
 
 server.listen(port, '0.0.0.0', () => {
   logger.info({
