@@ -393,7 +393,6 @@ export function CenterPage() {
                       metric="age_65_plus_one_person_share_of_age_65_plus_population"
                       showFacilities={false}
                       showTransit={false}
-                      showBubbles={false}
                       facilityCategory="전체"
                       selectedZoneId={selectedVisit?.household.location.geometry_zone_id ?? 'vworld_sgis_20250630:23010530'}
                       syntheticPoint={selectedVisit ? {
