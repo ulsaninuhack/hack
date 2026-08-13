@@ -106,10 +106,9 @@ function assignmentStatusLabel(item: LaneItem) {
 }
 
 function ManagementEntrySummary({ item }: { item: LaneItem }) {
-  return <>
-    <span className="mobile-task-meta">등록 근거 · {item.management_entry ? managementIntakeLabel(item.management_entry.intake_channel) : '기록 확인 필요'}</span>
-    <span className="mobile-task-meta">연락 동의 기록 · 기존 정기 안부확인 중복 없음</span>
-  </>
+  // 연락 동의·중복 확인 문구는 모든 대상에 동일하므로 목록에서 반복하지
+  // 않는다. 상세 화면의 관리 확인 항목에만 남긴다.
+  return <span className="mobile-task-meta">등록 근거 · {item.management_entry ? managementIntakeLabel(item.management_entry.intake_channel) : '기록 확인 필요'}</span>
 }
 
 function AcuteContributionList({ item }: { item: LaneItem }) {

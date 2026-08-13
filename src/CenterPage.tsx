@@ -232,7 +232,6 @@ function ProposalRow({
         )}
         {item.lane === 'phone' && <>
           <div className="assignment-fact"><dt>등록 근거</dt><dd>{item.management_entry ? managementIntakeLabel(item.management_entry.intake_channel) : '기록 확인 필요'}</dd></div>
-          <div className="assignment-fact"><dt>관리 확인</dt><dd>연락 동의 기록 · 기존 정기 안부확인 중복 없음</dd></div>
         </>}
       </dl>
       {item.lane === 'visit' && item.급성도_기여내역.length > 0 && <ul className="mobile-acute-contributions" aria-label="급성도 주요 기여내역">
@@ -247,7 +246,7 @@ function ProposalRow({
       )}
       <CaseHistoryPanel caseId={item.case_id} />
       {item.lane === 'phone'
-        ? <p className="assignment-confirmed assignment-auto"><CheckCircle2 aria-hidden="true" size={17} /> 자동 배정됨 · {item.worker_display_name ?? '담당 미배정'}</p>
+        ? <p className="assignment-confirmed assignment-auto"><CheckCircle2 aria-hidden="true" size={17} /> 자동 배정됨</p>
         : item.escalation
           ? <p className="assignment-escalated"><AlertTriangle aria-hidden="true" size={17} /> 상급기관 신고됨 · {item.escalation.agency}</p>
           : item.status === 'confirmed'
@@ -624,7 +623,7 @@ export function CenterPage({ reviewCaseId = null }: { reviewCaseId?: string | nu
             <div className="center-main">
               <section id="center-assignment" className="center-section" aria-labelledby="assignment-heading">
                 <h2 id="assignment-heading">오늘 배치</h2>
-                <p className="assignment-rule-note">전화는 자동 배정됩니다. 방문은 확인 또는 상급기관 신고로 처리합니다.</p>
+                <p className="assignment-rule-note">전화는 자동 배정됩니다. 방문은 확인 또는 상급기관 신고로 처리합니다. 모든 대상은 연락 동의 기록과 정기 안부확인 중복 확인을 마친 관리 대상입니다.</p>
                 {proposal === null ? <p className="ops-empty">오늘 예정된 배치 제안이 없습니다.</p> : (
                   <>
                     <div className="lane-tabs" role="tablist" aria-label="전화 레인과 방문 레인">
