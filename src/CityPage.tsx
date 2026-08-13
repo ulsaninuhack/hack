@@ -4,10 +4,9 @@ import MapView from './MapView'
 import { loadData } from './data'
 import type { DataBundle, DongProperties } from './types'
 import { loadCityOperationsMap } from './threeTierClient'
-import type { CityOperationsMap, CityOperationsMapZone } from './threeTierClient'
+import type { CityOperationsMap } from './threeTierClient'
 import { loadDistrictAggregates, loadDistrictAiSummary } from './threeTierClient'
 import type { DistrictAggregate, DistrictAggregates, DistrictAiSummary } from './threeTierClient'
-import { formatScore } from './scoreFormat'
 
 function formatPct(value: number | null) {
   return value === null ? '자료 없음' : `${value}%`
@@ -41,29 +40,6 @@ function buildDistrictReviewMessages(aggregates: DistrictAggregates | null, dist
     messages.push(`${district}는 방문 권고 ${highestPendingVisit.operations.pending_visit_approval_count}건이 인천에서 가장 많이 담당자 승인 대기 중이어서 우선 검토가 필요합니다.`)
   }
   return messages
-}
-
-// INV17: 시·구 화면은 동 단위 롤업까지만 보여준다. 케이스 ID·개별 상세는
-// 이 컴포넌트에 절대 렌더하지 않는다(케이스 ID 필드는 의도적으로 미사용).
-function CityZoneRollup({ zone, dong }: { zone: CityOperationsMapZone | null; dong: DongProperties | null }) {
-  if (!zone || !dong) {
-    return <p className="ops-empty">지도에서 동을 선택하면 동 단위 롤업이 나옵니다.</p>
-  }
-  const operations = zone.operations
-  return (
-    <section className="city-zone-rollup" aria-label="선택한 동 단위 롤업">
-      <h3>{dong.current_district_name_20260701} {dong.current_admin_dong_names_20260701.join(' · ')}</h3>
-      <dl className="city-zone-metrics">
-        <div><dt>급성도 최대(구역)</dt><dd>{formatScore(operations.acute_color_metric, '점수 없음')}</dd></div>
-        <div><dt>취약도 최대(구역)</dt><dd>{formatScore(operations.vulnerability_size_metric, '점수 없음')}</dd></div>
-        <div><dt>점수 출처</dt><dd>세션 기록 {operations.session_scored_case_count}건 · 고정 예시 {operations.scenario_scored_case_count}건 · 미기록 {operations.unscored_case_count}건</dd></div>
-      </dl>
-      <div className="city-zone-structure">
-        <span className="structural-model-label">{zone.public_structural_context.model_output_label}</span>
-        <p>공개 구조 맥락 {zone.public_structural_context.score_0_50.toFixed(1)} / 50</p>
-      </div>
-    </section>
-  )
 }
 
 type CityDongRollup = NonNullable<CityOperationsMap['dong_rollups']>[number]
@@ -229,9 +205,6 @@ export function CityPage() {
     return () => { active = false }
   }, [])
 
-  const selectedZone = useMemo(() => operationsMap?.zones.find(
-    (zone) => zone.geometry_zone_id === selectedDong?.geometry_zone_id,
-  ) ?? null, [operationsMap, selectedDong])
   const selectedDongRollups = useMemo(() => operationsMap?.dong_rollups?.filter(
     (rollup) => rollup.geometry_zone_id === selectedDong?.geometry_zone_id,
   ) ?? [], [operationsMap, selectedDong])
@@ -296,8 +269,6 @@ export function CityPage() {
               ? <DistrictBrief aggregate={selectedAggregate} summary={summary} summaryBusy={summaryBusy} cityReviewMessages={cityReviewMessages} onRequestSummary={() => void requestSummary()} />
               : <p className="ops-state" role="status">구 단위 집계를 불러오는 중입니다.</p>}
           </section>
-
-          <CityZoneRollup zone={selectedZone} dong={selectedDong} />
         </aside>
 
         <section className="city-map" aria-label="인천 전체 지도">

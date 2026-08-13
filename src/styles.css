@@ -557,7 +557,7 @@ select:focus-visible,
 /* /city */
 .city-columns { display: grid; grid-template-columns: 420px minmax(0, 1fr); gap: 14px; align-items: start; }
 .city-panel { display: grid; gap: 14px; max-height: calc(100dvh - 170px); overflow-y: auto; padding-right: 2px; }
-.city-section, .city-zone-rollup { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 16px; }
+.city-section { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 16px; }
 .city-map { position: sticky; top: 10px; height: calc(100dvh - 170px); border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--line); }
 .city-map .map { height: 100%; }
 .city-dong-overlay { position: absolute; z-index: 4; top: 18px; right: 18px; width: min(320px, calc(100% - 36px)); padding: 16px; border: 1px solid var(--gg-violet-200); border-radius: 18px; background: rgba(255,255,255,.96); box-shadow: 0 18px 44px rgba(28,10,136,.2); backdrop-filter: blur(12px); animation: gg-fade-in-y .25s var(--ease) both; }
@@ -607,11 +607,6 @@ select:focus-visible,
 .city-ai-metrics { border-top: 1px solid var(--line); padding-top: 6px; }
 .city-ai-summary-card ul { margin: 0; padding-left: 20px; font-size: 16px; display: grid; gap: 4px; }
 .city-ai-summary-card .city-ai-points { margin: 4px 0 0; padding: 0; font-size: 14px; gap: 0; }
-.city-zone-metrics { display: grid; gap: 8px; margin: 0; }
-.city-zone-metrics div { display: grid; grid-template-columns: 150px 1fr; gap: 8px; }
-.city-zone-metrics dt { color: var(--muted); }
-.city-zone-metrics dd { margin: 0; font-weight: 700; }
-.city-zone-structure { margin-top: 10px; display: grid; gap: 6px; }
 
 /* /city — Gamegoo(https://github.com/Gamegoo-repo/Gamegoo-front-v2)에서 참고한
    violet/magenta 색상 팔레트와 애니메이션. 문구·데이터는 변경하지 않고 시각 레이어만. */
@@ -647,14 +642,14 @@ select:focus-visible,
 .city-page .tier-header nav a { background: rgba(255,255,255,.14); color: #fff; transition: background .2s var(--ease), transform .2s var(--ease); }
 .city-page .tier-header nav a:hover { background: rgba(255,255,255,.24); transform: translateY(-1px); }
 
-.city-page .city-section, .city-page .city-zone-rollup {
+.city-page .city-section {
   border: none;
   border-radius: 20px;
   box-shadow: 0 10px 28px rgba(69,42,234,.10), 0 2px 6px rgba(69,42,234,.06);
   animation: gg-fade-in-y .45s var(--ease) both;
   transition: box-shadow .2s var(--ease);
 }
-.city-page .city-section:hover, .city-page .city-zone-rollup:hover { box-shadow: 0 16px 36px rgba(69,42,234,.16), 0 4px 10px rgba(69,42,234,.08); }
+.city-page .city-section:hover { box-shadow: 0 16px 36px rgba(69,42,234,.16), 0 4px 10px rgba(69,42,234,.08); }
 
 .city-page .city-stat-bar-fill { background: linear-gradient(90deg, var(--gg-violet-400), var(--gg-violet-600)); }
 .city-page .city-ai-summary > button { background: var(--gg-violet-600); }

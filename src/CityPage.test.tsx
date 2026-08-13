@@ -189,14 +189,14 @@ describe('CityPage (시·구 /city)', () => {
     expect(document.documentElement.outerHTML).not.toContain(BANNED_GROUP_WORD)
   })
 
-  it('keeps the dong rollup case-free even after selecting a zone with a max-case ID (INV17)', async () => {
+  it('does not render the legacy zone score card after selecting a zone (INV17)', async () => {
     arrange()
     const user = userEvent.setup()
     render(<CityPage />)
     await screen.findByLabelText('제물포구 구 단위 브리핑')
     await user.click(screen.getByRole('button', { name: '지도 동 선택' }))
-    const rollup = await screen.findByLabelText('선택한 동 단위 롤업')
-    expect(within(rollup).getByText(/급성도 최대\(구역\)/)).toBeInTheDocument()
+    expect(screen.queryByLabelText('선택한 동 단위 롤업')).not.toBeInTheDocument()
+    expect(screen.queryByText(/급성도 최대\(구역\)/)).not.toBeInTheDocument()
     expect(document.documentElement.outerHTML).not.toMatch(/SYN-HH-/)
   })
 
