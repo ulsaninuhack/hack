@@ -31,12 +31,13 @@ UI 변경은 [`docs/UI_UX_REVIEW_RUBRIC.md`](docs/UI_UX_REVIEW_RUBRIC.md)의 조
 
 ## 합성 ContactOps 개발 데이터
 
-이웃연결단의 전화 안부 확인, 미응답·이상징후 후속조치, 방문 권고, 담당자 승인 흐름을 병렬 개발할 수 있도록 결정적 합성 계약을 제공한다. 현행 162개 읍면동마다 일반 표시명의 연결단원 1명과 합성 연락업무 20~50건을 생성한다. 현재 seed의 결과는 연결단원 162명, 합성 연락업무 5,869건이며 기준일 `2026-08-12`까지 연락해야 하는 업무는 3,616건이다. 선호 연락수단은 전화 5,291건, 방문 578건이고, fixture 생성 시점에 사전 승인된 방문은 0건이다.
+이웃연결단의 전화 안부 확인, 미응답·이상징후 후속조치, 방문 권고, 담당자 승인 흐름을 병렬 개발할 수 있도록 결정적 합성 계약을 제공한다. 현행 162개 읍면동마다 연결단원 1명을 두고, 합성 연락업무 5,869건은 실제 동별 65세 이상 1인세대 관측 수에 비례해 배분한다. 기준일 `2026-08-12`까지 연락해야 하는 업무는 3,597건이며 전화 선호 5,289건, 방문 선호 580건, 사전 승인 방문 0건이다.
 
 초기 세션에는 실제 연락 결과가 없으므로 운영 지도가 비어 보이지 않도록 현행 행정동마다 가장 작은 합성 업무 ID 1건, 총 162건에만 결정적 배점 시나리오를 표시한다. 이는 156개 지도구역을 모두 채우는 **`[합성 시나리오]` 미리보기**이며, 세션에서 입력한 연락 결과 점수는 같은 케이스의 예시를 대체한다. 나머지 업무는 계속 미기록으로 구분하고, 시나리오는 workflow나 방문 승인·경로 제약을 만들지 않는다.
 
 - `public/data/synthetic-workers.json`
 - `public/data/synthetic-households.json`
+- `public/data/synthetic-residential-address-anchors.json`
 - `public/data/synthetic-care-ops-manifest.json`
 - `data/schemas/synthetic-worker.schema.json`
 - `data/schemas/synthetic-household.schema.json`
@@ -45,7 +46,7 @@ UI 변경은 [`docs/UI_UX_REVIEW_RUBRIC.md`](docs/UI_UX_REVIEW_RUBRIC.md)의 조
 - `backend/src/contact-triage-scoring.mjs`
 - `backend/src/contact-triage-synthetic-scenario.mjs`
 
-모든 레코드는 `synthetic=true`이고 이름·주소·전화번호가 없다. 좌표는 2025 지도구역 안에 생성한 합성 점이며 실제 주거 위치가 아니다. 중심 필드는 `next_contact_date`, `preferred_contact_method`, `consecutive_no_answer_count`, `follow_up_deadline`, `follow_up_status`, `visit_approval_status`, `transfer_status`, `last_contact_result`다. `visit_approval_status`는 규칙 권고 전에는 `null`이며, 방문 제약과 `max_route_distance_km`는 담당자가 명시 승인한 뒤에만 생긴다. UI·규칙 그래프 사용법과 162→156 공간 제약은 [`docs/SYNTHETIC_CARE_OPS_DATA.md`](docs/SYNTHETIC_CARE_OPS_DATA.md)를 따른다.
+모든 업무 레코드는 `synthetic=true`이고 주민 이름·전화번호·호수·주민 속성이 없다. 대신 공식 주소DB·주거용 건축물대장·건물도형을 결합한 실제 공개 주거건물 주소와 대표좌표를 합성 업무 기준점으로 쓴다. 중심 필드는 `next_contact_date`, `preferred_contact_method`, `consecutive_no_answer_count`, `follow_up_deadline`, `follow_up_status`, `visit_approval_status`, `transfer_status`, `last_contact_result`다. `visit_approval_status`는 규칙 권고 전에는 `null`이며, 방문 제약과 `max_route_distance_km`는 담당자가 명시 승인한 뒤에만 생긴다. UI·규칙 그래프 사용법과 162→156 공간 제약은 [`docs/SYNTHETIC_CARE_OPS_DATA.md`](docs/SYNTHETIC_CARE_OPS_DATA.md)를 따른다.
 
 현재 최소 데모는 LLM 없이 결정론적으로 돈다. 연락·기한 규칙 뒤에 급성도와 취약도를 합치지 않는 2축 트리아지를 적용한다. 모든 점수는 기여내역을 반환하고, 방문 임계값은 권고만 만들며 담당자 승인 전에는 경로 제약이 생기지 않는다. 세부 배점·정렬·역전 감시는 [`docs/CONTACT_TRIAGE_SCORING.md`](docs/CONTACT_TRIAGE_SCORING.md)를 따른다.
 
@@ -159,7 +160,7 @@ npm run validate:data
 - `GET /api/v1/contact-ops/cases/:caseId`
 - `GET /api/v1/contact-ops/visit-recommendations`
 - `GET /api/v1/contact-ops/manager-breadth`
-- `GET /api/v1/contact-ops/operations-map`
+- `GET /api/v1/contact-ops/operations-map` — 156구역 운영 집계와 실제 공개 주거건물 기준 `visit_review_points`
 - `POST /api/v1/contact-ops/cases/:caseId/contact-results`
 - `POST /api/v1/contact-ops/cases/:caseId/triage/recalculate`
 - `POST /api/v1/contact-ops/cases/:caseId/visit-decisions`

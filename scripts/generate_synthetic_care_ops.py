@@ -3,8 +3,9 @@
 
 The output records are workload fixtures for contact queues, deterministic rule
 graphs, and conditional approved-visit planning. They are not synthetic people,
-estimated residents, inferred beneficiaries, or risk predictions. No names,
-addresses, phone numbers, or real household coordinates are used.
+estimated residents, inferred beneficiaries, or risk predictions. Synthetic
+tasks use public residential-building addresses and representative coordinates,
+never resident names, phone numbers, or resident attributes.
 """
 
 from __future__ import annotations
@@ -24,9 +25,10 @@ from typing import Any, Iterable, Mapping, Sequence
 
 
 SCHEMA_VERSION = "2.0.0"
-GENERATOR_VERSION = 2
+GENERATOR_VERSION = 3
 DEFAULT_SEED = 20_260_812
 DEFAULT_SCENARIO_DATE = "2026-08-12"
+TOTAL_SYNTHETIC_CASES = 5_869
 OUTPUT_FILES = (
     "synthetic-workers.json",
     "synthetic-households.json",
@@ -253,6 +255,77 @@ def load_admin_contract(
     return admin_contract, geometry_by_id
 
 
+def allocate_case_counts(
+    demographics_rows: Sequence[Mapping[str, str]],
+    total_cases: int = TOTAL_SYNTHETIC_CASES,
+) -> dict[str, int]:
+    try:
+        observed = {
+            row["admin_dong_code_20260701"]: int(
+                row["one_person_households_age_65_plus"]
+            )
+            for row in demographics_rows
+        }
+    except (KeyError, ValueError) as exc:
+        raise BuildError("invalid age-65-plus one-person demographics") from exc
+    if len(observed) != 162 or any(value <= 0 for value in observed.values()):
+        raise BuildError("demographics must contain 162 positive observed counts")
+    observed_total = sum(observed.values())
+    ideals = {
+        code: total_cases * value / observed_total for code, value in observed.items()
+    }
+    allocated = {code: max(1, int(value)) for code, value in ideals.items()}
+    remaining = total_cases - sum(allocated.values())
+    if remaining < 0:
+        raise BuildError("total synthetic case count is too small")
+    order = sorted(
+        allocated,
+        key=lambda code: (-(ideals[code] - int(ideals[code])), code),
+    )
+    for code in order[:remaining]:
+        allocated[code] += 1
+    if sum(allocated.values()) != total_cases:
+        raise BuildError("largest-remainder allocation failed to preserve total")
+    return allocated
+
+
+def load_address_anchors(
+    path: Path,
+    expected_counts: Mapping[str, int],
+) -> dict[str, list[dict[str, Any]]]:
+    payload = read_json(path)
+    if (
+        payload.get("schema_version")
+        != "synthetic-residential-address-anchors-v1.0.0"
+        or payload.get("synthetic") is not True
+        or payload.get("not_real_resident") is not True
+    ):
+        raise BuildError("invalid synthetic residential address anchor contract")
+    by_code: dict[str, list[dict[str, Any]]] = {}
+    for anchor in payload.get("anchors", []):
+        code = anchor.get("current_admin_dong_code_20260701")
+        if code not in expected_counts:
+            raise BuildError(f"address anchor has unknown current dong code: {code}")
+        by_code.setdefault(code, []).append(anchor)
+    actual_counts = {code: len(rows) for code, rows in by_code.items()}
+    if actual_counts != dict(expected_counts):
+        raise BuildError("address anchor counts differ from observed-data allocation")
+    for code, rows in by_code.items():
+        rows.sort(key=lambda row: row["anchor_id"])
+        for anchor in rows:
+            if (
+                not isinstance(anchor.get("road_address"), str)
+                or not anchor["road_address"].startswith("인천광역시 ")
+                or not isinstance(anchor.get("reference_pnu"), str)
+                or len(anchor["reference_pnu"]) != 19
+                or not anchor["reference_pnu"].isdigit()
+                or anchor.get("residential_building_reference") is not True
+                or anchor.get("not_real_resident") is not True
+            ):
+                raise BuildError(f"invalid residential address anchor for {code}")
+    return by_code
+
+
 def make_location(
     admin: Mapping[str, Any], longitude: float, latitude: float
 ) -> dict[str, Any]:
@@ -266,6 +339,39 @@ def make_location(
         "geometry_resolution": admin["geometry_resolution"],
         "mapping_method": admin["mapping_method"],
         "spatial_basis": "synthetic_point_within_2025_geometry_zone",
+    }
+
+
+def make_household_location(
+    admin: Mapping[str, Any], anchor: Mapping[str, Any]
+) -> dict[str, Any]:
+    if (
+        anchor.get("current_admin_dong_code_20260701") != admin["code"]
+        or anchor.get("geometry_zone_id") != admin["geometry_zone_id"]
+    ):
+        raise BuildError("address anchor does not match the admin-dong contract")
+    return {
+        "longitude": float(anchor["longitude"]),
+        "latitude": float(anchor["latitude"]),
+        "geometry_zone_id": admin["geometry_zone_id"],
+        "current_admin_dong_code_20260701": admin["code"],
+        "current_admin_dong_name_20260701": admin["dong"],
+        "current_district_name_20260701": admin["district"],
+        "geometry_resolution": admin["geometry_resolution"],
+        "mapping_method": admin["mapping_method"],
+        "spatial_basis": "official_residential_building_address_reference",
+        "reference_pnu": anchor["reference_pnu"],
+        "road_address": anchor["road_address"],
+        "building_name": anchor["building_name"],
+        "main_use_names": list(anchor["main_use_names"]),
+        "apartment_reference": bool(anchor["apartment_reference"]),
+        "residential_building_reference": True,
+        "address_source": anchor["address_source"],
+        "coordinate_source": anchor["coordinate_source"],
+        "residential_classification_sources": list(
+            anchor["residential_classification_sources"]
+        ),
+        "not_real_resident": True,
     }
 
 
@@ -390,17 +496,13 @@ def contact_state(
 
 def household_record(
     admin: Mapping[str, Any],
-    feature: Mapping[str, Any],
+    address_anchor: Mapping[str, Any],
     dong_index: int,
     seed: int,
     scenario_day: date,
 ) -> dict[str, Any]:
     code = admin["code"]
     household_id = f"SYN-HH-{code}-{dong_index:04d}"
-    rng = stable_rng(seed, "household", code, dong_index)
-    longitude, latitude = sample_point(
-        feature["geometry"], admin["representative_point"], rng
-    )
     contact, workflow = contact_state(code, dong_index, seed, scenario_day)
     window_start, window_end = TIME_WINDOWS[
         stable_int(seed, code, dong_index, "time") % len(TIME_WINDOWS)
@@ -413,7 +515,7 @@ def household_record(
     return {
         "id": household_id,
         "synthetic": True,
-        "location": make_location(admin, longitude, latitude),
+        "location": make_household_location(admin, address_anchor),
         "contact": contact,
         "visit_context": {
             "preferred_visit_time_window": {"start": window_start, "end": window_end},
@@ -435,6 +537,8 @@ def household_record(
 def build_datasets(
     admin_contract: Sequence[Mapping[str, Any]],
     geometry_by_id: Mapping[str, Mapping[str, Any]],
+    household_counts: Mapping[str, int],
+    address_anchors: Mapping[str, Sequence[Mapping[str, Any]]],
     seed: int,
     scenario_date: str,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
@@ -447,10 +551,19 @@ def build_datasets(
     for city_index, admin in enumerate(admin_contract, start=1):
         feature = geometry_by_id[admin["geometry_zone_id"]]
         workers.append(worker_record(admin, feature, city_index, seed))
-        household_count = 20 + stable_int(seed, admin["code"], "household_count") % 31
+        household_count = household_counts[admin["code"]]
+        anchors = address_anchors[admin["code"]]
+        if len(anchors) != household_count:
+            raise BuildError("address anchor count differs from allocated workload")
         for dong_index in range(1, household_count + 1):
             households.append(
-                household_record(admin, feature, dong_index, seed, scenario_day)
+                household_record(
+                    admin,
+                    anchors[dong_index - 1],
+                    dong_index,
+                    seed,
+                    scenario_day,
+                )
             )
 
     shared_spatial_contract = {
@@ -469,7 +582,8 @@ def build_datasets(
         "scenario_reference_date": scenario_date,
         "seed": seed,
         "guardrail": (
-            "합성 운영업무이며 실제 주민·수급자·고립자·고독사 위험자 또는 미수혜자 추정치가 아니다."
+            "공개 주거건물 주소를 기준점으로 쓴 합성 운영업무이며 해당 주소의 실제 "
+            "주민·수급자·고립자·고독사 위험자 또는 미수혜자 추정치가 아니다."
         ),
         "spatial_contract": shared_spatial_contract,
     }
@@ -501,6 +615,7 @@ def validate_datasets(
     household_payload: Mapping[str, Any],
     admin_contract: Sequence[Mapping[str, Any]],
     geometry_by_id: Mapping[str, Mapping[str, Any]],
+    expected_household_counts: Mapping[str, int],
 ) -> dict[str, Any]:
     workers = worker_payload["workers"]
     households = household_payload["households"]
@@ -553,8 +668,9 @@ def validate_datasets(
         "household_buckets_cover_162_current_admin_dongs": (
             set(household_counts) == current_codes
         ),
-        "household_count_per_dong_between_20_and_50": all(
-            20 <= household_counts[code] <= 50 for code in current_codes
+        "household_counts_match_observed_age_65_plus_one_person_allocation": (
+            dict(household_counts) == dict(expected_household_counts)
+            and len(households) == TOTAL_SYNTHETIC_CASES
         ),
         "due_and_future_contact_tasks_exist": bool(
             due_contact_tasks and future_contact_tasks
@@ -575,6 +691,16 @@ def validate_datasets(
             len({household["id"] for household in households}) == len(households)
         ),
         "coordinates_inside_declared_geometry_zones": coordinates_inside,
+        "every_household_uses_public_residential_address_reference": all(
+            household["location"].get("spatial_basis")
+            == "official_residential_building_address_reference"
+            and household["location"].get("residential_building_reference") is True
+            and household["location"].get("not_real_resident") is True
+            and str(household["location"].get("road_address", "")).startswith(
+                "인천광역시 "
+            )
+            for household in households
+        ),
         "no_forbidden_person_risk_or_beneficiary_keys": not forbidden,
         "no_visit_is_preapproved_by_fixture_generation": all(
             household["workflow"]["visit_approval_status"] is None
@@ -610,6 +736,14 @@ def validate_datasets(
             "phone_preferred_tasks": len(phone_tasks),
             "visit_preferred_tasks": len(households) - len(phone_tasks),
             "approved_visit_tasks": 0,
+            "apartment_reference_tasks": sum(
+                1
+                for household in households
+                if household["location"]["apartment_reference"] is True
+            ),
+            "unique_reference_pnus": len(
+                {household["location"]["reference_pnu"] for household in households}
+            ),
         },
     }
 
@@ -664,6 +798,8 @@ def build(
     current_dongs_path: Path,
     crosswalk_path: Path,
     geometry_path: Path,
+    demographics_path: Path,
+    address_anchors_path: Path,
     output_dir: Path,
     seed: int,
     scenario_date: str,
@@ -671,11 +807,24 @@ def build(
     admin_contract, geometry_by_id = load_admin_contract(
         current_dongs_path, crosswalk_path, geometry_path
     )
+    household_counts = allocate_case_counts(read_csv(demographics_path))
+    if set(household_counts) != {admin["code"] for admin in admin_contract}:
+        raise BuildError("demographics and admin-contract code sets differ")
+    address_anchors = load_address_anchors(address_anchors_path, household_counts)
     worker_payload, household_payload = build_datasets(
-        admin_contract, geometry_by_id, seed, scenario_date
+        admin_contract,
+        geometry_by_id,
+        household_counts,
+        address_anchors,
+        seed,
+        scenario_date,
     )
     validation = validate_datasets(
-        worker_payload, household_payload, admin_contract, geometry_by_id
+        worker_payload,
+        household_payload,
+        admin_contract,
+        geometry_by_id,
+        household_counts,
     )
     return write_outputs(output_dir, worker_payload, household_payload, validation)
 
@@ -687,6 +836,8 @@ def check_existing(args: argparse.Namespace) -> dict[str, str]:
             args.current_dongs,
             args.crosswalk,
             args.geometry,
+            args.demographics,
+            args.address_anchors,
             generated,
             args.seed,
             args.scenario_date,
@@ -727,6 +878,26 @@ def parse_args() -> argparse.Namespace:
         default=repo_root / "public" / "data" / "admin-dongs.geojson",
     )
     parser.add_argument(
+        "--demographics",
+        type=Path,
+        default=(
+            repo_root
+            / "data"
+            / "processed"
+            / "demographics_admin_dong_202607.csv"
+        ),
+    )
+    parser.add_argument(
+        "--address-anchors",
+        type=Path,
+        default=(
+            repo_root
+            / "public"
+            / "data"
+            / "synthetic-residential-address-anchors.json"
+        ),
+    )
+    parser.add_argument(
         "--output-dir", type=Path, default=repo_root / "public" / "data"
     )
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
@@ -749,6 +920,8 @@ def main() -> int:
                 args.current_dongs,
                 args.crosswalk,
                 args.geometry,
+                args.demographics,
+                args.address_anchors,
                 args.output_dir,
                 args.seed,
                 args.scenario_date,

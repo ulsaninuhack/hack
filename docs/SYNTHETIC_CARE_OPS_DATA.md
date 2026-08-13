@@ -7,7 +7,8 @@ UI와 전화 안부·후속조치·방문 권고·담당자 승인 흐름을 병
 | 파일 | 용도 | 현재 건수 |
 | --- | --- | ---: |
 | `public/data/synthetic-workers.json` | 연결단원 목록·현재 위치·근무/이동 제약 | 162명, 현행 동별 1명 |
-| `public/data/synthetic-households.json` | 전화 우선 연락업무·후속조치·방문 권고 전 상태·방문 맥락 | 5,869건, 동별 20~50건 |
+| `public/data/synthetic-households.json` | 전화 우선 연락업무·후속조치·방문 권고 전 상태·공개 주거건물 기준점 | 5,869건, 동별 2~97건 |
+| `public/data/synthetic-residential-address-anchors.json` | 실제 공개 도로명주소·주거용 건물 대표좌표와 합성 업무의 결정적 연결 | 5,869건, 고유 PNU 5,683개 |
 | `public/data/synthetic-care-ops-manifest.json` | 건수, 검증 결과, SHA-256, 사용 경계 | 1개 |
 | `data/schemas/synthetic-worker.schema.json` | 연결단원 데이터 JSON Schema 2020-12 | schema `2.0.0` |
 | `data/schemas/synthetic-household.schema.json` | 합성 연락업무 JSON Schema 2020-12 | schema `2.0.0` |
@@ -42,10 +43,12 @@ MapLibre 점 레이어는 각 레코드의 `location.longitude`와 `location.lat
 | 2025 지도구역 | 156 |
 | 연결단원 | 162 |
 | 합성 연락업무 | 5,869 |
-| 기준일까지 연락해야 하는 업무 | 3,616 |
-| 기준일 이후 연락업무 | 2,253 |
-| 전화 선호 업무 | 5,291 |
-| 방문 선호 업무 | 578 |
+| 기준일까지 연락해야 하는 업무 | 3,597 |
+| 기준일 이후 연락업무 | 2,272 |
+| 전화 선호 업무 | 5,289 |
+| 방문 선호 업무 | 580 |
+| 아파트·공동주택 참조 업무 | 2,303 |
+| 고유 주거건물 PNU | 5,683 |
 | 사전 승인된 방문 | 0 |
 
 ## 162개 현행 동과 156개 지도구역
@@ -53,7 +56,7 @@ MapLibre 점 레이어는 각 레코드의 `location.longitude`와 `location.lat
 - 레코드는 **2026-07-01 현행 162개 읍면동마다** 생성한다.
 - 지도 폴리곤은 검증된 **2025-06-30 공간구역 156개**를 사용한다.
 - 운서1·2동과 아라1·2동, 출장소 4곳은 각각 동일한 상위 2025 공간구역을 공유한다.
-- 이 구역의 합성 점은 공유 폴리곤 안에 있지만 최신 분리 경계를 의미하지 않는다.
+- 이 구역의 점은 공개 주거건물 주소·대표좌표이지만 공유 폴리곤은 최신 분리 경계를 의미하지 않는다.
 - UI에서는 `geometry_resolution`과 `mapping_method`로 이 한계를 표시할 수 있다.
 
 ## 연락업무 필드 계약
@@ -124,9 +127,9 @@ task.approved_visit_constraints !== null
 
 `requires_public_official_companion=true`인 업무는 항상 `requires_two_person_team=true`다. 이후 OR-Tools 같은 경로 엔진을 붙일 때 이 조건은 LLM 프롬프트가 아니라 하드 제약으로 유지한다.
 
-## LLM·음성 연결 계획
+## LLM·음성 연결
 
-`voice/` 3a 단계는 동의받고 개인정보를 마스킹한 텍스트를 OpenAI Structured Outputs의 고정 JSON 계약으로 구조화한다. 다만 그 출력을 ContactOps에 적용하는 어댑터, 오디오 파일 전사, Realtime/WebRTC는 아직 구현하지 않았다. 결정론적 규칙이 최종 상태 전환을 소유하며, LLM 연결은 다음 세 지점에만 붙인다.
+`voice/` 3a 단계는 동의받고 개인정보를 마스킹한 텍스트를 OpenAI Structured Outputs의 고정 JSON 계약으로 구조화하고, 3b는 검증된 WAV/MP3 입력을 같은 계약으로 연결한다. ContactOps 어댑터는 Planner와 별도 Critic 결과를 확인 후보로만 내보내며, 사용자가 명시 확인한 뒤에만 canonical 관찰값을 적용한다. Realtime/WebRTC는 아직 구현하지 않았다. 결정론적 규칙이 최종 상태 전환을 소유하며, LLM 연결은 다음 세 지점에만 붙인다.
 
 - 음성·텍스트 메모를 구조화된 연락결과로 변환
 - 이전 기록과 현재 발화의 모순·누락 탐지
@@ -137,6 +140,7 @@ task.approved_visit_constraints !== null
 ## 재생성과 검증
 
 ```bash
+python3 data/scripts/build_synthetic_residential_address_anchors.py
 npm run prepare:synthetic-data
 npm run validate:synthetic-data
 npm run test:synthetic-data
@@ -147,7 +151,8 @@ npm --prefix backend run report:contact-triage
 생성기는 seed `20260812`를 사용하며 동일 입력에서 바이트 단위로 같은 결과를 만든다. 검증기는 다음을 강제한다.
 
 - 현행 162개 동 전체 포함
-- 동별 합성 연락업무 20~50건
+- 2026-07-31 동별 65세 이상 1인세대 관측 수에 비례한 고정 총량 5,869건
+- 실제 공개 주거건물 주소·대표좌표 앵커 5,869건과 생성 업무의 1:1 연결
 - 동별 연결단원 1명
 - 모든 좌표가 선언한 2025 지도구역 내부
 - ID 중복 0건
@@ -159,8 +164,9 @@ npm --prefix backend run report:contact-triage
 ## 개인정보·표현 경계
 
 - `연결단원 001` 같은 일반 표시명만 사용한다.
-- 가구에는 이름·주소·전화번호·실제 건물 위치를 넣지 않는다.
-- 좌표는 경계 안에서 결정적으로 생성한 합성 점이다.
+- 주민 이름·전화번호·호수·주민 속성은 넣지 않는다.
+- `road_address`와 좌표는 공개 주소DB·주거용 건축물대장·건물도형을 결합한 실제 건물 기준점이다. 해당 주소 거주자의 나이·고립·복지 상태를 뜻하지 않는다.
+- 송도5동의 보유 VWorld 도형 누락 14건은 공식 주소DB의 `송도 SK VIEW` 주소와 OSM 주거지 도형 대표점을 사용하며 출처를 별도 컬럼으로 남긴다.
 - 운영 표현은 `연락업무`, `안부 확인`, `후속조치`, `방문 권고`, `담당자 승인`, `행정복지센터 이관`을 사용한다.
 - `고독사 위험도`, `복지 미수혜 위험도`, `주민 위험점수`, `고위험자`, `미수혜자`로 표시하지 않는다.
 - 운영 단계는 전화 우선이며 담당자가 승인한 `visit_approval_status=approved`만 경로 후보에 포함한다.

@@ -117,7 +117,7 @@ describe('P5 manager breadth projection', () => {
   test('derives the tuning warning from the deterministic report and keeps score axes separate', async () => {
     const records = await managerRecords();
     const tuningReport = runTriageReport();
-    assert.equal(tuningReport.경증_누적_우선권고_건수, 664);
+    assert.equal(tuningReport.경증_누적_우선권고_건수, 647);
 
     const result = buildManagerBreadth({ records, tuningReport });
 
@@ -136,9 +136,24 @@ describe('P5 manager breadth projection', () => {
       '75_100': 3,
     });
     assert.equal(result.tuning_warning.title, '합성 배점 튜닝 경고');
-    assert.equal(result.tuning_warning.current_mild_signal_count, 664);
+    assert.equal(result.tuning_warning.current_mild_signal_count, 647);
     assert.equal(result.tuning_warning.source_case_count, 5_869);
     assert.equal(forbiddenCompositeKey(result), false);
+  });
+
+  test('accepts a fractional vulnerability score from the public structural context', async () => {
+    const records = (await managerRecords()).slice(0, 1);
+    records[0] = {
+      ...records[0],
+      triage: {
+        ...records[0].triage,
+        취약도_점수: 37.602737968418836,
+      },
+    };
+
+    const result = buildManagerBreadth({ records, tuningReport: runTriageReport() });
+
+    assert.equal(result.grade_distribution.vulnerability.score_bands['25_49'], 1);
   });
 
   test('orders the transfer recommendation queue by acute then vulnerability and uses safe labels', async () => {

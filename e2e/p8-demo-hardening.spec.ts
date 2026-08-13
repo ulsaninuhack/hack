@@ -255,7 +255,7 @@ test('P8 hardening: production-like surfaces, explicit states, accessibility, an
   await page.goto('/ops/manager')
   await expect(page.getByRole('option', { name: new RegExp(CASE_ID) })).toBeVisible()
   await expect(page.getByText('합성 배점 튜닝 경고')).toBeVisible()
-  await expect(page.getByText('664건')).toBeVisible()
+  await expect(page.getByText('647건')).toBeVisible()
   await expect.poll(async () => page.locator('.ops-workbench').evaluate((workbench) => ({
     areas: getComputedStyle(workbench).gridTemplateAreas,
     decisionWidth: workbench.querySelector<HTMLElement>('.ops-decision')?.getBoundingClientRect().width ?? 0,

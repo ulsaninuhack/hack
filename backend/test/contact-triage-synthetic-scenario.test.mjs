@@ -5,6 +5,7 @@ import { describe, test } from 'node:test';
 import { createContactOpsService } from '../src/contact-ops-service.mjs';
 import { createMemoryContactOpsState } from '../src/contact-ops-state.mjs';
 import {
+  buildSyntheticScenarioInput,
   buildSyntheticScenarioTriage,
   prepareSyntheticScenarioOverlayRecords,
 } from '../src/contact-triage-synthetic-scenario.mjs';
@@ -29,16 +30,45 @@ function record(household, triage = null) {
 }
 
 describe('deterministic synthetic scenario overlay', () => {
+  test('injects the frozen public structural context before any phone result exists', () => {
+    const household = fixture.households[0];
+    const zone = structuralContext.zones.find(
+      (item) => item.geometry_zone_id === household.location.geometry_zone_id,
+    );
+    const input = buildSyntheticScenarioInput(
+      household,
+      fixture.scenario_reference_date,
+      structuralContext,
+    );
+
+    assert.equal(input.동단위_구조취약도.점수, zone.score_0_50);
+    assert.deepEqual(
+      input.동단위_구조취약도.기여내역,
+      [
+        ['고령비율', 'older_population_share'],
+        ['1인가구비율', 'one_person_household_share'],
+        ['노후주택', 'residential_building_30_plus_share'],
+        ['기초수급_밀도', 'basic_livelihood_context_density'],
+      ].map(([코드, sourceCode]) => ({
+        코드,
+        가산점: zone.indicators[sourceCode].contribution,
+        출처: '공개_동단위_집계',
+      })),
+    );
+    assert.match(input.동단위_구조취약도.기준일_메모, /MODEL OUTPUT — UNVALIDATED/);
+    assert.equal(input.연속_미응답_횟수 >= 0, true);
+  });
+
   test('scores the same synthetic case deterministically without mutating household workflow', () => {
     const household = fixture.households[0];
     const before = structuredClone(household);
 
-    const first = buildSyntheticScenarioTriage(household, fixture.scenario_reference_date);
-    const second = buildSyntheticScenarioTriage(household, fixture.scenario_reference_date);
+    const first = buildSyntheticScenarioTriage(household, fixture.scenario_reference_date, structuralContext);
+    const second = buildSyntheticScenarioTriage(household, fixture.scenario_reference_date, structuralContext);
 
     assert.deepEqual(first, second);
     assert.equal(Number.isInteger(first.급성도_점수), true);
-    assert.equal(Number.isInteger(first.취약도_점수), true);
+    assert.equal(Number.isFinite(first.취약도_점수), true);
     assert.equal(first.점수_기여내역.every(({ 축 }) => ['급성도', '취약도'].includes(축)), true);
     assert.deepEqual(household, before);
     assert.equal(household.workflow.visit_approval_status, null);
@@ -48,10 +78,10 @@ describe('deterministic synthetic scenario overlay', () => {
   test('selects one stable scenario example per current dong while preserving every session score', () => {
     const records = fixture.households.map((household) => record(household));
     const firstCase = fixture.households[0];
-    const sessionTriage = { ...buildSyntheticScenarioTriage(firstCase, fixture.scenario_reference_date), 급성도_점수: 1 };
+    const sessionTriage = { ...buildSyntheticScenarioTriage(firstCase, fixture.scenario_reference_date, structuralContext), 급성도_점수: 1 };
     records[0] = record(firstCase, sessionTriage);
 
-    const projected = prepareSyntheticScenarioOverlayRecords(records, fixture.scenario_reference_date);
+    const projected = prepareSyntheticScenarioOverlayRecords(records, fixture.scenario_reference_date, structuralContext);
     const scenario = projected.filter(({ score_source }) => score_source === 'synthetic_scenario');
     const session = projected.filter(({ score_source }) => score_source === 'session_recorded');
     const scored = projected.filter(({ triage }) => triage !== null);
@@ -69,6 +99,7 @@ describe('deterministic synthetic scenario overlay', () => {
     const projected = prepareSyntheticScenarioOverlayRecords(
       fixture.households.map((household) => record(household)),
       fixture.scenario_reference_date,
+      structuralContext,
     ).filter(({ triage }) => triage !== null);
     const byZone = new Map();
     for (const item of projected) {
@@ -97,10 +128,37 @@ describe('deterministic synthetic scenario overlay', () => {
     assert.equal(result.geometry_zone_count, 156);
     assert.equal(result.current_admin_dong_count, 162);
     assert.equal(operations.every(({ acute_color_metric: acute }) => Number.isInteger(acute)), true);
-    assert.equal(operations.every(({ vulnerability_size_metric: vulnerability }) => Number.isInteger(vulnerability)), true);
+    assert.equal(operations.every(({ vulnerability_size_metric: vulnerability }) => Number.isFinite(vulnerability)), true);
     assert.equal(operations.reduce((sum, item) => sum + item.scenario_scored_case_count, 0), 162);
     assert.equal(operations.reduce((sum, item) => sum + item.session_scored_case_count, 0), 0);
     assert.equal(operations.reduce((sum, item) => sum + item.unscored_case_count, 0), 5_869 - 162);
     assert.equal(new Set(operations.map(({ acute_color_metric: acute }) => acute)).size >= 6, true);
+
+    assert.equal(Array.isArray(result.visit_review_points), true);
+    assert.equal(result.visit_review_points.length > 0, true);
+    assert.equal(result.visit_review_points.some(({ apartment_reference: apartment }) => apartment), true);
+    assert.equal(result.visit_review_points.every((point) => (
+      point.synthetic === true
+      && point.displayMarker === '[합성]'
+      && point.not_real_resident === true
+      && point.visit_approval_status === '권고'
+      && ['synthetic_scenario', 'session_recorded'].includes(point.score_source)
+      && ['방문권고', '방문권고-우선'].includes(point.급성도_등급)
+      && Number.isFinite(point.급성도_점수)
+      && Number.isFinite(point.취약도_점수)
+      && Number.isFinite(point.longitude)
+      && Number.isFinite(point.latitude)
+      && point.road_address.startsWith('인천광역시 ')
+      && typeof point.building_name === 'string'
+      && typeof point.reference_pnu === 'string'
+      && point.reference_pnu.length === 19
+    )), true);
+
+    const sorted = result.visit_review_points.toSorted((left, right) => (
+      right.급성도_점수 - left.급성도_점수
+      || right.취약도_점수 - left.취약도_점수
+      || left.case_id.localeCompare(right.case_id)
+    ));
+    assert.deepEqual(result.visit_review_points, sorted);
   });
 });

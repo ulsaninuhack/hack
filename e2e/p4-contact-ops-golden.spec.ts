@@ -4,6 +4,7 @@ import type { BrowserContext, Page } from '@playwright/test'
 const CASE_ID = 'SYN-HH-2812551000-0001'
 const API_ORIGIN = process.env.PLAYWRIGHT_API_URL ?? 'http://127.0.0.1:18082'
 const SESSION_STORAGE_KEY = 'care-ops-demo-session-id'
+const PUBLIC_STRUCTURAL_VULNERABILITY = 37.602737968418836
 
 type ContactMutation = {
   path: string
@@ -50,7 +51,7 @@ async function expectSeparatedAxes(page: Page, acute: string) {
   await expect(axes.nth(0)).toContainText('급성도')
   await expect(axes.nth(0).locator('strong')).toHaveText(acute)
   await expect(axes.nth(1)).toContainText('취약도')
-  await expect(axes.nth(1).locator('strong')).toHaveText('0')
+  await expect(axes.nth(1).locator('strong')).toHaveText(String(PUBLIC_STRUCTURAL_VULNERABILITY))
 }
 
 test('P4 golden: two real contact mutations raise acute score before manager-only approval', async ({ browser }) => {
@@ -143,7 +144,7 @@ test('P4 golden: two real contact mutations raise acute score before manager-onl
     expect(recommended.revision).toBe(2)
     expect(recommended.household.contact.consecutive_no_answer_count).toBe(3)
     expect(recommended.triage.급성도_점수).toBe(57)
-    expect(recommended.triage.취약도_점수).toBe(0)
+    expect(recommended.triage.취약도_점수).toBe(PUBLIC_STRUCTURAL_VULNERABILITY)
     expect(recommended.household.workflow.visit_approval_status).toBe('recommended')
     expect(approvalSources).toEqual([])
   })

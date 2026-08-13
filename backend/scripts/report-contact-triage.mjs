@@ -12,10 +12,15 @@ const fixturePath = process.env.DATA_DIR
   ? join(process.env.DATA_DIR, 'synthetic-households.json')
   : new URL('../../public/data/synthetic-households.json', import.meta.url);
 const fixture = JSON.parse(await readFile(fixturePath, 'utf8'));
+const structuralContextPath = process.env.DATA_DIR
+  ? join(process.env.DATA_DIR, 'structural-context.json')
+  : new URL('../../public/data/structural-context.json', import.meta.url);
+const structuralContext = JSON.parse(await readFile(structuralContextPath, 'utf8'));
 
 const inputs = fixture.households.map((household) => buildSyntheticScenarioInput(
   household,
   fixture.scenario_reference_date,
+  structuralContext,
 ));
 const queue = buildTriageQueue(inputs);
 const inputById = new Map(inputs.map((input) => [input.케이스_id, input]));
@@ -43,14 +48,14 @@ const report = {
   지도구역_수: new Set(fixture.households.map(
     ({ location }) => location.geometry_zone_id,
   )).size,
-  동단위_구조취약도_정규화_주입: false,
+  동단위_구조취약도_정규화_주입: true,
   급성도_등급별_건수: distribution.급성도_등급별_건수,
   경증_누적_우선권고_건수: mildEscalations.length,
   경증_누적_우선권고_표본: mildEscalations.slice(0, 20),
   해석_주의: [
     '케이스 ID 해시로 고정 시나리오를 배정한 배점 역전 감시용 합성 분포다.',
     '실제 개인 상태, 연락 결과, 복지 적격성 또는 방문 필요성을 나타내지 않는다.',
-    '동단위 0~50 정규화 방식은 별도 검증 전이므로 이 리포트에는 주입하지 않았다.',
+    '동단위 0~50 공개 구조 맥락은 [MODEL OUTPUT — UNVALIDATED]이며 개인 상태가 아니다.',
   ],
 };
 

@@ -7,13 +7,21 @@ import { createMemoryContactOpsState } from '../src/contact-ops-state.mjs';
 import { createDataStore } from '../src/data-store.mjs';
 
 const sessionId = 'p7-operations-map-session';
+function indicators(score) {
+  return {
+    older_population_share: { contribution: score },
+    one_person_household_share: { contribution: 0 },
+    residential_building_30_plus_share: { contribution: 0 },
+    basic_livelihood_context_density: { contribution: 0 },
+  };
+}
 const structuralContext = {
   schema_version: 'structural-context-p7-v1', model_output_label: '[MODEL OUTPUT — UNVALIDATED]',
   zone_count: 156, current_admin_dong_count: 162,
   zones: [
-    { geometry_zone_id: 'zone:one', score_0_50: 21, completeness: { ratio: 1 }, indicators: {} },
-    { geometry_zone_id: 'zone:two', score_0_50: 0, completeness: { ratio: 0 }, indicators: {} },
-    ...Array.from({ length: 154 }, (_, index) => ({ geometry_zone_id: `zone:empty-${index}`, score_0_50: 0, completeness: { ratio: 0 }, indicators: {} })),
+    { geometry_zone_id: 'zone:one', score_0_50: 21, completeness: { ratio: 1 }, indicators: indicators(21) },
+    { geometry_zone_id: 'zone:two', score_0_50: 0, completeness: { ratio: 0 }, indicators: indicators(0) },
+    ...Array.from({ length: 154 }, (_, index) => ({ geometry_zone_id: `zone:empty-${index}`, score_0_50: 0, completeness: { ratio: 0 }, indicators: indicators(0) })),
   ],
 };
 function household(id, zoneId, dong, triage = null) {

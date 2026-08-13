@@ -7,7 +7,10 @@ import {
 } from './contact-ops.mjs';
 import { buildTriageQueue } from './contact-triage-scoring.mjs';
 import { buildManagerBreadth } from './contact-ops-manager-breadth.mjs';
-import { prepareSyntheticScenarioOverlayRecords } from './contact-triage-synthetic-scenario.mjs';
+import {
+  buildPublicStructuralContext,
+  prepareSyntheticScenarioOverlayRecords,
+} from './contact-triage-synthetic-scenario.mjs';
 
 const OBSERVATION_KEYS = ['관찰_6징후', '식사상태', '위생상태', '공과금_2개월_이상_체납', '최근_건강_정신_괴로움', '관계망_유무', '연락_빈도'];
 const SIGN_KEYS = ['우편물_고지서_적체', '악취_벌레', '쓰레기_술병', '인기척_없이_TV_불', '외출_없음', '연락_두절'];
@@ -25,7 +28,7 @@ function assertExactObservation(value) {
   }
 }
 
-function triageInput(household, observations, referenceDate) {
+function triageInput(household, observations, referenceDate, structuralContext = null) {
   const last = household.contact.last_contact_date;
   const elapsed = last && ['connected_ok', 'connected_concern'].includes(household.contact.last_contact_result)
     ? Math.max(0, Math.round((Date.parse(`${referenceDate}T00:00:00Z`) - Date.parse(`${last}T00:00:00Z`)) / 86_400_000)) : null;
@@ -38,13 +41,7 @@ function triageInput(household, observations, referenceDate) {
     마지막_연결_후_경과일: elapsed, 재연락_기한: household.workflow.follow_up_deadline,
     방문_승인_상태: household.workflow.visit_approval_status === 'approved' ? '승인'
       : household.workflow.visit_approval_status === 'rejected' ? '반려' : null,
-    동단위_구조취약도: {
-      지도구역_id: household.location.geometry_zone_id,
-      현행_행정동_코드_20260701: household.location.current_admin_dong_code_20260701,
-      점수: 0, 기준일_메모: '합성 P1 기본값: 공개 구조 맥락 점수 미주입',
-      기여내역: ['고령비율', '1인가구비율', '노후주택', '기초수급_밀도']
-        .map((코드) => ({ 코드, 가산점: 0, 출처: '공개_동단위_집계' })),
-    },
+    동단위_구조취약도: buildPublicStructuralContext(household, structuralContext),
   };
 }
 
@@ -135,6 +132,53 @@ function operationsZone(publicZone, records, scenarioReferenceDate) {
   };
 }
 
+function visitReviewPoint(record) {
+  if (record.triage?.방문_승인_상태 !== '권고') return null;
+  const location = record.household.location;
+  if (location?.residential_building_reference !== true
+      || location.not_real_resident !== true
+      || typeof location.road_address !== 'string'
+      || typeof location.reference_pnu !== 'string'
+      || !Number.isFinite(location.longitude)
+      || !Number.isFinite(location.latitude)) {
+    return null;
+  }
+  return {
+    synthetic: true,
+    displayMarker: '[합성]',
+    case_id: record.household.id,
+    score_source: record.score_source,
+    visit_approval_status: '권고',
+    권고_액션: record.triage.권고_액션,
+    급성도_점수: record.triage.급성도_점수,
+    급성도_등급: record.triage.급성도_등급,
+    취약도_점수: record.triage.취약도_점수,
+    점수_기여내역: structuredClone(record.triage.점수_기여내역),
+    current_admin_dong_code_20260701: location.current_admin_dong_code_20260701,
+    current_admin_dong_name_20260701: location.current_admin_dong_name_20260701,
+    current_district_name_20260701: location.current_district_name_20260701,
+    geometry_zone_id: location.geometry_zone_id,
+    longitude: location.longitude,
+    latitude: location.latitude,
+    road_address: location.road_address,
+    building_name: location.building_name,
+    apartment_reference: location.apartment_reference,
+    reference_pnu: location.reference_pnu,
+    spatial_basis: location.spatial_basis,
+    address_source: location.address_source,
+    coordinate_source: location.coordinate_source,
+    not_real_resident: location.not_real_resident,
+  };
+}
+
+function buildVisitReviewPoints(records) {
+  return records.map(visitReviewPoint).filter(Boolean).toSorted((left, right) => (
+    right.급성도_점수 - left.급성도_점수
+    || right.취약도_점수 - left.취약도_점수
+    || left.case_id.localeCompare(right.case_id)
+  ));
+}
+
 function stateConflict(message) {
   const error = new Error(message);
   error.code = 'STATE_CONFLICT';
@@ -150,7 +194,9 @@ export function createContactOpsService({ state, aiAdapter = null, loadTuningRep
     const record = await state.update(input, (household, current) => {
       const recorded = applyStructuredContactResult(household, contactPayload(input));
       const evaluated = evaluateDeterministicRules(recorded, input.contactDate);
-      const triage = buildTriageQueue([triageInput(evaluated.household, input.observations, input.contactDate)])[0];
+      const triage = buildTriageQueue([
+        triageInput(evaluated.household, input.observations, input.contactDate, structuralContext),
+      ])[0];
       return { household: applyTriageVisitRecommendation(evaluated.household, triage), observations: input.observations, triage };
     });
     return response(record);
@@ -166,7 +212,9 @@ export function createContactOpsService({ state, aiAdapter = null, loadTuningRep
       const queue = buildTodayContactQueue(eligible.map(({ household }) => household), referenceDate)
         .map((item) => {
           const record = eligible.find(({ household }) => household.id === item.household.id);
-          const triage = record.triage || buildTriageQueue([triageInput(item.household, record.observations, referenceDate)])[0];
+          const triage = record.triage || buildTriageQueue([
+            triageInput(item.household, record.observations, referenceDate, structuralContext),
+          ])[0];
           return { ...item, triage, revision: record.revision };
         }).sort((left, right) => right.triage.급성도_점수 - left.triage.급성도_점수
           || right.triage.취약도_점수 - left.triage.취약도_점수
@@ -233,7 +281,9 @@ export function createContactOpsService({ state, aiAdapter = null, loadTuningRep
     },
     async recalculateTriage(input) {
       const record = await state.update(input, (household, current) => {
-        const triage = buildTriageQueue([triageInput(household, current.observations, input.referenceDate)])[0];
+        const triage = buildTriageQueue([
+          triageInput(household, current.observations, input.referenceDate, structuralContext),
+        ])[0];
         return { household: applyTriageVisitRecommendation(household, triage), observations: current.observations, triage };
       });
       return response(record);
@@ -261,6 +311,7 @@ export function createContactOpsService({ state, aiAdapter = null, loadTuningRep
       const records = prepareSyntheticScenarioOverlayRecords(
         await state.list({ sessionId }),
         scenarioReferenceDate,
+        dataset,
       );
       return {
         synthetic: true, displayMarker: '[합성]',
@@ -269,6 +320,7 @@ export function createContactOpsService({ state, aiAdapter = null, loadTuningRep
         scenario_label: '[합성 시나리오]',
         scenario_reference_date: scenarioReferenceDate,
         scenario_method: 'one_deterministic_example_per_current_admin_dong',
+        visit_review_points: buildVisitReviewPoints(records),
         zones: dataset.zones.map((zone) => operationsZone(zone, records, scenarioReferenceDate)),
       };
     },

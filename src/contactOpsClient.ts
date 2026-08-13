@@ -54,6 +54,12 @@ export interface SyntheticHousehold {
     current_admin_dong_code_20260701: string
     current_admin_dong_name_20260701: string
     current_district_name_20260701: string
+    road_address: string
+    building_name: string
+    apartment_reference: boolean
+    reference_pnu: string
+    residential_building_reference: true
+    not_real_resident: true
   }
   contact: UnknownRecord
   workflow: {
@@ -135,7 +141,35 @@ export interface OperationsMap {
   scenario_label: '[합성 시나리오]'
   scenario_reference_date: string
   scenario_method: 'one_deterministic_example_per_current_admin_dong'
+  visit_review_points: VisitReviewPoint[]
   zones: OperationsMapZone[]
+}
+
+export interface VisitReviewPoint {
+  synthetic: true
+  displayMarker: '[합성]'
+  case_id: string
+  score_source: 'session_recorded' | 'synthetic_scenario'
+  visit_approval_status: '권고'
+  권고_액션: string
+  급성도_점수: number
+  급성도_등급: '방문권고' | '방문권고-우선'
+  취약도_점수: number
+  점수_기여내역: ScoreContribution[]
+  current_admin_dong_code_20260701: string
+  current_admin_dong_name_20260701: string
+  current_district_name_20260701: string
+  geometry_zone_id: string
+  longitude: number
+  latitude: number
+  road_address: string
+  building_name: string
+  apartment_reference: boolean
+  reference_pnu: string
+  spatial_basis: 'official_residential_building_address_reference'
+  address_source: 'MOIS_JUSO_BUILDING_DB_202607'
+  coordinate_source: string
+  not_real_resident: true
 }
 
 export class ContactOpsClientError extends Error {

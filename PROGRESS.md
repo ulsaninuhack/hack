@@ -281,3 +281,29 @@ hostile follow-up, commit, preview, and blockers. Existing entries are never rew
   seams, non-bypass rules, and historical production identifiers. `AGENTS.md` records the same
   generic Claude/Codex bootstrap. GitHub visibility is stated accurately as public while
   `package.json` remains private only to prevent accidental npm publication.
+
+## 2026-08-13 10:13 KST — Public residential-address synthetic operations PASS locally
+
+- Replaced arbitrary per-dong synthetic workload placement with a deterministic 5,869-task
+  allocation proportional to the observed 2026-07-31 `65+ one-person households` count across
+  all 162 current dongs. The resulting range is 2–97 tasks per dong and still rolls up to the
+  verified 156 map geometry zones.
+- Built 5,869 public residential-building anchors by joining the official 2026-07 Juso building
+  database, VWorld residential building-age records, and VWorld AL_D010 building polygons. The
+  generated contract contains 5,683 unique PNU references and 2,303 apartment/collective-housing
+  task references. Fourteen 송도5동 tasks use one source-recorded OpenStreetMap residential
+  building point where the held VWorld polygon snapshot had no usable match.
+- TDD added a recommendation-point API contract before implementation. Fresh-session
+  `GET /api/v1/contact-ops/operations-map` now returns 97 sorted `visit_review_points`, including
+  33 apartment points, with public road address, representative coordinate, building name,
+  separate acute/vulnerability scores, contribution traces, and recommendation-only status.
+  No visit is auto-approved.
+- Public structural context is injected before a phone result exists. A browser regression found
+  that fractional structural vulnerability scores were rejected by the older manager-breadth
+  integer guard; a focused RED test now freezes finite 0–100 vulnerability decimals while acute
+  scores remain integer.
+- Local evidence: deterministic anchor rebuild SHA-256
+  `b64cbac9053c00e0b5dfc2cdfbd8a5ff6dc64a7e439a8996627519f1d3625852`, synthetic tests 9/9,
+  P2/P4/P8 browser flows 3/3, Node 24 type/build/worker checks, voice 49 pass plus one explicit
+  live opt-in skip, actionlint 1.7.12, data checksums 323/323, and Linux/amd64 Docker smoke with
+  UID 1000. PR, merge, production deploy, and live API proof remain delivery gates.

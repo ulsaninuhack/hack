@@ -1,0 +1,19 @@
+{
+  "schema_version": "residential-coordinate-overrides-v1.0.0",
+  "source": "OpenStreetMap Nominatim",
+  "retrieved_at": "2026-08-13",
+  "license": "ODbL-1.0",
+  "records": [
+    {
+      "pnu": "2818510600103150001",
+      "road_address": "인천광역시 연수구 랜드마크로 19",
+      "building_name": "송도 SK VIEW",
+      "longitude": 126.6265866,
+      "latitude": 37.4132507,
+      "coordinate_source": "OPENSTREETMAP_NOMINATIM_RESIDENTIAL_FEATURE_20260813",
+      "source_url": "https://nominatim.openstreetmap.org/search?q=%EC%86%A1%EB%8F%84+SK+VIEW+%EC%9D%B8%EC%B2%9C&format=jsonv2&limit=1&countrycodes=kr",
+      "osm_type": "way",
+      "osm_id": 669435113
+    }
+  ]
+}

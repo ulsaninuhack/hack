@@ -141,10 +141,20 @@ jobs:
             >/tmp/container-operations-map.json
 
           jq --exit-status \
-            '.apiVersion == "v1" and .data.synthetic == true and .data.tuning_warning.current_mild_signal_count == 664' \
+            '.apiVersion == "v1" and .data.synthetic == true and .data.tuning_warning.current_mild_signal_count == 647' \
             /tmp/container-manager-breadth.json >/dev/null
           jq --exit-status \
-            '.apiVersion == "v1" and .data.geometry_zone_count == 156 and .data.current_admin_dong_count == 162' \
+            '.apiVersion == "v1"
+             and .data.geometry_zone_count == 156
+             and .data.current_admin_dong_count == 162
+             and (.data.visit_review_points | length > 0)
+             and any(.data.visit_review_points[]; .apartment_reference == true)
+             and all(.data.visit_review_points[];
+               .synthetic == true
+               and .visit_approval_status == "권고"
+               and (.road_address | startswith("인천광역시 "))
+               and (.longitude | type == "number")
+               and (.latitude | type == "number"))' \
             /tmp/container-operations-map.json >/dev/null
           [[ "$(docker exec "$container_name" id -u)" == "1000" ]]
 
