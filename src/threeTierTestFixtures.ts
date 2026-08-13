@@ -8,6 +8,7 @@ export const phoneLaneItem: LaneItem = {
   synthetic: true,
   displayMarker: '[합성]',
   case_id: 'SYN-HH-2812551000-0001',
+  가명: '김순○',
   revision: 0,
   lane: 'phone',
   due_reasons: ['scheduled_contact'],
@@ -33,6 +34,7 @@ export const phoneLaneItem: LaneItem = {
 export const visitLaneItem: LaneItem = {
   ...structuredClone(phoneLaneItem),
   case_id: 'SYN-HH-2812551000-0002',
+  가명: '박영○',
   lane: 'visit',
   visit_context: {
     preferred_visit_time_window: { start: '10:00', end: '13:00' },

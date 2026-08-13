@@ -33,7 +33,8 @@ import { phoneLaneItem as phoneItem, todayLanesFixture as lanes, voiceCandidateC
 
 const reportCard: ReportCard = {
   synthetic: true, displayMarker: '[합성]',
-  card_id: 'RPT-SYN-HH-2812551000-0001-r1', case_id: 'SYN-HH-2812551000-0001', revision: 1,
+  card_id: 'RPT-SYN-HH-2812551000-0001-r1', case_id: 'SYN-HH-2812551000-0001',
+  가명: '김순○', road_address: '인천광역시 제물포구 답동로 7-2', revision: 1,
   dong_code: '2812551000', dong_name: '신포동', district: '제물포구',
   등급: '방문권고', 급성도_점수: 62, 취약도_점수: 25, 권고_액션: '방문권고',
   사유_요약: [{ 축: '급성도', 근거: '식사상태 심각', 가산점: 25 }],

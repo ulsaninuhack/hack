@@ -1,5 +1,6 @@
 import {
   buildAssignmentProposals,
+  derivePseudonym,
   buildDistrictAggregates,
   buildDistrictAiSummaryInput,
   buildReportCard,
@@ -63,6 +64,7 @@ function laneItem(record, proposal, referenceDate) {
     synthetic: true,
     displayMarker: '[합성]',
     case_id: household.id,
+    가명: derivePseudonym(household.id),
     revision: record.revision,
     lane: proposal.lane,
     due_reasons: proposal.due_reasons,

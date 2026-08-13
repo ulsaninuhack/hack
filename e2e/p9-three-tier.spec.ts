@@ -102,10 +102,10 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
   await test.step('동 센터가 오늘 배치안을 명시적으로 확인한다 (INV14)', async () => {
     await page.goto('/center')
     await expect(page.getByRole('heading', { name: /신포동 행정복지센터/ })).toBeVisible()
-    await expect(page.getByLabel('전화 레인 할당 제안')).toContainText(CASE_ID)
+    await expect(page.getByLabel('전화 레인 할당 제안').locator(`[data-case-id="${CASE_ID}"]`)).toBeVisible()
     expect(mutationPaths.filter((path) => path.endsWith('/assignment-confirmations'))).toEqual([])
     await page.getByRole('tab', { name: /^방문 \d+$/ }).click()
-    await expect(page.getByLabel('방문 레인 할당 제안')).not.toContainText(CASE_ID)
+    await expect(page.getByLabel('방문 레인 할당 제안').locator(`[data-case-id="${CASE_ID}"]`)).toHaveCount(0)
     await page.getByRole('tab', { name: /^전화 \d+$/ }).click()
     await page.screenshot({ path: `${SCREENSHOT_DIR}/p9-center-assignment-desktop.png` })
     await page.getByRole('button', { name: '오늘 배치 일괄 확인' }).click()

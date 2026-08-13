@@ -387,7 +387,7 @@ select:focus-visible,
    전화/방문 레인 분리, 시·구 화면은 동 단위 롤업까지만.
 --------------------------------------------------------------------------- */
 
-.tier-page { min-height: 100dvh; overflow-y: auto; padding: 18px clamp(14px, 3vw, 34px) 60px; background: var(--cream); color: var(--ink); font-size: 18px; }
+.tier-page { height: 100dvh; overflow-y: auto; padding: 18px clamp(14px, 3vw, 34px) 60px; background: var(--cream); color: var(--ink); font-size: 18px; }
 .tier-page h1 { font-size: 27px; margin: 4px 0 2px; }
 .tier-page h2 { font-size: 22px; display: flex; align-items: center; gap: 8px; margin: 0 0 8px; }
 .tier-page h3 { font-size: 19px; margin: 0 0 6px; }
@@ -455,7 +455,7 @@ select:focus-visible,
 .center-side { display: grid; gap: 14px; }
 .center-map-widget { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 8px 12px; }
 .center-map-widget summary { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 700; }
-.center-map-frame { height: 320px; border-radius: var(--radius); overflow: hidden; margin-top: 8px; }
+.center-map-frame { position: relative; height: 320px; border-radius: var(--radius); overflow: hidden; margin-top: 8px; contain: layout paint; }
 .center-map-frame .map { height: 100%; }
 .center-side-note { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 14px 16px; }
 .center-side-note ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 16px; }
@@ -481,7 +481,7 @@ select:focus-visible,
 .mobile-dial-overlay button { border: none; border-radius: var(--radius-lg); background: #ffffff; color: var(--ink); font-weight: 800; padding: 0 22px; min-height: 56px; cursor: pointer; }
 .mobile-map-widget { border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 8px 12px; margin: 0 0 12px; }
 .mobile-map-widget summary { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 700; }
-.mobile-map-frame { height: 260px; border-radius: var(--radius-sm); overflow: hidden; margin-top: 8px; }
+.mobile-map-frame { position: relative; height: 260px; border-radius: var(--radius-sm); overflow: hidden; margin-top: 8px; contain: layout paint; }
 .mobile-map-frame .map { height: 100%; }
 .mobile-input-paths { display: grid; gap: 10px; }
 .mobile-input-paths button { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 56px; border: 1.5px solid var(--line-strong); border-radius: var(--radius-lg); background: var(--surface); font-weight: 800; cursor: pointer; }
@@ -715,3 +715,12 @@ select:focus-visible,
   .center-hero-pills { width: 100%; }
   .center-hero-pills a { flex: 1 1 40%; }
 }
+
+/* /center v5 — 가명·주소 중심 행, 지도 격리·페이지 스크롤 픽스와 함께 */
+.center-page .assignment-name, .center-page .report-name { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+.center-page .assignment-meta { margin: 0; font-size: 14px; color: var(--t-faint); }
+.center-page .assignment-row-main .assignment-confirmed { margin-left: 0; }
+.center-page .assignment-row-main .confirm-one, .center-page .assignment-row-main .assignment-confirmed { margin-left: 12px; }
+.center-page .assignment-worker { margin-left: auto; }
+.center-page .report-address { margin: 0; font-size: 14px; color: var(--t-faint); }
+.center-page .visit-review-address { display: block; font-size: 13px; color: var(--t-faint); }

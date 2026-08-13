@@ -45,6 +45,19 @@ export function contactResultLabel(result) {
 // INV15: the only phone shape this system ever emits is a clearly-virtual
 // 010-0000-XXXX display string with the [가상] label. Derived at serve time so
 // fixtures never carry a phone-like value (INV4 stays intact).
+// 화면 표기는 케이스 ID 대신 가명을 쓴다. 마지막 글자를 ○로 가린 명백한
+// 가명이며(실명 아님), 케이스 ID에서 결정적으로 유도된다.
+const PSEUDONYM_SURNAMES = ['김', '이', '박', '최', '정', '강', '조', '윤', '장', '임', '한', '오', '서', '신', '권', '황'];
+const PSEUDONYM_SYLLABLES = ['순', '영', '정', '옥', '춘', '병', '만', '금', '복', '희', '숙', '철', '래', '광', '덕', '연'];
+
+export function derivePseudonym(caseId) {
+  assertCaseId(caseId);
+  const digest = createHash('sha256').update(`pseudonym:${caseId}`).digest();
+  const surname = PSEUDONYM_SURNAMES[digest[0] % PSEUDONYM_SURNAMES.length];
+  const syllable = PSEUDONYM_SYLLABLES[digest[1] % PSEUDONYM_SYLLABLES.length];
+  return `${surname}${syllable}○`;
+}
+
 export function deriveVirtualPhone(caseId) {
   assertCaseId(caseId);
   const digest = createHash('sha256').update(`virtual-phone:${caseId}`).digest();
@@ -137,6 +150,8 @@ export function buildReportCard(record) {
     displayMarker: '[합성]',
     card_id: `RPT-${household.id}-r${record.revision}`,
     case_id: household.id,
+    가명: derivePseudonym(household.id),
+    road_address: household.location.road_address ?? null,
     revision: record.revision,
     dong_code: household.location.current_admin_dong_code_20260701,
     dong_name: household.location.current_admin_dong_name_20260701,
@@ -220,6 +235,12 @@ export function buildAssignmentProposals({ records, workers, referenceDate, dong
     const proposal = {
       status: 'proposed',
       case_id: household.id,
+      가명: derivePseudonym(household.id),
+      road_address: household.location.road_address ?? null,
+      last_contact: {
+        date: household.contact.last_contact_date,
+        result_label: contactResultLabel(household.contact.last_contact_result),
+      },
       lane,
       dong_code: code,
       dong_name: household.location.current_admin_dong_name_20260701,

@@ -5,6 +5,7 @@ import { join } from 'node:path';
 
 import {
   AI_SUMMARY_LABEL,
+  derivePseudonym,
   MIXED_SNAPSHOT_WARNING,
   VIRTUAL_PHONE_LABEL,
   WELFARE_MIXED_SNAPSHOT_WARNING,
@@ -122,6 +123,13 @@ describe('three-tier virtual phone (INV15)', () => {
   test('rejects non-synthetic case identifiers', () => {
     assert.throws(() => deriveVirtualPhone('resident-001'), TypeError);
     assert.throws(() => deriveVirtualPhone(null), TypeError);
+  });
+
+  test('derives deterministic masked pseudonyms for display', () => {
+    const first = derivePseudonym('SYN-HH-2812551000-0001');
+    assert.equal(first, derivePseudonym('SYN-HH-2812551000-0001'));
+    assert.match(first, /^[가-힣]{2}○$/, 'pseudonym must be a masked two-syllable name');
+    assert.throws(() => derivePseudonym('resident-001'), TypeError);
   });
 
   test('no real-looking phone pattern exists in served source (grep gate)', () => {

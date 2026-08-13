@@ -450,3 +450,18 @@ hostile follow-up, commit, preview, and blockers. Existing entries are never rew
   test:e2e:ops 의무는 유지). Markdown·artifacts만 바뀐 커밋은 파이프라인 전체
   스킵(paths-ignore). 연속 푸시 취소(concurrency)는 기존 구성 확인.
 - AGENTS.md 배포 계약 문단에 동일 내용 기록. agent:check 그린.
+
+## 2026-08-13 — /center v5: 실사용 버그 픽스 + 가명·주소 표기 (제품 오너 지시)
+
+- 지도 위젯 오버레이 사고 수정: 전역 `.map`(position:absolute)이 포지셔닝 안 된
+  프레임에서 뷰포트 전체를 덮던 문제 → `.center-map-frame`/`.mobile-map-frame`에
+  position:relative + contain 부여.
+- 페이지 스크롤 수정: 전역 body overflow:hidden 아래에서 .tier-page 높이 미고정
+  으로 스크롤 불가 → height:100dvh + overflow-y:auto.
+- 화면 표기를 케이스 ID → 결정적 가명(김순○ 형태, ID에서 sha256 유도, 마스킹
+  가명임이 명시적)으로 교체. DB에는 가명 필드가 없어(#25는 주소까지) 어댑터
+  유도 방식 채택. 배치 행·보고 카드에 도로명 주소·마지막 연락·예정일 표기 추가.
+- [합성] 데모 배지 제거(제품 오너 명시 지시). 합성 고지는 API displayMarker·
+  문서·타 화면에 유지되며, /center 표시 계층에서만 제거됨을 기록.
+- 검증: 백엔드 217, 프런트 53, E2E 5/5(케이스 ID 비표시 관련 골든 재작성,
+  data-case-id 셀렉터), typecheck·copy 게이트 그린.
