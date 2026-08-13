@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { LiveCaption } from './liveCallTranscript'
@@ -116,6 +116,44 @@ describe('LiveCallPanel', () => {
     expect(onFinish.mock.calls[0][0]).not.toContain('오늘 식사는 하셨어요?')
   })
 
+  it('keeps the newest live content in view after muting', async () => {
+    let onCaption: ((value: LiveCaption) => void) | undefined
+    const scrollIntoView = vi.fn()
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: scrollIntoView,
+    })
+    mocks.connect.mockImplementation(async (input: { onCaption: (value: LiveCaption) => void }) => {
+      onCaption = input.onCaption
+      return {
+        roomName: 'care-call-abc123',
+        localRole: 'surveyor',
+        setMuted: mocks.setMuted,
+        finish: mocks.finish,
+        disconnect: mocks.disconnect,
+      }
+    })
+    const user = userEvent.setup()
+    render(<LiveCallPanel join={hostJoin} />)
+    await user.click(screen.getByRole('button', { name: '통화 연결' }))
+    await user.click(screen.getByRole('button', { name: '마이크 끄기' }))
+    expect(mocks.setMuted).toHaveBeenCalledWith(true)
+
+    act(() => {
+      onCaption?.(caption({ itemId: 'resident-1', role: 'resident', text: '며칠째 밖에 안 나갔어요.' }))
+    })
+    const transcript = within(screen.getByRole('region', { name: '실시간 자막' })).getByRole('list')
+    Object.defineProperty(transcript, 'scrollHeight', { configurable: true, value: 640 })
+    transcript.scrollTop = 0
+
+    act(() => {
+      onCaption?.(caption({ itemId: 'resident-2', role: 'resident', text: '오늘도 집에만 있었어요.' }))
+    })
+
+    await waitFor(() => expect(transcript.scrollTop).toBe(640))
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'end' })
+  })
+
   it('renders streamed Planner-Critic state as unconfirmed checklist candidates', async () => {
     mocks.toDataUrl.mockResolvedValue('data:image/png;base64,qr')
     mocks.connect.mockResolvedValue({
@@ -147,6 +185,35 @@ describe('LiveCallPanel', () => {
     expect(screen.getByText('불량 · 후보')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: '다음 확인 질문' })).toBeInTheDocument()
     expect(screen.getByText(liveCandidate.critic.next_question)).toBeInTheDocument()
+  })
+
+  it('shows only recent outing from the six environmental signs during a live phone call', async () => {
+    mocks.connect.mockResolvedValue({
+      roomName: 'care-call-abc123',
+      localRole: 'surveyor',
+      setMuted: mocks.setMuted,
+      finish: mocks.finish,
+      disconnect: mocks.disconnect,
+    })
+    const liveCandidate = {
+      contact_result: ['connected', 'concern'].join('_') as VoiceCandidate['contact_result'],
+      transcript: '며칠째 밖에 안 나가고 우편물도 쌓였어요.',
+      observations: {
+        관찰_6징후: { 우편물_고지서_적체: true, 악취_벌레: true, 쓰레기_술병: true, 인기척_없이_TV_불: true, 외출_없음: true, 연락_두절: true },
+        식사상태: null, 위생상태: null, 공과금_2개월_이상_체납: null,
+        최근_건강_정신_괴로움: null, 관계망_유무: null, 연락_빈도: null,
+      },
+      critic: { missing_fields: [], contradictions: [], low_confidence_fields: [], warnings: [], next_question: null },
+    } satisfies Pick<VoiceCandidate, 'contact_result' | 'transcript' | 'observations' | 'critic'>
+    const user = userEvent.setup()
+    render(<LiveCallPanel join={hostJoin} liveCandidate={liveCandidate} />)
+    await user.click(screen.getByRole('button', { name: '통화 연결' }))
+
+    const preview = screen.getByRole('region', { name: '통화 중 체크리스트 후보' })
+    expect(within(preview).getByText('최근 외출 없음')).toBeInTheDocument()
+    for (const label of ['우편물·고지서 적체', '악취·벌레', '쓰레기·술병', '인기척 없이 TV·불', '연락 두절']) {
+      expect(within(preview).queryByText(label)).toBeNull()
+    }
   })
 
   it('shows turn-linked evidence and preserves conflicting meal statements for review', async () => {
@@ -192,7 +259,32 @@ describe('LiveCallPanel', () => {
     expect(contradiction).toHaveTextContent('발화 1 · 오늘 아무것도 못 먹었어요.')
     expect(contradiction).toHaveTextContent('발화 2 · 아침에는 죽을 조금 먹었죠.')
     expect(contradiction).toHaveTextContent(liveCandidate.critic.next_question)
-    expect(screen.getByRole('region', { name: '통화 근거 원장' })).toHaveTextContent('조사원 확인 전 근거')
+    expect(screen.getByRole('region', { name: '통화 근거 원장' })).toHaveTextContent('근거 발화')
+  })
+
+  it('keeps live-call copy terse for the demo surface', async () => {
+    mocks.connect.mockResolvedValue({
+      roomName: 'care-call-abc123',
+      localRole: 'surveyor',
+      setMuted: mocks.setMuted,
+      finish: mocks.finish,
+      disconnect: mocks.disconnect,
+    })
+    const user = userEvent.setup()
+    render(<LiveCallPanel join={hostJoin} />)
+    await user.click(screen.getByRole('button', { name: '통화 연결' }))
+
+    expect(screen.getByText('자막 대기 중')).toBeInTheDocument()
+    expect(screen.getByText('대기 중')).toBeInTheDocument()
+    for (const phrase of [
+      '말을 시작하면 발화자별 자막이 표시됩니다.',
+      '연락 대상의 확정 발화',
+      '연락 대상의 확정 발화가 들어오면 후보 항목이 표시됩니다.',
+      '체크 항목과 실제 발화를 함께 확인합니다.',
+      '후보와 직접 연결할 수 있는 발화를 확인하는 중입니다.',
+    ]) {
+      expect(screen.queryByText(phrase)).toBeNull()
+    }
   })
 
   it('offers a file/manual fallback when the live connection fails', async () => {

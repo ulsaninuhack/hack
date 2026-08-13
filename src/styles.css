@@ -493,6 +493,7 @@ select:focus-visible,
 
 /* /m */
 .mobile-page { max-width: 560px; margin: 0 auto; }
+.mobile-page.tier-page { min-height: 0; overflow-y: auto; overscroll-behavior-y: contain; touch-action: pan-y; -webkit-overflow-scrolling: touch; }
 .mobile-header nav a { min-width: 48px; justify-content: center; }
 .mobile-list h2, .mobile-case h2, .mobile-done h2 { margin-top: 10px; }
 .mobile-task-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
@@ -514,11 +515,6 @@ ul.mobile-acute-contributions { list-style: none; display: grid; gap: 6px; }
 .mobile-acute-contributions li { list-style: none; display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .mobile-acute-contributions .acute-points { white-space: nowrap; font-weight: 800; color: #8a4d12; font-variant-numeric: tabular-nums; }
 .mobile-address-note { color: var(--muted); font-size: 16px; background: #f2f4ef; border-radius: var(--radius-sm); padding: 10px 12px; }
-.mobile-dial { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 56px; border: none; border-radius: var(--radius-lg); background: var(--green-strong); color: #ffffff; font-weight: 800; font-size: 20px; cursor: pointer; }
-.mobile-dial-note { color: var(--muted); font-size: 16px; margin: 6px 0 14px; }
-.mobile-dial-overlay { position: fixed; inset: 0; z-index: 60; background: rgba(16, 33, 31, 0.94); color: #ffffff; display: grid; place-content: center; gap: 14px; text-align: center; padding: 24px; }
-.mobile-dial-overlay-number { font: 800 30px/1.2 Manrope, 'Noto Sans KR', sans-serif; margin: 0; }
-.mobile-dial-overlay button { border: none; border-radius: var(--radius-lg); background: #ffffff; color: var(--ink); font-weight: 800; padding: 0 22px; min-height: 56px; cursor: pointer; }
 .mobile-map-widget { border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 8px 12px; margin: 0 0 12px; }
 .mobile-map-widget summary { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 700; }
 .mobile-map-frame { position: relative; height: 260px; border-radius: var(--radius-sm); overflow: hidden; margin-top: 8px; contain: layout paint; }
@@ -538,7 +534,6 @@ ul.mobile-acute-contributions { list-style: none; display: grid; gap: 6px; }
 .mobile-chat-options { display: grid; gap: 8px; }
 .mobile-chat-options button { border: 1.5px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); font-weight: 700; cursor: pointer; min-height: 52px; }
 .mobile-checklist { display: grid; gap: 12px; margin-top: 8px; }
-.mobile-candidate-note { background: #eaf2ec; color: var(--green-strong); font-weight: 700; border-radius: var(--radius-sm); padding: 10px 12px; margin: 0; }
 .mobile-extra-note { display: grid; gap: 6px; padding: 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-muted); }
 .mobile-extra-note h3, .mobile-extra-note p { margin: 0; }
 .mobile-extra-note h3 { font-size: 18px; }
@@ -992,13 +987,6 @@ ul.mobile-acute-contributions { list-style: none; display: grid; gap: 6px; }
 .mobile-page .mobile-case-facts dt { color: var(--t-faint); }
 .mobile-page .mobile-address-note { color: var(--t-sub); background: var(--t-track); border-radius: var(--t-radius-sm); font-size: 14px; }
 
-.mobile-page .mobile-dial { background: var(--t-blue); border-radius: var(--t-radius-sm); font-weight: 700; font-size: 18px; transition: background .25s var(--ease), transform .2s var(--ease); }
-.mobile-page .mobile-dial:hover { background: var(--t-blue-dark); }
-.mobile-page .mobile-dial:active { transform: scale(0.97); }
-.mobile-page .mobile-dial-note { color: var(--t-faint); font-size: 14px; }
-.mobile-page .mobile-dial-overlay { background: rgba(24, 18, 54, 0.95); }
-.mobile-page .mobile-dial-overlay-number { font-family: inherit; letter-spacing: -0.02em; }
-.mobile-page .mobile-dial-overlay button { border-radius: var(--t-radius-sm); font-weight: 700; }
 
 .mobile-page .mobile-map-widget { border: 1px solid var(--t-line); border-radius: 12px; }
 .mobile-page .mobile-input-paths button, .mobile-page .mobile-chat-options button, .mobile-page .mobile-secondary { border: 1px solid var(--t-line); border-radius: var(--t-radius-sm); background: var(--t-card); font-weight: 700; color: var(--t-sub); transition: border-color .15s var(--ease), background .15s var(--ease), transform .2s var(--ease); }
@@ -1011,7 +999,6 @@ ul.mobile-acute-contributions { list-style: none; display: grid; gap: 6px; }
 .mobile-page .mobile-memo-run:hover { background: var(--t-blue-dark); }
 .mobile-page .mobile-memo-run:active { transform: scale(0.97); }
 .mobile-page .mobile-voice-label input { border: 1.5px dashed var(--t-line); border-radius: 12px; }
-.mobile-page .mobile-candidate-note { background: var(--t-blue-soft); color: var(--t-blue-dark); font-weight: 600; border-radius: var(--t-radius-sm); }
 
 .mobile-page select, .mobile-page input, .mobile-page textarea { border: 1px solid var(--t-line); border-radius: var(--t-radius-sm); background: var(--t-card); color: var(--t-ink); }
 .mobile-page select:focus, .mobile-page input:focus, .mobile-page textarea:focus { border-color: var(--t-blue); }
@@ -1172,7 +1159,7 @@ ul.mobile-acute-contributions { list-style: none; display: grid; gap: 6px; }
 .live-candidate-grid strong { font-size: 18px; }
 .live-candidate-grid em { color: #656b75; font-size: 18px; font-style: normal; font-weight: 700; white-space: nowrap; }
 .live-candidate-grid li[data-candidate="true"] em { color: #3d27b8; }
-.live-next-question, .mobile-next-question {
+.live-next-question {
   display: flex;
   align-items: flex-start;
   gap: 10px;
@@ -1182,9 +1169,9 @@ ul.mobile-acute-contributions { list-style: none; display: grid; gap: 6px; }
   background: #fff;
 }
 .live-next-question svg { flex: 0 0 24px; color: #452aea; }
-.live-next-question h4, .live-next-question p, .mobile-next-question h3, .mobile-next-question p { margin: 0; }
-.live-next-question h4, .mobile-next-question h3 { color: #3d27b8; font-size: 18px; }
-.live-next-question p, .mobile-next-question p { margin-top: 5px; color: #191b1e; font-size: 19px; font-weight: 750; line-height: 1.5; }
+.live-next-question h4, .live-next-question p { margin: 0; }
+.live-next-question h4 { color: #3d27b8; font-size: 18px; }
+.live-next-question p { margin-top: 5px; color: #191b1e; font-size: 19px; font-weight: 750; line-height: 1.5; }
 .live-evidence-ledger {
   display: grid;
   gap: 10px;
@@ -1196,7 +1183,6 @@ ul.mobile-acute-contributions { list-style: none; display: grid; gap: 6px; }
 .live-evidence-ledger > header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .live-evidence-ledger h4, .live-evidence-ledger p { margin: 0; }
 .live-evidence-ledger h4 { color: #29243f; font-size: 19px; }
-.live-evidence-ledger header p, .live-evidence-empty { margin-top: 3px; color: #656b75; font-size: 18px; }
 .live-evidence-ledger header > span { flex: 0 0 auto; color: #52489c; font-size: 18px; font-weight: 800; }
 .live-evidence-ledger ul { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .live-evidence-ledger li { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 4px 9px; min-height: 48px; padding: 9px 10px; border-radius: 10px; background: #f5f4fb; }
@@ -1218,10 +1204,8 @@ ul.mobile-acute-contributions { list-style: none; display: grid; gap: 6px; }
 .live-contradiction-card ul { display: grid; gap: 5px; margin: 8px 0; padding: 0; list-style: none; }
 .live-contradiction-card li, .live-contradiction-card p { color: #342a20; font-size: 18px; line-height: 1.5; }
 .live-contradiction-card p { padding-top: 8px; border-top: 1px solid #e4c290; }
-.live-candidate-boundary, .live-candidate-empty, .live-candidate-error { margin: 0; color: #656b75; font-size: 18px; }
+.live-candidate-empty, .live-candidate-error { margin: 0; color: #656b75; font-size: 18px; }
 .live-candidate-error { color: #a91429; font-weight: 700; }
-.mobile-next-question { display: grid; }
-.mobile-next-question > span { color: #656b75; font-size: 18px; }
 
 .guest-call-page {
   height: 100dvh;

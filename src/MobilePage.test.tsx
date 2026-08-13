@@ -132,19 +132,15 @@ describe('MobilePage (조사원 /m)', () => {
     expect(screen.queryByText('방문 위치 지도 열기')).toBeNull()
   })
 
-  it('shows the virtual phone dial mock without any real call (INV15)', async () => {
+  it('uses the realtime call path without rendering the obsolete virtual dial mock', async () => {
     arrange()
     const user = userEvent.setup()
     render(<MobilePage />)
     await user.click(await screen.findByText('김영자 어르신'))
-    const dialButton = screen.getByRole('button', { name: /\[가상\] 010-0000-1234/ })
-    await user.click(dialButton)
-    const overlay = screen.getByRole('dialog', { name: '가상 발신 화면' })
-    expect(within(overlay).getByText(/실제 전화는 걸리지 않습니다/)).toBeInTheDocument()
-    await user.click(within(overlay).getByRole('button', { name: '가상 발신 화면 닫기' }))
-    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByRole('button', { name: '실시간 통화 시작' })).toBeInTheDocument()
+    expect(screen.queryByText(/\[가상\]|가상 번호|실제 전화는 걸리지 않습니다/)).toBeNull()
+    expect(screen.queryByRole('dialog', { name: '가상 발신 화면' })).toBeNull()
     expect(screen.getByText('인천광역시 제물포구 답동로 7-2')).toBeInTheDocument()
-    expect(screen.queryByText(/실제 거주자와 연결되지 않음/)).toBeNull()
   })
 
   it('manual path submits only after surveyor confirmation and shows the report screen (INV14)', async () => {
@@ -181,14 +177,14 @@ describe('MobilePage (조사원 /m)', () => {
     await user.click(screen.getByRole('button', { name: '미응답' }))
     await user.click(screen.getByRole('button', { name: '심각' }))
     await user.click(screen.getByRole('button', { name: '확인하지 못함' }))
-    await user.click(screen.getByRole('button', { name: '관찰됨' }))
+    await user.click(screen.getByRole('button', { name: '어려움 있음' }))
     await user.click(screen.getByRole('button', { name: '없음' }))
-    expect(await screen.findByText(/문답에서 만든 후보입니다/)).toBeInTheDocument()
+    expect(screen.getByLabelText('통화(또는 방문) 결과')).toBeInTheDocument()
     expect(mocks.submitContact).not.toHaveBeenCalled()
     expect(screen.getByLabelText('통화(또는 방문) 결과')).toHaveValue('미응답')
     expect(screen.getByLabelText('식사 상태')).toHaveValue('심각')
     expect(screen.getByLabelText('도움을 요청할 관계망')).toHaveValue('없음')
-    expect(screen.getByLabelText('최근 건강·마음 괴로움')).toHaveValue('true')
+    expect(screen.getByLabelText('최근 건강·마음 어려움')).toHaveValue('true')
   })
 
   it('chatbot answers can be revised by reopening an answered question', async () => {
@@ -246,22 +242,25 @@ describe('MobilePage (조사원 /m)', () => {
     expect(screen.queryByRole('button', { name: '지도 닫기' })).toBeNull()
   })
 
-  it('reframes the sign checklist per lane so phone calls only record externally confirmed signs', async () => {
+  it('separates phone-confirmable outing from visit or surrounding confirmation signs', async () => {
     arrange()
     const user = userEvent.setup()
     render(<MobilePage />)
     await user.click(await screen.findByText('김영자 어르신'))
     await user.click(screen.getByRole('button', { name: '문답 또는 직접 체크하기' }))
     await user.click(screen.getByRole('button', { name: '직접 체크하기' }))
-    expect(screen.getByText('주변 확인 신호')).toBeInTheDocument()
-    expect(screen.getByText(/이웃·경비 등 주변에서 확인된 경우에만 체크/)).toBeInTheDocument()
+    expect(screen.getByText('통화로 확인')).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: '최근 외출 없음' })).toBeInTheDocument()
+    expect(screen.getByText('방문·주변 확인')).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: '우편물·고지서 적체' })).toBeInTheDocument()
+    expect(screen.queryByText(/통화 중 들었거나|이웃·경비 등/)).toBeNull()
     await user.click(screen.getByRole('button', { name: '오늘 목록으로' }))
     await user.click(screen.getByRole('tab', { name: /방문 1건/ }))
     await user.click(await screen.findByText(/이순자 어르신/))
     await user.click(screen.getByRole('button', { name: '문답 또는 직접 체크하기' }))
     await user.click(screen.getByRole('button', { name: '직접 체크하기' }))
     expect(screen.getByText('방문 관찰 체크리스트')).toBeInTheDocument()
-    expect(screen.queryByText(/주변에서 확인된 경우에만 체크/)).toBeNull()
+    expect(screen.queryByText('통화로 확인')).toBeNull()
   })
 
   it('voice path fills checklist candidates from the upload contract without auto-submitting (INV14)', async () => {
@@ -289,11 +288,11 @@ describe('MobilePage (조사원 /m)', () => {
     const file = new File(['RIFFxxxxWAVE'], 'memo.wav', { type: 'audio/wav' })
     await user.upload(screen.getByLabelText(/통화 녹음 파일/), file)
     await waitFor(() => expect(mocks.uploadVoiceObservationAudio).toHaveBeenCalledTimes(1))
-    expect(await screen.findByText(/음성에서 만든 후보입니다/)).toBeInTheDocument()
-    expect(screen.getByText('악취 관련 후보 확인 필요')).toBeInTheDocument()
-    expect(screen.getByText('누락 확인: 관계망_유무')).toBeInTheDocument()
-    expect(screen.getByRole('region', { name: '기타 특이사항 확인' })).toHaveTextContent('최근 약 복용을 자주 빠뜨린다고 말함')
-    expect(screen.getByText(/해당하는 체크리스트를 확인하면 제출 후 점수에 반영됩니다/)).toBeInTheDocument()
+    expect(await screen.findByLabelText('통화(또는 방문) 결과')).toBeInTheDocument()
+    expect(screen.queryByText('악취 관련 후보 확인 필요')).toBeNull()
+    expect(screen.queryByText('누락 확인: 관계망_유무')).toBeNull()
+    expect(screen.getByRole('region', { name: '기타 특이사항' })).toHaveTextContent('최근 약 복용을 자주 빠뜨린다고 말함')
+    expect(screen.queryByText(/해당하는 체크리스트를 확인하면 제출 후 점수에 반영됩니다/)).toBeNull()
     expect(screen.getByLabelText('통화(또는 방문) 결과')).toHaveValue('우려 사항 있음')
     expect(screen.getByRole('checkbox', { name: '악취·벌레' })).toBeChecked()
     expect(mocks.submitContact).not.toHaveBeenCalled()
@@ -327,13 +326,13 @@ describe('MobilePage (조사원 /m)', () => {
     const request = mocks.createAiObservationCandidate.mock.calls[0][0]
     expect(request.caseId).toBe('SYN-HH-2812551000-0001')
     expect(request.source).toEqual({ kind: 'text', text: '전화를 안 받으시고 우편함에 고지서가 쌓여 있었어요' })
-    expect(await screen.findByText(/메모에서 만든 AI 후보입니다/)).toBeInTheDocument()
-    expect(screen.getByText('누락 확인: 식사상태')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: '다음 확인 질문' })).toBeInTheDocument()
-    expect(screen.getByText('오늘 식사를 한 끼도 하지 못한 건가요, 아니면 평소보다 양이 줄어든 건가요?')).toBeInTheDocument()
+    expect(await screen.findByLabelText('통화(또는 방문) 결과')).toBeInTheDocument()
+    expect(screen.queryByText('누락 확인: 식사상태')).toBeNull()
+    expect(screen.queryByRole('heading', { name: '다음 확인 질문' })).toBeNull()
+    expect(screen.queryByText('오늘 식사를 한 끼도 하지 못한 건가요, 아니면 평소보다 양이 줄어든 건가요?')).toBeNull()
     expect(screen.getByLabelText('통화(또는 방문) 결과')).toHaveValue('미응답')
     expect(screen.getByRole('checkbox', { name: '우편물·고지서 적체' })).toBeChecked()
-    expect(screen.getByRole('region', { name: '기타 특이사항 확인' })).toHaveTextContent('우편함에 고지서가 쌓여 있었음')
+    expect(screen.getByRole('region', { name: '기타 특이사항' })).toHaveTextContent('우편함에 고지서가 쌓여 있었음')
     expect(mocks.submitContact).not.toHaveBeenCalled()
   })
 
@@ -353,7 +352,7 @@ describe('MobilePage (조사원 /m)', () => {
         case_id: 'SYN-HH-2812551000-0001',
         contact_result: voiceCandidateConcernResult,
         observations: {
-          관찰_6징후: { 우편물_고지서_적체: false, 악취_벌레: false, 쓰레기_술병: false, 인기척_없이_TV_불: false, 외출_없음: true, 연락_두절: false },
+          관찰_6징후: { 우편물_고지서_적체: true, 악취_벌레: true, 쓰레기_술병: true, 인기척_없이_TV_불: true, 외출_없음: true, 연락_두절: true },
           식사상태: null, 위생상태: null, 공과금_2개월_이상_체납: null,
           최근_건강_정신_괴로움: true, 관계망_유무: '없음', 연락_빈도: null,
         },
@@ -378,9 +377,31 @@ describe('MobilePage (조사원 /m)', () => {
       revision: 0,
       source: { kind: 'text', text: '밥을 잘 못 먹어요.' },
     }))
-    expect(await screen.findByText(/실시간 통화에서 만든 후보입니다/)).toBeInTheDocument()
+    expect(await screen.findByLabelText('통화(또는 방문) 결과')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: '다음 확인 질문' })).toBeNull()
     expect(screen.getByLabelText('식사 상태')).toHaveValue('')
     expect(screen.getByRole('checkbox', { name: '최근 외출 없음' })).toBeChecked()
+    for (const label of ['우편물·고지서 적체', '악취·벌레', '쓰레기·술병', '인기척 없이 TV·불 켜짐', '주변에서 확인한 연락 두절']) {
+      expect(screen.getByRole('checkbox', { name: label })).not.toBeChecked()
+    }
+    expect(screen.queryByText(/실시간 통화에서 만든 후보입니다|제출은 조사원 확정입니다/)).toBeNull()
     expect(mocks.submitContact).not.toHaveBeenCalled()
+  })
+
+  it('uses concise labels for health and utility answers', async () => {
+    arrange()
+    const user = userEvent.setup()
+    render(<MobilePage />)
+    await user.click(await screen.findByText('김영자 어르신'))
+    await user.click(screen.getByRole('button', { name: '문답 또는 직접 체크하기' }))
+    await user.click(screen.getByRole('button', { name: '직접 체크하기' }))
+
+    expect(screen.getByLabelText('최근 건강·마음 어려움')).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: '어려움 있음' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: '어려움 없음' })).toBeInTheDocument()
+    expect(screen.getByLabelText('공과금 2개월 이상 체납')).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: '체납 있음' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: '체납 없음' })).toBeInTheDocument()
+    expect(screen.queryByText('관찰 또는 보고됨')).toBeNull()
   })
 })
