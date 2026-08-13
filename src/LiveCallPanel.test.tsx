@@ -116,13 +116,8 @@ describe('LiveCallPanel', () => {
     expect(onFinish.mock.calls[0][0]).not.toContain('오늘 식사는 하셨어요?')
   })
 
-  it('keeps the newest live content in view after muting', async () => {
+  it('keeps the newest caption in view inside the transcript chat after muting', async () => {
     let onCaption: ((value: LiveCaption) => void) | undefined
-    const scrollIntoView = vi.fn()
-    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
-      configurable: true,
-      value: scrollIntoView,
-    })
     mocks.connect.mockImplementation(async (input: { onCaption: (value: LiveCaption) => void }) => {
       onCaption = input.onCaption
       return {
@@ -151,7 +146,6 @@ describe('LiveCallPanel', () => {
     })
 
     await waitFor(() => expect(transcript.scrollTop).toBe(640))
-    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'end' })
   })
 
   it('renders streamed Planner-Critic state as unconfirmed checklist candidates', async () => {

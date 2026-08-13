@@ -190,7 +190,6 @@ export function LiveCallPanel({
   const audioRef = useRef<HTMLDivElement>(null)
   const captionsRef = useRef<LiveCaption[]>([])
   const captionsListRef = useRef<HTMLOListElement>(null)
-  const liveFlowEndRef = useRef<HTMLDivElement>(null)
 
   const finalResidentTurns = useMemo(
     () => captions.filter((caption) => caption.role === 'resident' && caption.final).length,
@@ -231,17 +230,13 @@ export function LiveCallPanel({
   }, [])
 
   useEffect(() => {
-    if (callState !== 'connected' || (captions.length === 0 && !liveCandidate && !candidatePending)) return
+    if (callState !== 'connected' || captions.length === 0) return
     const frame = window.requestAnimationFrame(() => {
       const list = captionsListRef.current
       if (list) list.scrollTop = list.scrollHeight
-      const anchor = liveFlowEndRef.current
-      if (anchor && typeof anchor.scrollIntoView === 'function') {
-        anchor.scrollIntoView({ behavior: 'smooth', block: 'end' })
-      }
     })
     return () => window.cancelAnimationFrame(frame)
-  }, [callState, captions, liveCandidate, candidatePending])
+  }, [callState, captions])
 
   const receiveCaption = (caption: LiveCaption) => {
     const previousResidentTranscript = residentTranscript(captionsRef.current)
@@ -394,8 +389,6 @@ export function LiveCallPanel({
               error={candidateError}
             />
           )}
-
-          <div ref={liveFlowEndRef} className="live-call-follow-anchor" aria-hidden="true" />
 
           <div className="live-call-controls">
             <button type="button" className="live-call-secondary" onClick={() => void toggleMuted()} disabled={callState === 'finishing'}>
