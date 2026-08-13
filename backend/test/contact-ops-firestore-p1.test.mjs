@@ -129,6 +129,32 @@ describe('P1 Firestore synthetic state adapter', () => {
     assert.equal(restored.updated_at, baseline.updated_at);
     assert.equal(firestore.records.size, 0);
   });
+  test('backfills contract fields the stored record predates from the seed', async () => {
+    const managedHousehold = {
+      ...household,
+      management_entry: { synthetic: true, status: 'active_contact_management', intake_channel: 'family_request' },
+    };
+    const firestore = fakeFirestore();
+    const state = createFirestoreContactOpsState({ firestore, collectionName: 'synthetic_ops', households: [managedHousehold] });
+    // 배포 전 세션이 저장한 레코드: management_entry가 없다.
+    firestore.records.set(`${sessionId}--${household.id}`, {
+      schemaVersion: 1, synthetic: true, session_id: sessionId, revision: 3,
+      household: structuredClone(household),
+      observations: { 관찰_6징후: { 연락_두절: true } }, triage: null,
+      updated_at: '2026-08-12T00:00:00.000Z',
+    });
+    const record = await state.get({ sessionId, caseId: household.id });
+    assert.equal(record.household.management_entry.intake_channel, 'family_request');
+    assert.equal(record.revision, 3);
+
+    // 자체 management_entry가 있는 저장 레코드는 그대로 유지된다.
+    firestore.records.get(`${sessionId}--${household.id}`).household.management_entry = {
+      synthetic: true, status: 'active_contact_management', intake_channel: 'self_request',
+    };
+    const kept = await state.get({ sessionId, caseId: household.id });
+    assert.equal(kept.household.management_entry.intake_channel, 'self_request');
+  });
+
   test('validates adapter construction and passes unavailable Firestore errors through', async () => {
     assert.throws(() => createFirestoreContactOpsState({ firestore: {}, collectionName: 'x', households: [] }), /firestore/);
     assert.throws(() => createFirestoreContactOpsState({ firestore: fakeFirestore(), collectionName: 'bad/name', households: [] }), /collection/);

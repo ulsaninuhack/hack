@@ -934,6 +934,7 @@ select:focus-visible,
 .center-page .assignment-auto { color: var(--t-faint); }
 .center-page .assignment-actions { display: flex; gap: 8px; }
 .center-page .assignment-escalated { color: #d31530; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.center-page .assignment-escalated-note { margin: 10px 0 0; font-size: 14px; color: var(--t-faint); }
 .center-page .escalate-one { background: #fef2f2; color: #d31530; border: 1px solid #f5c2c7; border-radius: 10px; min-height: 44px; padding: 0 18px; font-weight: 700; font-size: 14px; transition: background .15s var(--ease), transform .2s var(--ease); }
 .center-page .escalate-one:hover { background: #fde3e5; }
 .center-page .escalate-one:active { transform: scale(0.95); }

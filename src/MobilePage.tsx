@@ -105,7 +105,7 @@ function assignmentStatusLabel(item: LaneItem) {
 
 function ManagementEntrySummary({ item }: { item: LaneItem }) {
   return <>
-    <span className="mobile-task-meta">등록 근거 · {managementIntakeLabel(item.management_entry.intake_channel)}</span>
+    <span className="mobile-task-meta">등록 근거 · {item.management_entry ? managementIntakeLabel(item.management_entry.intake_channel) : '기록 확인 필요'}</span>
     <span className="mobile-task-meta">연락 동의 기록 · 기존 정기 안부확인 중복 없음</span>
   </>
 }
@@ -406,7 +406,7 @@ export function MobilePage() {
               <div><dt>선정 사유</dt><dd>{selected.selection_reason_labels.join(' · ') || '선정 사유 확인 중'}</dd></div>
               <div><dt>연락 기한</dt><dd>{selected.earliest_due_date ?? '기한 없음'}</dd></div>
               <div><dt>담당</dt><dd>{selected.worker_display_name ?? '미배정'}</dd></div>
-              <div><dt>등록 근거</dt><dd>{managementIntakeLabel(selected.management_entry.intake_channel)}</dd></div>
+              <div><dt>등록 근거</dt><dd>{selected.management_entry ? managementIntakeLabel(selected.management_entry.intake_channel) : '기록 확인 필요'}</dd></div>
               <div><dt>관리 확인</dt><dd>연락 동의 기록 · 기존 정기 안부확인 중복 없음</dd></div>
             </>}
             <div><dt>위치</dt><dd>{selected.location.district} {selected.location.dong_name}</dd></div>
