@@ -66,12 +66,12 @@ const candidate = {
   confirmed: false,
 };
 
-function setup() {
+function setup(selectedCandidate = candidate) {
   const calls = [];
   const aiAdapter = {
     async planContactOpsObservation(input) {
       calls.push(['plan', input]);
-      return structuredClone(candidate);
+      return structuredClone(selectedCandidate);
     },
     assertContactOpsObservationCandidate(value) {
       calls.push(['assert', value]);
@@ -127,6 +127,26 @@ describe('P3 Planner-Critic confirmation boundary', () => {
     assert.equal(result.household.workflow.visit_approval_status, 'recommended');
     assert.equal(result.triage.방문_승인_상태, '권고');
     assert.equal(Object.hasOwn(result, '종합_점수'), false);
+  });
+
+  test('confirmed lying-down and no-network candidates reach the existing scoring engine as 주시', async () => {
+    const mappedCandidate = structuredClone(candidate);
+    mappedCandidate.contact_result = 'connected_concern';
+    mappedCandidate.observations.관찰_6징후.우편물_고지서_적체 = false;
+    mappedCandidate.observations.관찰_6징후.외출_없음 = true;
+    mappedCandidate.observations.관계망_유무 = '없음';
+    const { service } = setup(mappedCandidate);
+
+    const result = await service.createAiObservation({
+      mode: 'confirm', sessionId: `${SESSION_ID}-social`, caseId: CASE_ID,
+      expectedRevision: 0, contactDate: '2026-08-12', confirmed: true,
+      candidate: mappedCandidate,
+    });
+
+    assert.equal(result.triage.급성도_점수, 37);
+    assert.equal(result.triage.급성도_등급, '주시');
+    assert.equal(result.triage.취약도_점수, 25);
+    assert.ok(result.triage.점수_기여내역.some(({ 코드 }) => 코드 === '관계망_없음'));
   });
 
   test('rejects stale candidate generation, mismatched case IDs, and unavailable adapters', async () => {

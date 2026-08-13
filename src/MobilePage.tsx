@@ -104,6 +104,7 @@ export function MobilePage() {
   const [resultLabel, setResultLabel] = useState<ContactResultLabel | ''>('')
   const [observations, setObservations] = useState<CanonicalObservations>(emptyObservations)
   const [candidateNote, setCandidateNote] = useState<string | null>(null)
+  const [candidateFreeText, setCandidateFreeText] = useState<string | null>(null)
   const [criticWarnings, setCriticWarnings] = useState<string[]>([])
   const [chatIndex, setChatIndex] = useState(0)
   const [chatLog, setChatLog] = useState<Array<{ prompt: string; answer: string }>>([])
@@ -148,6 +149,7 @@ export function MobilePage() {
     setResultLabel('')
     setObservations(emptyObservations())
     setCandidateNote(null)
+    setCandidateFreeText(null)
     setCriticWarnings([])
     setChatIndex(0)
     setChatLog([])
@@ -158,6 +160,7 @@ export function MobilePage() {
     setObservations(candidate.observations)
     setResultLabel(contactResultLabelFromCode(candidate.contact_result))
     setCandidateNote('음성에서 만든 후보입니다. 아래 체크리스트를 확인하고 고친 뒤 제출해 주세요.')
+    setCandidateFreeText(candidate.free_text.trim() || null)
     setCriticWarnings([
       ...candidate.critic.contradictions,
       ...candidate.critic.warnings,
@@ -201,6 +204,7 @@ export function MobilePage() {
     setChatIndex(index)
     setChatLog((log) => log.slice(0, index))
     setCandidateNote(null)
+    setCandidateFreeText(null)
     setInputPath('chat')
   }
 
@@ -432,6 +436,13 @@ export function MobilePage() {
           {(inputPath === 'manual' || candidateNote !== null) && (
             <form className="mobile-checklist" onSubmit={(event) => { event.preventDefault(); void submit() }}>
               {candidateNote && <p className="mobile-candidate-note" role="note">{candidateNote}</p>}
+              {candidateFreeText && (
+                <section className="mobile-extra-note" aria-label="기타 특이사항 확인">
+                  <h3>기타 특이사항 확인</h3>
+                  <p>{candidateFreeText}</p>
+                  <p>해당하는 체크리스트를 확인하면 제출 후 점수에 반영됩니다.</p>
+                </section>
+              )}
               {criticWarnings.length > 0 && (
                 <ul className="mobile-critic" aria-label="후보 검토 주의사항">
                   {criticWarnings.map((warning) => <li key={warning}>{warning}</li>)}

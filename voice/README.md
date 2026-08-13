@@ -82,6 +82,20 @@ const result = await processAudioFile({
 
 ContactOps는 `planContactOpsObservation(input, options)`로 텍스트 또는 검증된 WAV/MP3/M4A를 후보로 바꾸고, 서버가 확인 요청을 받을 때 `assertContactOpsObservationCandidate(value)`로 정확한 키와 경계를 다시 검증한다. 어댑터는 `confirmed: false` 후보만 만들며 확정·점수·승인을 실행하지 않는다.
 
+선택된 대상자의 통화 결과 화면에서 들어온 파일·텍스트는 서버가
+`selected_case_voice_memo` 문맥과 선택된 합성 case ID를 Planner에 함께 전달한다.
+따라서 대상자의 말을 1인칭으로 인용하거나 욕설·감탄사가 섞여도 연결단원 본인의
+컨디션이 아니라 통화 결과 후보로 해석한다. Planner가 `누워만 있음`을 `외출_없음`,
+사회적 접촉 부재를 정규 `관계망 없음` 신호로 추출하면 어댑터가 기존 한국어
+체크리스트의 `관계망_유무=없음`으로 변환한다. 발화에 다른 case ID가 명시되면
+선택된 case와의 불일치를 Critic에 남긴다.
+
+같은 정규 신호 방식으로 공과금 2개월 이상 체납, 최근 건강·마음 괴로움, 관계망,
+평소 연락 빈도를 기존 체크리스트 후보에 채운다. AI가 별도 숫자 점수를 만들지는
+않는다. 조사원이 후보를 확인·제출하면 기존 결정론 점수표가 해당 항목을 계산한다.
+체크리스트로 바로 표현되지 않는 `free_text`는 모바일의 `기타 특이사항 확인`에
+노출해 조사원이 관련 항목을 수동으로 확인할 수 있게 한다.
+
 ```js
 import {
   assertContactOpsObservationCandidate,
@@ -129,6 +143,13 @@ ContactOps 실제 Planner–Critic 그래프는 `ENABLE_LIVE_CONTACT_OPS_AI=1`�
 2026-08-13 운영 리허설에서는 Secret Manager 키를 주입한 Cloud Run에서 7초 한국어
 합성 M4A를 모바일 multipart 경로로 전송해 전사·Planner·Critic 후보 HTTP 200을
 확인했다. 이는 실 API 배선만 증명하며 실제 조사원 음성 품질을 증명하지 않는다.
+
+선택 대상자 문맥 보강 후 욕설이 섞인 4.3초 합성 발화
+`밥 안 먹고 누워만 있어. 사람 안 만나.`를 실제 OpenAI 전사·Planner·Critic에 넣어
+`connected_concern`, `식사상태=심각`, `외출_없음=true`, `관계망_유무=없음`,
+`requires_user_confirmation=true`를 확인했다. 확인된 후보를 기존 점수 엔진에 넣으면
+급성도 37점 `주시`, 취약도 62.60점, `재연락 기한 단축`이 된다. 합성 TTS 결과이므로
+실제 노인 음성·전화 음질·사투리·소음 정확도는 계속 사람 검증 과제다.
 
 ## 개인정보와 로그
 
