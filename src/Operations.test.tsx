@@ -157,7 +157,7 @@ describe('P2 manager flow', () => {
     displayMarker: '[합성]' as const,
     transfer_recommendations: [{ case_id: detail.household.id, status_label: '행정복지센터 이관 권고', acute: { score: 55 }, vulnerability: { score: 25 } }],
     grade_distribution: { scored_case_count: 13, not_yet_scored_case_count: 0, acute: { axis_label: '급성도', grades: { 정상: 1, 주시: 2, 방문권고: 3, '방문권고-우선': 7 } }, vulnerability: { axis_label: '취약도', score_bands: { '0_24': 2, '25_49': 4, '50_74': 5, '75_100': 2 } } },
-    tuning_warning: { title: '합성 배점 튜닝 경고', current_mild_signal_count: 664, source_case_count: 5869, interpretation: '결정적 합성 시나리오의 배점 점검값이며 실제 개인 판정이 아닙니다.' },
+    tuning_warning: { title: '합성 배점 튜닝 경고', current_mild_signal_count: 647, source_case_count: 5869, interpretation: '결정적 합성 시나리오의 배점 점검값이며 실제 개인 판정이 아닙니다.' },
     approved_visit_hint: { approved_visit_count: 13, label: '단순 근접 순서 · VRP 아님(차량 경로 최적화 미사용)', items: [{ case_id: detail.household.id, district: '제물포구', admin_dong: '신포동', assigned_worker_ids: ['SYN-W-2812551000-01'], approved_max_route_distance_km: 2 }] },
   }
   it('loads recommendation records and provides the existing map plus list alternative', async () => {
@@ -178,7 +178,7 @@ describe('P2 manager flow', () => {
     render(<ManagerPage />)
     expect(await screen.findByText('행정복지센터 이관 권고')).toBeInTheDocument()
     expect(screen.getByText('합성 배점 튜닝 경고')).toBeInTheDocument()
-    expect(screen.getByText('664건')).toBeInTheDocument()
+    expect(screen.getByText('647건')).toBeInTheDocument()
     expect(screen.getByText('승인된 방문 13건')).toBeInTheDocument()
     expect(screen.getByText('단순 근접 순서 · VRP 아님(차량 경로 최적화 미사용)')).toBeInTheDocument()
     expect(screen.getByText('급성도 분포')).toBeInTheDocument()

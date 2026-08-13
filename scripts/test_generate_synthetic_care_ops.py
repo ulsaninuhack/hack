@@ -26,6 +26,13 @@ CROSSWALK = (
     / "boundary_current_to_geometry_crosswalk_20260701.csv"
 )
 GEOMETRY = REPO_ROOT / "public" / "data" / "admin-dongs.geojson"
+DEMOGRAPHICS = (
+    REPO_ROOT / "data" / "processed" / "demographics_admin_dong_202607.csv"
+)
+ADDRESS_ANCHORS = (
+    REPO_ROOT / "public" / "data" / "synthetic-residential-address-anchors.json"
+)
+TOTAL_SYNTHETIC_CASES = 5_869
 OUTPUT_NAMES = (
     "synthetic-workers.json",
     "synthetic-households.json",
@@ -57,6 +64,27 @@ WORKFLOW_REQUIRED_KEYS = {
     "visit_approval_status",
     "transfer_status",
     "visit_decision",
+}
+HOUSEHOLD_LOCATION_REQUIRED_KEYS = {
+    "longitude",
+    "latitude",
+    "geometry_zone_id",
+    "current_admin_dong_code_20260701",
+    "current_admin_dong_name_20260701",
+    "current_district_name_20260701",
+    "geometry_resolution",
+    "mapping_method",
+    "spatial_basis",
+    "reference_pnu",
+    "road_address",
+    "building_name",
+    "main_use_names",
+    "apartment_reference",
+    "residential_building_reference",
+    "address_source",
+    "coordinate_source",
+    "residential_classification_sources",
+    "not_real_resident",
 }
 
 
@@ -150,6 +178,10 @@ class SyntheticCareOpsContractTests(unittest.TestCase):
             str(CROSSWALK),
             "--geometry",
             str(GEOMETRY),
+            "--demographics",
+            str(DEMOGRAPHICS),
+            "--address-anchors",
+            str(ADDRESS_ANCHORS),
             "--seed",
             "20260812",
         ]
@@ -168,19 +200,83 @@ class SyntheticCareOpsContractTests(unittest.TestCase):
             cls.current_dong_codes = {
                 row["admin_dong_code_20260701"] for row in csv.DictReader(handle)
             }
+        with DEMOGRAPHICS.open(encoding="utf-8-sig", newline="") as handle:
+            cls.age_65_plus_one_person_by_dong = {
+                row["admin_dong_code_20260701"]: int(
+                    row["one_person_households_age_65_plus"]
+                )
+                for row in csv.DictReader(handle)
+            }
 
     @classmethod
     def tearDownClass(cls) -> None:
         cls.temporary.cleanup()
 
-    def test_covers_all_162_current_dongs_with_20_to_50_households_each(self) -> None:
+    def test_allocates_fixed_workload_by_observed_age_65_plus_one_person_counts(self) -> None:
         counts = Counter(
             household["location"]["current_admin_dong_code_20260701"]
             for household in self.households["households"]
         )
         self.assertEqual(set(counts), self.current_dong_codes)
         self.assertEqual(len(counts), 162)
-        self.assertTrue(all(20 <= count <= 50 for count in counts.values()))
+        self.assertEqual(sum(counts.values()), TOTAL_SYNTHETIC_CASES)
+
+        observed_total = sum(self.age_65_plus_one_person_by_dong.values())
+        ideals = {
+            code: TOTAL_SYNTHETIC_CASES * observed / observed_total
+            for code, observed in self.age_65_plus_one_person_by_dong.items()
+        }
+        expected = {code: max(1, int(ideal)) for code, ideal in ideals.items()}
+        remaining = TOTAL_SYNTHETIC_CASES - sum(expected.values())
+        for code in sorted(
+            expected,
+            key=lambda item: (-(ideals[item] - int(ideals[item])), item),
+        )[:remaining]:
+            expected[code] += 1
+        self.assertEqual(dict(counts), expected)
+
+    def test_every_case_uses_an_official_residential_address_anchor(self) -> None:
+        locations = [
+            household["location"] for household in self.households["households"]
+        ]
+        for location in locations:
+            with self.subTest(
+                dong=location["current_admin_dong_code_20260701"],
+                pnu=location.get("reference_pnu"),
+            ):
+                self.assertEqual(set(location), HOUSEHOLD_LOCATION_REQUIRED_KEYS)
+                self.assertRegex(location["reference_pnu"], r"^\d{19}$")
+                self.assertTrue(location["road_address"].startswith("인천광역시 "))
+                self.assertTrue(location["main_use_names"])
+                self.assertIsInstance(location["apartment_reference"], bool)
+                self.assertIs(location["residential_building_reference"], True)
+                self.assertIs(location["not_real_resident"], True)
+                self.assertEqual(
+                    location["spatial_basis"],
+                    "official_residential_building_address_reference",
+                )
+                self.assertEqual(
+                    location["address_source"], "MOIS_JUSO_BUILDING_DB_202607"
+                )
+                self.assertIn(
+                    location["coordinate_source"],
+                    {
+                        "VWORLD_AL_D010_PNU_REPRESENTATIVE_POINT_20260809",
+                        "OPENSTREETMAP_NOMINATIM_RESIDENTIAL_FEATURE_20260813",
+                    },
+                )
+                self.assertTrue(
+                    set(location["residential_classification_sources"])
+                    & {
+                        "VWORLD_BUILDING_AGE_REGISTER_20260805",
+                        "MOIS_JUSO_BUILDING_DB_202607_COLLECTIVE_HOUSING_FLAG",
+                    }
+                )
+
+        self.assertTrue(any(location["apartment_reference"] for location in locations))
+        self.assertTrue(
+            any("아파트" in location["building_name"] for location in locations)
+        )
 
     def test_one_generic_synthetic_worker_exists_per_current_dong(self) -> None:
         workers = self.workers["workers"]
@@ -266,12 +362,13 @@ class SyntheticCareOpsContractTests(unittest.TestCase):
                 (
                     "from pathlib import Path; "
                     "from scripts.generate_synthetic_care_ops import "
-                    "load_admin_contract, validate_datasets; "
+                    "allocate_case_counts, load_admin_contract, read_csv, validate_datasets; "
                     f"import json; workers=json.load(open({str(self.output_dir / 'synthetic-workers.json')!r})); "
                     f"households=json.load(open({str(self.output_dir / 'synthetic-households.json')!r})); "
                     "households['households'][0]['workflow']['visit_approval_status']='approved'; "
                     f"admin,geometry=load_admin_contract(Path({str(CURRENT_DONGS)!r}), Path({str(CROSSWALK)!r}), Path({str(GEOMETRY)!r})); "
-                    "validate_datasets(workers, households, admin, geometry)"
+                    f"counts=allocate_case_counts(read_csv(Path({str(DEMOGRAPHICS)!r}))); "
+                    "validate_datasets(workers, households, admin, geometry, counts)"
                 ),
             ],
             cwd=REPO_ROOT,

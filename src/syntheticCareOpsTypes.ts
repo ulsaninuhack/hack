@@ -11,7 +11,7 @@ export type GeometryResolution =
   | 'shared_parent_2025_geometry_zone'
   | 'shared_2025_geometry_zone'
 
-export interface SyntheticLocation {
+export interface SyntheticSpatialLocation {
   longitude: number
   latitude: number
   geometry_zone_id: string
@@ -20,7 +20,29 @@ export interface SyntheticLocation {
   current_district_name_20260701: string
   geometry_resolution: GeometryResolution
   mapping_method: string
+}
+
+export interface SyntheticWorkerLocation extends SyntheticSpatialLocation {
   spatial_basis: 'synthetic_point_within_2025_geometry_zone'
+}
+
+export interface SyntheticHouseholdLocation extends SyntheticSpatialLocation {
+  spatial_basis: 'official_residential_building_address_reference'
+  reference_pnu: string
+  road_address: string
+  building_name: string
+  main_use_names: string[]
+  apartment_reference: boolean
+  residential_building_reference: true
+  address_source: 'MOIS_JUSO_BUILDING_DB_202607'
+  coordinate_source:
+    | 'VWORLD_AL_D010_PNU_REPRESENTATIVE_POINT_20260809'
+    | 'OPENSTREETMAP_NOMINATIM_RESIDENTIAL_FEATURE_20260813'
+  residential_classification_sources: Array<
+    | 'VWORLD_BUILDING_AGE_REGISTER_20260805'
+    | 'MOIS_JUSO_BUILDING_DB_202607_COLLECTIVE_HOUSING_FLAG'
+  >
+  not_real_resident: true
 }
 
 export interface TimeWindow {
@@ -33,7 +55,7 @@ export interface SyntheticWorker {
   synthetic: true
   display_name: string
   role: 'neighbor_connector'
-  location: SyntheticLocation
+  location: SyntheticWorkerLocation
   constraints: {
     stairs_allowed: boolean
     available_time_window: TimeWindow
@@ -73,7 +95,7 @@ export type TransferStatus =
 export interface SyntheticHouseholdTask {
   id: string
   synthetic: true
-  location: SyntheticLocation
+  location: SyntheticHouseholdLocation
   contact: {
     next_contact_date: string
     preferred_contact_method: 'phone' | 'visit'

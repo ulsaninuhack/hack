@@ -23,7 +23,7 @@ describe('deterministic synthetic triage distribution report', () => {
     assert.equal(report.전체_건수, 5_869);
     assert.equal(report.현행_행정동_수, 162);
     assert.equal(report.지도구역_수, 156);
-    assert.equal(report.동단위_구조취약도_정규화_주입, false);
+    assert.equal(report.동단위_구조취약도_정규화_주입, true);
     assert.equal(
       Object.values(report.급성도_등급별_건수).reduce((sum, count) => sum + count, 0),
       report.전체_건수,
@@ -57,6 +57,10 @@ describe('deterministic synthetic triage distribution report', () => {
       await copyFile(
         new URL('../../public/data/synthetic-households.json', import.meta.url),
         join(dataDirectory, 'synthetic-households.json'),
+      );
+      await copyFile(
+        new URL('../../public/data/structural-context.json', import.meta.url),
+        join(dataDirectory, 'structural-context.json'),
       );
       const isolatedBackend = join(isolatedRoot, 'backend');
       const isolatedScripts = join(isolatedBackend, 'scripts');

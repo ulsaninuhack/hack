@@ -18,18 +18,18 @@
 - Cloud Run CD status: the merged workflow validates pull requests and runs sibling Vercel and Cloud Run deploy jobs after successful `main` validation.
 - GCP auth: use Workload Identity Federation only. Do not add JSON service-account keys.
 - GCP DB: Firestore Standard Native `(default)` is provisioned in `asia-northeast3`; the runtime service account has `roles/datastore.user`. P1 uses it only for synthetic, session-isolated ContactOps overrides. Static health/map/facility/transit/summary routes remain independent of Firestore, and browser-direct access is prohibited.
-- Synthetic ContactOps contract: deterministic fixtures now exist in `public/data/synthetic-workers.json` and `public/data/synthetic-households.json`, with JSON Schemas, TypeScript types, tests, and a manifest. They cover 162 current dongs with 162 generic workers and 5,869 synthetic contact tasks; 3,616 are due on the reference date, 5,291 prefer phone, 578 prefer visit, and 0 are preapproved visits. See `docs/SYNTHETIC_CARE_OPS_DATA.md` before wiring voice output, scoring, UI, or routing.
+- Synthetic ContactOps contract: deterministic fixtures now exist in `public/data/synthetic-workers.json`, `public/data/synthetic-households.json`, and `public/data/synthetic-residential-address-anchors.json`, with JSON Schemas, TypeScript types, tests, and a manifest. They cover 162 current dongs with 162 generic workers and 5,869 synthetic contact tasks allocated from the observed 65+ one-person-household distribution; 3,597 are due on the reference date, 5,289 prefer phone, 580 prefer visit, 2,303 use apartment/collective-housing references, and 0 are preapproved visits. Every task carries a public residential-building road address and representative point; it is not linked to an actual resident. See `docs/SYNTHETIC_CARE_OPS_DATA.md` before wiring voice output, scoring, UI, or routing.
 - ContactOps vertical slice: `backend/src/contact-ops.mjs`, `backend/src/contact-triage-scoring.mjs`, `backend/src/contact-ops-service.mjs`, and `backend/src/contact-ops-state.mjs` provide session-isolated API/state for queue -> contact result -> follow-up rules -> separate acute/vulnerability scores -> recommendation-only handoff -> manager approval. Production selects Firestore for synthetic overrides while static map routes remain independent. `ai-observations` now connects the voice contract through Planner -> schema -> Korean DTO -> Critic and requires a separate explicit confirmation before existing deterministic rules run. Route optimization and Realtime input remain unimplemented; live model/audio quality remains a human gate.
-- Operations breadth: manager breadth exposes transfer review, separate distributions, the deterministic 664-case tuning warning, and 13 approved-visit nearest-order hints labeled not-VRP. Surveyor breadth exposes daily, repeated-no-answer, overdue, transfer, empty, loading, and recoverable-error states.
-- Operations map: `public/data/structural-context.json` and `GET /api/v1/contact-ops/operations-map` preserve 162 current dongs in 156 geometry zones. Public structure uses four equal midrank contributions with missingness and `[MODEL OUTPUT — UNVALIDATED]`; synthetic overlay color=max acute and size=max vulnerability with no combined score. Fresh sessions no longer look empty: one deterministic `[합성 시나리오]` example per current dong (162 total) covers all 156 zones, while API/UI separately expose session-recorded, scenario, and unrecorded counts. These examples do not mutate workflow or approve visits.
-- Triage evidence: all scores carry contribution traces, no composite score exists, and the deterministic 5,869-case simulation reports 664 mild-signal accumulation cases among 1,941 priority recommendations. This is a tuning warning from synthetic profiles, not an observed-person result. See `docs/CONTACT_TRIAGE_SCORING.md`.
+- Operations breadth: manager breadth exposes transfer review, separate distributions, the deterministic 647-case tuning warning, and 13 approved-visit nearest-order hints labeled not-VRP. Surveyor breadth exposes daily, repeated-no-answer, overdue, transfer, empty, loading, and recoverable-error states.
+- Operations map: `public/data/structural-context.json` and `GET /api/v1/contact-ops/operations-map` preserve 162 current dongs in 156 geometry zones. Public structure uses four equal midrank contributions with missingness and `[MODEL OUTPUT — UNVALIDATED]`; synthetic overlay color=max acute and size=max vulnerability with no combined score. Fresh sessions no longer look empty: one deterministic `[합성 시나리오]` example per current dong (162 total) covers all 156 zones, while API/UI separately expose session-recorded, scenario, and unrecorded counts. The same response now includes sorted recommendation-only `visit_review_points` with public residential addresses, representative coordinates, apartment flags, both scores, and contribution traces. These examples do not mutate workflow or approve visits.
+- Triage evidence: all scores carry contribution traces, no composite score exists, and the deterministic 5,869-case simulation reports 647 mild-signal accumulation cases among 1,969 `방문권고-우선` cases. This is a tuning warning from synthetic profiles, not an observed-person result. See `docs/CONTACT_TRIAGE_SCORING.md`.
 - Voice file input: `voice/` supports consented masked text and mock-verified WAV/MP3/M4A transcription. Its adapter emits only a confirmation-required candidate; confirmed canonical observations are applied by the backend while scores and manager approval remain server-owned.
 - UI review contract: all UI milestones follow `docs/UI_UX_REVIEW_RUBRIC.md`; hard-ban copy is CI-gated, and each milestone must record its Vercel Preview URL plus Claude screenshot review in this file and `docs/PROGRESS.md`.
 - Latest P8 review milestone: PR #18 is merged and GitHub Actions run `31632681184`
   successfully deployed merge commit `6e43bce8b95e91aaa2abb0c5daba39d7c8bbc9fe` to
   Vercel production and Cloud Run revision `incheon-care-api-00019-qsh`. The live browser
   completes synthetic queue -> acute 62 recommendation -> manager-only approval -> reload
-  persistence, shows the 664 tuning warning and unvalidated structural context, and reports
+  persistence, shows the 647 tuning warning and unvalidated structural context, and reports
   zero console errors.
 
 ## 60-Second Takeover
@@ -117,10 +117,12 @@ These values are the current consumer contract for the 65+ relevant runtime laye
 | Housing strict assignment coverage | 95.886634% |
 | Web data validation status | `pass` |
 | Synthetic workers | 162, one per current admin dong |
-| Synthetic contact tasks | 5,869, 20-50 per current admin dong |
-| Due contact tasks on 2026-08-12 | 3,616 |
-| Phone-preferred synthetic tasks | 5,291 |
-| Visit-preferred synthetic tasks | 578 |
+| Synthetic contact tasks | 5,869, observed 65+ one-person-household distribution; 2-97 per current admin dong |
+| Due contact tasks on 2026-08-12 | 3,597 |
+| Phone-preferred synthetic tasks | 5,289 |
+| Visit-preferred synthetic tasks | 580 |
+| Apartment/collective-housing reference tasks | 2,303 |
+| Unique public residential PNU references | 5,683 |
 | Preapproved synthetic visits | 0 |
 
 ## Do Not Say
@@ -196,7 +198,7 @@ Current backend expectation: local tests and Docker pass, production `/health` i
 
 ## ContactOps Next Order
 
-1. Treat the 664 mild-signal accumulation cases as a tuning gate. Do not change weights without updating the golden set and rerunning the deterministic distribution report.
+1. Treat the 647 mild-signal accumulation cases as a tuning gate. Do not change weights without updating the golden set and rerunning the deterministic distribution report.
 2. Keep the implemented 0~50 structural candidate frozen to its four transparent midrank indicators unless a new versioned metric contract and tests are approved. Never feed it into an automatic personal decision.
 3. Keep the implemented text/file Planner–Critic adapter confirmation-gated. Real Korean audio accuracy, live-LLM usefulness, and Realtime input remain human/future gates.
 4. Add route gating only for approved visits. The current 13-visit output is a nearest-order hint, not VRP. Trigger a future planner only when same-day approved volume, accompaniment, time/area/travel-mode conflicts, or reassignment justify it.
