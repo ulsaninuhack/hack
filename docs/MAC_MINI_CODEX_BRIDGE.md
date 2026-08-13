@@ -86,8 +86,9 @@ gcloud run services update incheon-care-api \
 If `codex-bridge-token` does not yet exist, first create it with automatic replication and grant
 the existing Cloud Run runtime service account Secret Manager accessor only for this secret. Keep
 `OPENAI_API_KEY` while file transcription is enabled. When both transports are configured, text
-Planner/Critic retries through that same key only for bridge network errors, timeouts, or HTTP
-503/504. Authentication, rate-limit, model-output, and malformed-response failures stay closed.
+Planner/Critic retries through that same key only for bridge network errors, timeouts, HTTP 503/504,
+or a non-JSON gateway 502. Authentication, rate-limit, JSON model-output 502, and malformed-response
+failures stay closed.
 
 Production reads `CONTACT_OPS_CODEX_BRIDGE_URL` from the repository variable and maps
 `CONTACT_OPS_CODEX_BRIDGE_TOKEN` directly from `codex-bridge-token` in Secret Manager. When

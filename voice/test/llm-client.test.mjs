@@ -137,17 +137,17 @@ test('OpenAI retries the same text request when the Codex bridge is unavailable'
   assert.deepEqual(openAiCalls, [REQUEST]);
 });
 
-test('OpenAI retries on bridge HTTP 503/504 and reuses one lazy client', async () => {
+test('OpenAI retries on gateway 502 and bridge HTTP 503/504 with one lazy client', async () => {
   let factoryCalls = 0;
   let openAiCalls = 0;
-  let bridgeStatus = 503;
+  const bridgeStatuses = [502, 503, 504];
   const client = createTextLlmClient({
     env: {
       CONTACT_OPS_CODEX_BRIDGE_URL: 'https://macmini.example.test',
       CONTACT_OPS_CODEX_BRIDGE_TOKEN: 'test-token-with-at-least-thirty-two-characters',
       OPENAI_API_KEY: 'existing-transcription-key',
     },
-    fetchImpl: async () => new Response('unavailable', { status: bridgeStatus }),
+    fetchImpl: async () => new Response('', { status: bridgeStatuses.shift() }),
     openAiFactory: () => {
       factoryCalls += 1;
       return {
@@ -162,11 +162,11 @@ test('OpenAI retries on bridge HTTP 503/504 and reuses one lazy client', async (
   });
 
   await client.responses.create(REQUEST);
-  bridgeStatus = 504;
+  await client.responses.create(REQUEST);
   await client.responses.create(REQUEST);
 
   assert.equal(factoryCalls, 1);
-  assert.equal(openAiCalls, 2);
+  assert.equal(openAiCalls, 3);
 });
 
 test('OpenAI never masks bridge authentication, rate, model, or response-contract failures', async () => {
@@ -178,7 +178,12 @@ test('OpenAI never masks bridge authentication, rate, model, or response-contrac
   const responses = [
     new Response('unauthorized', { status: 401 }),
     new Response('busy', { status: 429 }),
-    new Response('invalid model output', { status: 502 }),
+    new Response(JSON.stringify({
+      error: {
+        code: 'MODEL_OUTPUT_INVALID',
+        message: 'The model response did not match the requested schema.',
+      },
+    }), { status: 502, headers: { 'content-type': 'application/json' } }),
     new Response('not json', { status: 200, headers: { 'content-type': 'text/plain' } }),
   ];
 
