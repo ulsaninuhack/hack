@@ -103,7 +103,6 @@ function DistrictBrief({
         </button>
         {summary && summary.district === aggregate.district && (
           <article className="city-ai-summary-card" aria-label={`${aggregate.district} AI 요약`}>
-            <p className="city-ai-label">{summary.label}</p>
             <p className="city-ai-text">{summary.summary_text}</p>
             <details>
               <summary>요약에 주입된 집계 수치 보기</summary>

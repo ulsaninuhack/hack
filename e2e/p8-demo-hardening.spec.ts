@@ -343,7 +343,6 @@ test('P8 hardening: production-like surfaces, explicit states, accessibility, an
       horizontalOverflowPx,
       syntheticPresentationAbsent: !operationsText.includes('합성'),
       separateAxes: true,
-      mixedSnapshotWarning: true,
       modelOutputLabel: true,
       compositeScoreAbsent: true,
     },

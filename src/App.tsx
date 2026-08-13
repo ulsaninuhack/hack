@@ -22,8 +22,6 @@ import { CityPage } from './CityPage'
 import { loadOperationsMap } from './contactOpsClient'
 import type { OperationsMap } from './contactOpsClient'
 
-const P2_MIXED_SNAPSHOT_WARNING = '분자 2026-07-31 · 분모 2026-06-30 · 서로 다른 기준월의 참고 비율이며 동시점 비율이 아닙니다.'
-
 const METRICS: Array<{ key: MetricKey; short: string; label: string; description: string }> = [
   {
     key: 'age_65_plus_one_person_share_of_age_65_plus_population',
@@ -168,12 +166,11 @@ function PublicMapApp() {
           <h1>인천 돌봄 수요 맥락 지도</h1>
         </div>
         <div className="header-actions">
+          <a className="data-link" href="/city"><MapPinned size={15} /> 시·구 브리핑</a>
           <button ref={methodologyButtonRef} className="method-button" onClick={() => setShowMethodology(true)}><Info size={15} /> 방법론</button>
           <a className="data-link" href="/data/manifest.json" target="_blank" rel="noreferrer"><Database size={15} /> 데이터 명세</a>
         </div>
       </header>
-
-      <p className="p2-snapshot-note" role="note">{P2_MIXED_SNAPSHOT_WARNING}</p>
 
       <main className="workspace">
         <aside className="sidebar">
