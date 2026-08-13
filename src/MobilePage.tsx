@@ -23,6 +23,7 @@ import { createAiObservationCandidate } from './AiObservationClient'
 import { formatScore } from './scoreFormat'
 import { buildGuestInviteUrl, createLiveCall, type LiveCallCredentials, type LiveCallJoin } from './liveCallClient'
 import { LiveCallPanel } from './LiveCallPanel'
+import { restrictLiveCandidateToPhoneEvidence } from './liveCandidatePolicy'
 
 const CONTACT_LABELS: ContactResultLabel[] = [
   '안부 확인 완료', '우려 사항 있음', '미응답', '연락(또는 방문) 거부', '연락처 확인 필요',
@@ -36,6 +37,8 @@ const SIGN_FIELDS: Array<{ key: keyof CanonicalObservations['관찰_6징후']; l
   { key: '외출_없음', label: '최근 외출 없음' },
   { key: '연락_두절', label: '주변에서 확인한 연락 두절' },
 ]
+const PHONE_SIGN_FIELDS = SIGN_FIELDS.filter((field) => field.key === '외출_없음')
+const SURROUNDING_SIGN_FIELDS = SIGN_FIELDS.filter((field) => field.key !== '외출_없음')
 
 type Step = 'list' | 'case' | 'done'
 type InputPath = 'live' | 'memo' | 'voice' | 'chat' | 'manual'
@@ -73,10 +76,10 @@ const CHAT_QUESTIONS: ChatQuestion[] = [
   },
   {
     id: 'distress',
-    prompt: '최근 건강이나 마음의 괴로움이 관찰되었나요?',
-    options: ['관찰됨', '해당 없음', '확인하지 못함'],
+    prompt: '최근 건강이나 마음 때문에 힘들어하셨나요?',
+    options: ['어려움 있음', '어려움 없음', '확인하지 못함'],
     apply: (answer, draft) => {
-      draft.observations.최근_건강_정신_괴로움 = answer === '확인하지 못함' ? null : answer === '관찰됨'
+      draft.observations.최근_건강_정신_괴로움 = answer === '확인하지 못함' ? null : answer === '어려움 있음'
     },
   },
   {
@@ -133,14 +136,10 @@ export function MobilePage() {
   const [inputPath, setInputPath] = useState<InputPath | null>(null)
   const [resultLabel, setResultLabel] = useState<ContactResultLabel | ''>('')
   const [observations, setObservations] = useState<CanonicalObservations>(emptyObservations)
-  const [candidateNote, setCandidateNote] = useState<string | null>(null)
   const [memoText, setMemoText] = useState('')
   const [candidateFreeText, setCandidateFreeText] = useState<string | null>(null)
-  const [criticWarnings, setCriticWarnings] = useState<string[]>([])
-  const [nextQuestion, setNextQuestion] = useState<string | null>(null)
   const [chatIndex, setChatIndex] = useState(0)
   const [chatLog, setChatLog] = useState<Array<{ prompt: string; answer: string }>>([])
-  const [showDial, setShowDial] = useState(false)
   const [reportCard, setReportCard] = useState<ReportCard | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -212,8 +211,9 @@ export function MobilePage() {
         source: { kind: 'text', text: transcript },
       }).then((response) => {
         if (generation !== liveCandidateGenerationRef.current) return
-        liveCandidateRef.current = response.candidate
-        setLiveCandidate(response.candidate)
+        const candidate = restrictLiveCandidateToPhoneEvidence(response.candidate)
+        liveCandidateRef.current = candidate
+        setLiveCandidate(candidate)
         setLiveCandidatePending(false)
       }).catch(() => {
         if (generation !== liveCandidateGenerationRef.current) return
@@ -232,33 +232,22 @@ export function MobilePage() {
     setInputPath(null)
     setResultLabel('')
     setObservations(emptyObservations())
-    setCandidateNote(null)
     setCandidateFreeText(null)
     setMemoText('')
-    setCriticWarnings([])
-    setNextQuestion(null)
     setChatIndex(0)
     setChatLog([])
-    setShowDial(false)
     setLiveCallCredentials(null)
     setLiveInviteUrl(null)
     resetLiveCandidate()
   }
 
   const applyCandidate = (
-    candidate: Pick<VoiceCandidate, 'contact_result' | 'observations' | 'free_text' | 'critic'>,
-    note: string,
+    candidate: Pick<VoiceCandidate, 'contact_result' | 'observations' | 'free_text'>,
   ) => {
     setObservations(candidate.observations)
     setResultLabel(contactResultLabelFromCode(candidate.contact_result))
-    setCandidateNote(note)
     setCandidateFreeText(candidate.free_text.trim() || null)
-    setCriticWarnings([
-      ...candidate.critic.contradictions,
-      ...candidate.critic.warnings,
-      ...candidate.critic.missing_fields.map((field) => `누락 확인: ${field}`),
-    ])
-    setNextQuestion(candidate.critic.next_question)
+    setInputPath('manual')
   }
 
   const startLiveCall = async () => {
@@ -293,14 +282,10 @@ export function MobilePage() {
             revision: selected.revision,
             source: { kind: 'text', text: transcript },
           })).candidate
-      applyCandidate(
-        candidate,
-        '실시간 통화에서 만든 후보입니다. 아래 체크리스트를 확인하고 고친 뒤 제출해 주세요.',
-      )
+      applyCandidate(restrictLiveCandidateToPhoneEvidence(candidate))
       setLiveCallCredentials(null)
       setLiveInviteUrl(null)
       resetLiveCandidate()
-      setInputPath('manual')
     } catch (cause) {
       setLiveCandidatePending(false)
       setError(errorText(cause, '통화 내용에서 체크리스트 후보를 만들지 못했습니다. 음성 파일이나 직접 입력을 사용할 수 있습니다.'))
@@ -324,7 +309,7 @@ export function MobilePage() {
       setBusy(true)
       setError(null)
       const response = await uploadVoiceObservationAudio({ caseId: selected.case_id, revision: selected.revision, file })
-      applyCandidate(response.candidate, '음성에서 만든 후보입니다. 아래 체크리스트를 확인하고 고친 뒤 제출해 주세요.')
+      applyCandidate(response.candidate)
     } catch (cause) {
       setError(errorText(cause, '음성 파일에서 후보를 만들지 못했습니다. 수동 입력을 사용할 수 있습니다.'))
     } finally {
@@ -343,7 +328,7 @@ export function MobilePage() {
         revision: selected.revision,
         source: { kind: 'text', text: memoText.trim() },
       })
-      applyCandidate(response.candidate, '메모에서 만든 AI 후보입니다. 아래 체크리스트를 확인하고 고친 뒤 제출해 주세요.')
+      applyCandidate(response.candidate)
     } catch (cause) {
       setError(errorText(cause, '메모에서 후보를 만들지 못했습니다. 문답 또는 직접 체크를 사용할 수 있습니다.'))
     } finally {
@@ -359,7 +344,6 @@ export function MobilePage() {
     setObservations(draft.observations)
     setChatLog((log) => [...log, { prompt: question.prompt, answer }])
     if (chatIndex + 1 >= CHAT_QUESTIONS.length) {
-      setCandidateNote('문답에서 만든 후보입니다. 아래 체크리스트를 확인하고 고친 뒤 제출해 주세요.')
       setInputPath('manual')
     } else {
       setChatIndex(chatIndex + 1)
@@ -370,7 +354,6 @@ export function MobilePage() {
   const revisitChat = (index: number) => {
     setChatIndex(index)
     setChatLog((log) => log.slice(0, index))
-    setCandidateNote(null)
     setCandidateFreeText(null)
     setInputPath('chat')
   }
@@ -577,19 +560,6 @@ export function MobilePage() {
               </div>
             </details>
           )}
-          <button className="mobile-dial" onClick={() => setShowDial(true)}>
-            <Phone aria-hidden="true" /> {selected.virtual_phone.label} {selected.virtual_phone.display_number}
-          </button>
-          <p className="mobile-dial-note">{selected.virtual_phone.note}</p>
-
-          {showDial && (
-            <div className="mobile-dial-overlay" role="dialog" aria-modal="true" aria-label="가상 발신 화면">
-              <p className="mobile-dial-overlay-number">{selected.virtual_phone.label} {selected.virtual_phone.display_number}</p>
-              <p>가상 발신 화면입니다. 실제 전화는 걸리지 않습니다.</p>
-              <button onClick={() => setShowDial(false)}>가상 발신 화면 닫기</button>
-            </div>
-          )}
-
           <h2>통화(또는 방문) 결과 입력</h2>
           {inputPath === null && (
             <div className="mobile-input-paths" role="group" aria-label="입력 방법 선택">
@@ -606,7 +576,7 @@ export function MobilePage() {
             <p className="mobile-path-note" role="status">통화방을 준비하고 있습니다.</p>
           )}
 
-          {inputPath === 'live' && liveHostJoin && liveInviteUrl && !candidateNote && (
+          {inputPath === 'live' && liveHostJoin && liveInviteUrl && (
             <LiveCallPanel
               join={liveHostJoin}
               inviteUrl={liveInviteUrl}
@@ -624,7 +594,7 @@ export function MobilePage() {
             />
           )}
 
-          {inputPath === 'memo' && !candidateNote && (
+          {inputPath === 'memo' && (
             <div className="mobile-memo" role="group" aria-label="메모 입력">
               <label className="mobile-memo-label">통화·방문 메모
                 <textarea
@@ -644,7 +614,7 @@ export function MobilePage() {
             </div>
           )}
 
-          {inputPath === 'voice' && !candidateNote && (
+          {inputPath === 'voice' && (
             <div className="mobile-voice">
               <label className="mobile-voice-label">통화 녹음 파일 (WAV·MP3·M4A)
                 <input type="file" accept=".wav,.mp3,.m4a,audio/wav,audio/mpeg,audio/mp4" onChange={onVoiceFile} disabled={busy} />
@@ -672,26 +642,12 @@ export function MobilePage() {
             </div>
           )}
 
-          {(inputPath === 'manual' || candidateNote !== null) && (
+          {inputPath === 'manual' && (
             <form className="mobile-checklist" onSubmit={(event) => { event.preventDefault(); void submit() }}>
-              {candidateNote && <p className="mobile-candidate-note" role="note">{candidateNote}</p>}
               {candidateFreeText && (
-                <section className="mobile-extra-note" aria-label="기타 특이사항 확인">
-                  <h3>기타 특이사항 확인</h3>
+                <section className="mobile-extra-note" aria-label="기타 특이사항">
+                  <h3>기타 특이사항</h3>
                   <p>{candidateFreeText}</p>
-                  <p>해당하는 체크리스트를 확인하면 제출 후 점수에 반영됩니다.</p>
-                </section>
-              )}
-              {criticWarnings.length > 0 && (
-                <ul className="mobile-critic" aria-label="후보 검토 주의사항">
-                  {criticWarnings.map((warning) => <li key={warning}>{warning}</li>)}
-                </ul>
-              )}
-              {nextQuestion && (
-                <section className="mobile-next-question" aria-labelledby="mobile-next-question-heading">
-                  <h3 id="mobile-next-question-heading">다음 확인 질문</h3>
-                  <p>{nextQuestion}</p>
-                  <span>답을 확인한 뒤 아래 체크리스트를 수정해 주세요.</span>
                 </section>
               )}
               <label>통화(또는 방문) 결과
@@ -700,18 +656,36 @@ export function MobilePage() {
                   {CONTACT_LABELS.map((label) => <option key={label}>{label}</option>)}
                 </select>
               </label>
-              <fieldset className="mobile-signs">
-                <legend>{selected.lane === 'phone' ? '주변 확인 신호' : '방문 관찰 체크리스트'}</legend>
-                {selected.lane === 'phone' && (
-                  <p className="mobile-path-note">통화 중 들었거나 이웃·경비 등 주변에서 확인된 경우에만 체크합니다.</p>
-                )}
-                {SIGN_FIELDS.map((field) => (
+              {selected.lane === 'phone' ? <>
+                <fieldset className="mobile-signs">
+                  <legend>통화로 확인</legend>
+                  {PHONE_SIGN_FIELDS.map((field) => (
+                    <label className="ops-choice" key={field.key}>
+                      <input type="checkbox" checked={observations.관찰_6징후[field.key]} onChange={(event) => updateSign(field.key, event.target.checked)} />
+                      <span>{field.label}</span>
+                    </label>
+                  ))}
+                </fieldset>
+                <fieldset className="mobile-signs">
+                  <legend>방문·주변 확인</legend>
+                  {SURROUNDING_SIGN_FIELDS.map((field) => (
+                    <label className="ops-choice" key={field.key}>
+                      <input type="checkbox" checked={observations.관찰_6징후[field.key]} onChange={(event) => updateSign(field.key, event.target.checked)} />
+                      <span>{field.label}</span>
+                    </label>
+                  ))}
+                </fieldset>
+              </> : (
+                <fieldset className="mobile-signs">
+                  <legend>방문 관찰 체크리스트</legend>
+                  {SIGN_FIELDS.map((field) => (
                   <label className="ops-choice" key={field.key}>
                     <input type="checkbox" checked={observations.관찰_6징후[field.key]} onChange={(event) => updateSign(field.key, event.target.checked)} />
                     <span>{field.label}</span>
                   </label>
-                ))}
-              </fieldset>
+                  ))}
+                </fieldset>
+              )}
               <label>식사 상태
                 <select value={observations.식사상태 ?? ''} onChange={(event) => update('식사상태', (event.target.value || null) as CanonicalObservations['식사상태'])}>
                   <option value="">확인하지 못함</option><option>양호</option><option>불량</option><option>심각</option>
@@ -735,27 +709,26 @@ export function MobilePage() {
                   <option value="없음">연락 없음</option>
                 </select>
               </label>
-              <label>최근 건강·마음 괴로움
+              <label>최근 건강·마음 어려움
                 <select
                   value={observations.최근_건강_정신_괴로움 === null ? '' : String(observations.최근_건강_정신_괴로움)}
                   onChange={(event) => update('최근_건강_정신_괴로움', event.target.value === '' ? null : event.target.value === 'true')}
                 >
                   <option value="">확인하지 못함</option>
-                  <option value="false">해당 없음</option>
-                  <option value="true">관찰 또는 보고됨</option>
+                  <option value="false">어려움 없음</option>
+                  <option value="true">어려움 있음</option>
                 </select>
               </label>
-              <label>공과금 2개월 이상 체납 관찰·보고
+              <label>공과금 2개월 이상 체납
                 <select
                   value={observations.공과금_2개월_이상_체납 === null ? '' : String(observations.공과금_2개월_이상_체납)}
                   onChange={(event) => update('공과금_2개월_이상_체납', event.target.value === '' ? null : event.target.value === 'true')}
                 >
                   <option value="">확인하지 못함</option>
-                  <option value="false">해당 없음</option>
-                  <option value="true">관찰 또는 보고됨</option>
+                  <option value="false">체납 없음</option>
+                  <option value="true">체납 있음</option>
                 </select>
               </label>
-              <p className="mobile-confirm-note">제출은 조사원 확정입니다. 제출해야 점수 계산과 동 센터 보고가 이루어집니다.</p>
               <button className="mobile-submit" type="submit" disabled={busy || !resultLabel}>
                 <Send aria-hidden="true" /> {busy ? '저장 중' : '확인하고 제출'}
               </button>

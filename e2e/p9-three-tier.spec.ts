@@ -128,7 +128,7 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
     await page.getByRole('tab', { name: /^전화 \d+$/ }).click()
   })
 
-  await test.step('조사원이 모바일에서 가상 전화·수동 체크리스트로 제출한다 (INV14/15/16)', async () => {
+  await test.step('조사원이 모바일에서 실시간 통화·수동 체크리스트로 제출한다 (INV14/16)', async () => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/m')
     await expect(page.getByRole('heading', { name: /조사원 화면/ })).toBeVisible()
@@ -140,13 +140,10 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
 
     await page.getByRole('button', { name: new RegExp(CASE_NAME) }).click()
     await expect(page.getByRole('heading', { name: '대상 정보' })).toBeVisible()
-    const dialButton = page.getByRole('button', { name: /\[가상\] 010-0000-\d{4}/ })
-    await expect(dialButton).toBeVisible()
-    await dialButton.click()
-    const dialOverlay = page.getByRole('dialog', { name: '가상 발신 화면' })
-    await expect(dialOverlay).toContainText('실제 전화는 걸리지 않습니다')
-    await page.screenshot({ path: `${SCREENSHOT_DIR}/p9-mobile-dial.png` })
-    await dialOverlay.getByRole('button', { name: '가상 발신 화면 닫기' }).click()
+    await expect(page.getByRole('button', { name: '실시간 통화 시작' })).toBeVisible()
+    await expect(page.locator('body')).not.toContainText('[가상]')
+    await expect(page.locator('body')).not.toContainText('가상 발신')
+    await page.screenshot({ path: `${SCREENSHOT_DIR}/p9-mobile-case.png` })
     expect(await page.locator('body').innerText()).not.toMatch(REAL_PHONE_PATTERN)
     await expect(page.getByText(/인천광역시 제물포구/)).toBeVisible()
     expect(await page.locator('body').innerText()).not.toMatch(/SYN-HH-|합성/)

@@ -111,12 +111,7 @@ function buildFacts(turns: LiveEvidenceTurn[], candidate: CandidateProjection): 
   const facts: LiveEvidenceFact[] = []
   const observations = candidate.observations
   const signFacts: Array<[keyof typeof observations.관찰_6징후, string]> = [
-    ['우편물_고지서_적체', '우편물·고지서 적체'],
-    ['악취_벌레', '악취·벌레'],
-    ['쓰레기_술병', '쓰레기·술병'],
-    ['인기척_없이_TV_불', '인기척 없이 TV·불'],
     ['외출_없음', '최근 외출 없음'],
-    ['연락_두절', '연락 두절'],
   ]
   for (const [key, label] of signFacts) {
     if (!observations.관찰_6징후[key]) continue
@@ -132,17 +127,17 @@ function buildFacts(turns: LiveEvidenceTurn[], candidate: CandidateProjection): 
     '공과금 체납',
     observations.공과금_2개월_이상_체납 === null
       ? null
-      : observations.공과금_2개월_이상_체납 ? '있음' : '해당 없음',
+      : observations.공과금_2개월_이상_체납 ? '체납 있음' : '체납 없음',
   )
   addFact(
     facts,
     turns,
     candidate,
     '최근_건강_정신_괴로움',
-    '건강·마음 괴로움',
+    '건강·마음 어려움',
     observations.최근_건강_정신_괴로움 === null
       ? null
-      : observations.최근_건강_정신_괴로움 ? '관찰됨' : '해당 없음',
+      : observations.최근_건강_정신_괴로움 ? '어려움 있음' : '어려움 없음',
   )
   addFact(facts, turns, candidate, '관계망_유무', '도움 관계망', observations.관계망_유무)
   addFact(facts, turns, candidate, '연락_빈도', '연락 빈도', observations.연락_빈도)

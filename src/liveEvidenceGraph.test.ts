@@ -129,4 +129,50 @@ describe('live evidence graph projection', () => {
 
     expect(graph.contradictions).toEqual([])
   })
+
+  it('keeps the live phone ledger limited to recent outing among environmental signs', () => {
+    const text = '우편물이 쌓였고 냄새와 벌레, 쓰레기와 술병, TV 불도 켜졌지만 요즘 밖에는 안 나가요. 연락도 안 됐어요.'
+    const observations = candidate().observations
+    const graph = buildLiveEvidenceGraph([
+      turn({ itemId: 'r-1', role: 'resident', text }),
+    ], candidate({
+      transcript: text,
+      observations: {
+        ...observations,
+        관찰_6징후: {
+          우편물_고지서_적체: true,
+          악취_벌레: true,
+          쓰레기_술병: true,
+          인기척_없이_TV_불: true,
+          외출_없음: true,
+          연락_두절: true,
+        },
+      },
+    }))
+
+    expect(graph.facts.filter((fact) => fact.field.startsWith('관찰_6징후.'))).toEqual([
+      expect.objectContaining({ field: '관찰_6징후.외출_없음', label: '최근 외출 없음' }),
+    ])
+  })
+
+  it('uses action-oriented wording for utility and health candidates', () => {
+    const text = '전기세를 체납했고 요즘 마음이 힘들어요.'
+    const observations = candidate().observations
+    const graph = buildLiveEvidenceGraph([
+      turn({ itemId: 'r-1', role: 'resident', text }),
+    ], candidate({
+      transcript: text,
+      observations: {
+        ...observations,
+        공과금_2개월_이상_체납: true,
+        최근_건강_정신_괴로움: true,
+      },
+    }))
+
+    expect(graph.facts).toEqual(expect.arrayContaining([
+      expect.objectContaining({ label: '공과금 체납', value: '체납 있음' }),
+      expect.objectContaining({ label: '건강·마음 어려움', value: '어려움 있음' }),
+    ]))
+    expect(graph.facts.some((fact) => fact.value === '관찰됨')).toBe(false)
+  })
 })

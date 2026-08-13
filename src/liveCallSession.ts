@@ -21,6 +21,14 @@ const encoder = new TextEncoder()
 const decoder = new TextDecoder('utf-8', { fatal: true })
 const SERVER_VAD_DRAIN_GRACE_MS = 900
 
+export const LIVE_MIC_CONSTRAINTS = {
+  echoCancellation: true,
+  noiseSuppression: true,
+  // Automatic gain can amplify a nearby bystander's quiet speech. Close-mic
+  // callers remain clear through echo cancellation and noise suppression.
+  autoGainControl: false,
+} as const
+
 interface CaptionPacket {
   version: 1
   item_id: string
@@ -312,11 +320,7 @@ export async function connectLiveCallSession(input: LiveCallSessionInput): Promi
   let transcription: Awaited<ReturnType<typeof startOpenAiTranscription>>
   try {
     await room.startAudio()
-    const publication = await room.localParticipant.setMicrophoneEnabled(true, {
-      echoCancellation: true,
-      noiseSuppression: true,
-      autoGainControl: true,
-    })
+    const publication = await room.localParticipant.setMicrophoneEnabled(true, LIVE_MIC_CONSTRAINTS)
     if (!publication) throw new Error('마이크 권한을 확인해 주세요.')
     transcription = await startOpenAiTranscription({
       publication,

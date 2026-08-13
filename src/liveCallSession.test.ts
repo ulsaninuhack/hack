@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   coalesceRealtimeCaption,
+  LIVE_MIC_CONSTRAINTS,
   parseRemoteCaptionPacket,
   parseRealtimeTranscriptEvent,
   updateRealtimeTurnState,
@@ -10,6 +11,13 @@ import {
 const encoder = new TextEncoder()
 
 describe('live call transcription events', () => {
+  it('does not amplify distant speech while retaining browser echo and noise cleanup', () => {
+    expect(LIVE_MIC_CONSTRAINTS).toEqual({
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: false,
+    })
+  })
   it('maps current OpenAI delta and completion events to one speaker caption item', () => {
     expect(parseRealtimeTranscriptEvent(JSON.stringify({
       type: 'conversation.item.input_audio_transcription.delta',

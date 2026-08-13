@@ -27,23 +27,18 @@ function speakerLabel(role: LiveCaption['role']) {
 
 function liveErrorText(cause: unknown) {
   if (cause instanceof DOMException && cause.name === 'NotAllowedError') {
-    return '마이크 권한이 필요합니다. 브라우저 주소창의 권한을 허용한 뒤 다시 연결해 주세요.'
+    return '마이크 권한을 허용한 뒤 다시 연결해 주세요.'
   }
   return cause instanceof Error && cause.message.includes('마이크')
     ? cause.message
     : '실시간 통화를 연결하지 못했습니다. 음성 파일 또는 직접 입력을 사용해 주세요.'
 }
 
-const PREVIEW_SIGNS: Array<{
+const LIVE_PREVIEW_SIGNS: Array<{
   key: keyof VoiceCandidate['observations']['관찰_6징후']
   label: string
 }> = [
-  { key: '우편물_고지서_적체', label: '우편물·고지서 적체' },
-  { key: '악취_벌레', label: '악취·벌레' },
-  { key: '쓰레기_술병', label: '쓰레기·술병' },
-  { key: '인기척_없이_TV_불', label: '인기척 없이 TV·불' },
   { key: '외출_없음', label: '최근 외출 없음' },
-  { key: '연락_두절', label: '연락 두절' },
 ]
 
 function LiveChecklistPreview({
@@ -63,10 +58,16 @@ function LiveChecklistPreview({
     { label: '위생 상태', value: candidate.observations.위생상태 },
     { label: '도움 관계망', value: candidate.observations.관계망_유무 },
     {
-      label: '건강·마음 괴로움',
+      label: '건강·마음 어려움',
       value: candidate.observations.최근_건강_정신_괴로움 === null
         ? null
-        : candidate.observations.최근_건강_정신_괴로움 ? '관찰됨' : '해당 없음',
+        : candidate.observations.최근_건강_정신_괴로움 ? '어려움 있음' : '어려움 없음',
+    },
+    {
+      label: '공과금 체납',
+      value: candidate.observations.공과금_2개월_이상_체납 === null
+        ? null
+        : candidate.observations.공과금_2개월_이상_체납 ? '체납 있음' : '체납 없음',
     },
   ] : []
 
@@ -80,10 +81,10 @@ function LiveChecklistPreview({
     </header>
     {error && <p className="live-candidate-error" role="status">{error}</p>}
     {!candidate ? (
-      <p className="live-candidate-empty">연락 대상의 확정 발화가 들어오면 후보 항목이 표시됩니다.</p>
+      <p className="live-candidate-empty">대기 중</p>
     ) : <>
       <ul className="live-candidate-grid">
-        {PREVIEW_SIGNS.map((sign) => {
+        {LIVE_PREVIEW_SIGNS.map((sign) => {
           const checked = candidate.observations.관찰_6징후[sign.key]
           return <li key={sign.key} data-candidate={checked || undefined}>
             {checked ? <Check aria-hidden="true" /> : <span aria-hidden="true">—</span>}
@@ -127,7 +128,6 @@ function LiveChecklistPreview({
         </section>
       )}
     </>}
-    <p className="live-candidate-boundary">통화 종료 후 조사원이 확인해야 기록과 점수 계산에 반영됩니다.</p>
   </section>
 }
 
@@ -146,26 +146,24 @@ function LiveEvidenceLedger({ graph }: { graph: LiveEvidenceGraph }) {
       itemIds: entry.evidenceItemIds,
     })),
   ]
+  if (linkedEntries.length === 0) return null
   return <section className="live-evidence-ledger" aria-label="통화 근거 원장">
     <header>
       <div>
-        <h4>조사원 확인 전 근거</h4>
-        <p>체크 항목과 실제 발화를 함께 확인합니다.</p>
+        <h4>근거 발화</h4>
       </div>
       <span>{graph.turns.length}개 발화</span>
     </header>
-    {linkedEntries.length > 0
-      ? <ul>{linkedEntries.map((entry) => {
-          const sequences = entry.itemIds
-            .map((itemId) => graph.turns.find((turn) => turn.itemId === itemId)?.sequence)
-            .filter((value): value is number => value !== undefined)
-          return <li key={entry.key}>
-            <span>{entry.state}</span>
-            <strong>{entry.label}</strong>
-            <em>근거 발화 {sequences.join(', ')}</em>
-          </li>
-        })}</ul>
-      : <p className="live-evidence-empty">후보와 직접 연결할 수 있는 발화를 확인하는 중입니다.</p>}
+    <ul>{linkedEntries.map((entry) => {
+      const sequences = entry.itemIds
+        .map((itemId) => graph.turns.find((turn) => turn.itemId === itemId)?.sequence)
+        .filter((value): value is number => value !== undefined)
+      return <li key={entry.key}>
+        <span>{entry.state}</span>
+        <strong>{entry.label}</strong>
+        <em>발화 {sequences.join(', ')}</em>
+      </li>
+    })}</ul>
   </section>
 }
 
@@ -191,6 +189,8 @@ export function LiveCallPanel({
   const sessionRef = useRef<LiveCallSession | null>(null)
   const audioRef = useRef<HTMLDivElement>(null)
   const captionsRef = useRef<LiveCaption[]>([])
+  const captionsListRef = useRef<HTMLOListElement>(null)
+  const liveFlowEndRef = useRef<HTMLDivElement>(null)
 
   const finalResidentTurns = useMemo(
     () => captions.filter((caption) => caption.role === 'resident' && caption.final).length,
@@ -229,6 +229,19 @@ export function LiveCallPanel({
     void sessionRef.current?.disconnect()
     sessionRef.current = null
   }, [])
+
+  useEffect(() => {
+    if (callState !== 'connected' || (captions.length === 0 && !liveCandidate && !candidatePending)) return
+    const frame = window.requestAnimationFrame(() => {
+      const list = captionsListRef.current
+      if (list) list.scrollTop = list.scrollHeight
+      const anchor = liveFlowEndRef.current
+      if (anchor && typeof anchor.scrollIntoView === 'function') {
+        anchor.scrollIntoView({ behavior: 'smooth', block: 'end' })
+      }
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [callState, captions, liveCandidate, candidatePending])
 
   const receiveCaption = (caption: LiveCaption) => {
     const previousResidentTranscript = residentTranscript(captionsRef.current)
@@ -360,11 +373,11 @@ export function LiveCallPanel({
           <section className="live-call-captions" aria-label="실시간 자막" aria-live="polite">
             <header>
               <h3>실시간 자막</h3>
-              {join.role === 'surveyor' && <span>연락 대상 확정 발화 {finalResidentTurns}개</span>}
+              {join.role === 'surveyor' && <span>상대 발화 {finalResidentTurns}개</span>}
             </header>
             {captions.length === 0
-              ? <p className="live-call-caption-empty">말을 시작하면 발화자별 자막이 표시됩니다.</p>
-              : <ol>{captions.map((caption) => (
+              ? <p className="live-call-caption-empty">자막 대기 중</p>
+              : <ol ref={captionsListRef}>{captions.map((caption) => (
                   <li key={`${caption.role}-${caption.itemId}`} data-role={caption.role} data-final={caption.final}>
                     <strong>{speakerLabel(caption.role)}</strong>
                     <p>{caption.text}</p>
@@ -381,6 +394,8 @@ export function LiveCallPanel({
               error={candidateError}
             />
           )}
+
+          <div ref={liveFlowEndRef} className="live-call-follow-anchor" aria-hidden="true" />
 
           <div className="live-call-controls">
             <button type="button" className="live-call-secondary" onClick={() => void toggleMuted()} disabled={callState === 'finishing'}>
