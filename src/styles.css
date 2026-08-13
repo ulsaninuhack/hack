@@ -88,7 +88,6 @@ button { color: inherit; }
 .layer-row small { color: #5f6d68; font-size: 11px; font-weight: 500; }
 .legend-dot { width: 9px; height: 9px; border-radius: 50%; }
 .legend-dot.facility { background: #49a89a; box-shadow: 0 0 0 3px rgba(73,168,154,.15); }
-.legend-dot.bubble { background: var(--gold); box-shadow: 0 0 0 3px rgba(240,186,80,.17); }
 .legend-dot.transit { background: #687fbd; box-shadow: 0 0 0 3px rgba(104,127,189,.15); }
 .layer-row input { appearance: none; width: 31px; height: 17px; margin: 0; padding: 2px; border-radius: 99px; background: #c9cfcc; cursor: pointer; transition: .2s; }
 .layer-row input::after { display: block; width: 13px; height: 13px; content: ''; border-radius: 50%; background: white; box-shadow: 0 1px 2px rgba(0,0,0,.2); transition: .2s; }
@@ -129,7 +128,7 @@ button { color: inherit; }
 
 .legend { position: absolute; z-index: 7; left: 18px; bottom: 32px; width: 235px; padding: 10px 12px; background: rgba(255,255,255,.94); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 8px 24px rgba(20,32,30,.12); }
 .legend > span { display: block; margin-bottom: 6px; color: #45534e; font-size: 11px; font-weight: 700; }
-.legend-gradient { height: 7px; background: linear-gradient(90deg, #f2f1e9, #dcebc6, #a9d2a3, #57a68c, #12665b); border-radius: 99px; }
+.legend-gradient { height: 7px; background: linear-gradient(90deg, #eef7e1, #a9d18a, #f4d35e, #ee9b3a, #c1443c); border-radius: 99px; }
 .housing-scale .legend-gradient { background: linear-gradient(90deg, #f6f1e7, #f2d39b, #df9d67, #b95e4c, #702e3f); }
 .legend-labels { display: flex; justify-content: space-between; margin-top: 4px; color: #586762; }
 .legend-labels small { font-size: 11px; }
@@ -142,7 +141,6 @@ button { color: inherit; }
 .point-legend i { display: inline-grid; place-items: center; flex: 0 0 auto; font-style: normal; }
 .facility-point-symbol { width: 9px; height: 9px; background: #49a89a; border: 1px solid #fff; border-radius: 50%; box-shadow: 0 0 0 1px #318d80; }
 .facility-cluster-symbol { width: 23px; height: 23px; color: #0b4a44; background: #f8fbf9; border: 2px solid #16796d; border-radius: 50%; font: 800 11px Manrope, sans-serif; }
-.demand-bubble-symbol { width: 13px; height: 13px; background: var(--gold); border: 1px solid #5d4213; border-radius: 50%; }
 .transit-point-symbol { width: 9px; height: 9px; background: #6279bd; border: 1px solid #fff; border-radius: 50%; box-shadow: 0 0 0 1px #5067a8; }
 
 .detail-panel { position: absolute; z-index: 9; top: 82px; right: 18px; width: 310px; max-height: calc(100% - 112px); overflow-y: auto; padding: 20px; background: rgba(250,249,244,.94); border: 1px solid rgba(255,255,255,.5); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2); contain: layout paint; backface-visibility: hidden; animation: enter-panel .28s var(--ease); }
