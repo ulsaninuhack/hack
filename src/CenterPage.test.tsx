@@ -327,7 +327,7 @@ describe('CenterPage (동 행정복지센터)', () => {
     await user.click(screen.getByRole('tab', { name: /방문 \d/ }))
     const visitLane = await screen.findByLabelText('방문 레인 할당 제안')
     expect(within(visitLane).getByText('이순자 어르신')).toBeInTheDocument()
-    expect(within(visitLane).getByText('급성도 62점 · 방문권고')).toBeInTheDocument()
+    expect(within(visitLane).getByText('심각도 62점 · 방문권고')).toBeInTheDocument()
     expect(within(visitLane).getByText('연속 미응답 2회')).toBeInTheDocument()
     expect(within(visitLane).getByText('+25점')).toBeInTheDocument()
     expect(within(visitLane).queryByText('김영자 어르신')).toBeNull()

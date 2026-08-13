@@ -11,9 +11,11 @@ import type { CaseDetail } from './contactOpsClient'
 import {
   ATTENTION_CONTACT_LABELS,
   DEMO_CENTER_DONG_CODE,
-  VULNERABILITY_ATTENTION_THRESHOLD,
+  displaySeverity,
+  proposalItemDisplaySeverity,
   DEMO_WORKER_ID,
   acknowledgeReport,
+  caseDetailDisplaySeverity,
   confirmAssignment,
   escalateCase,
   loadCaseHistory,
@@ -195,18 +197,19 @@ function ProposalRow({
   onEscalate: (caseId: string) => void
   busy: boolean
 }) {
+  const severity = proposalItemDisplaySeverity(item)
   return (
     <li className="assignment-row" data-lane={item.lane}>
       <div className="assignment-row-main">
         <span className="case-id">{item.display_name} 어르신</span>
-        <GradeChip grade={item.급성도_등급} />
+        <GradeChip grade={severity.등급 ?? item.급성도_등급} />
         <span className="assignment-worker">{item.worker_display_name ?? '담당 미배정'}</span>
       </div>
       <p className="assignment-address">{item.road_address ?? '주소 정보 없음'}</p>
       {item.lane === 'phone' && <div className="selection-reasons" aria-label="전화 대상 선정 사유">
         {item.selection_reason_labels.map((label) => <span key={label}>{label}</span>)}
       </div>}
-      {item.lane === 'visit' && <p className="mobile-acute-summary">급성도 {formatScore(item.급성도_점수, '기록 없음')}{item.급성도_점수 === null ? '' : '점'} · {item.급성도_등급 ?? '등급 기록 없음'}</p>}
+      {item.lane === 'visit' && <p className="mobile-acute-summary">심각도 {formatScore(severity.점수, '기록 없음')}{severity.점수 === null ? '' : '점'} · {severity.등급 ?? '등급 기록 없음'}</p>}
       <dl className="assignment-facts">
         <div className="assignment-fact">
           <dt>마지막 연락</dt>
@@ -234,8 +237,8 @@ function ProposalRow({
           <div className="assignment-fact"><dt>등록 근거</dt><dd>{item.management_entry ? managementIntakeLabel(item.management_entry.intake_channel) : '기록 확인 필요'}</dd></div>
         </>}
       </dl>
-      {item.lane === 'visit' && item.급성도_기여내역.length > 0 && <ul className="mobile-acute-contributions" aria-label="급성도 주요 기여내역">
-        {item.급성도_기여내역.map((entry) => (
+      {item.lane === 'visit' && (item.급성도_기여내역.length > 0 || severity.상승_근거.length > 0) && <ul className="mobile-acute-contributions" aria-label="심각도 근거">
+        {[...item.급성도_기여내역, ...severity.상승_근거.map((entry) => ({ 코드: entry.근거, 근거: entry.근거, 가산점: entry.가산점 }))].map((entry) => (
           <li key={entry.코드}>
             <span className="acute-reason">{entry.근거}</span>
             <strong className="acute-points">+{formatScore(entry.가산점)}점</strong>
@@ -280,10 +283,15 @@ function ReportCardView({
   collapsible?: boolean
 }) {
   const [showTransfer, setShowTransfer] = useState(false)
+  const severity = displaySeverity({
+    급성도_점수: card.급성도_점수,
+    취약도_점수: card.취약도_점수,
+    결과_라벨: card.evidence.마지막_연락_결과_라벨,
+    연속_미응답: card.evidence.연속_미응답_횟수,
+  })
   const heading = (
     <>
-        <GradeChip grade={card.등급} />
-        {card.취약도_점수 >= VULNERABILITY_ATTENTION_THRESHOLD && <span className="vuln-chip">취약도 높음</span>}
+        <GradeChip grade={severity.등급 ?? card.등급} />
         <span className="case-id">{card.display_name} 어르신</span>
         <span className="report-meta">{card.evidence.마지막_연락_결과_라벨} · {card.evidence.마지막_연락_일자 ?? '기록 없음'}</span>
     </>
@@ -292,12 +300,14 @@ function ReportCardView({
     <>
       {card.road_address !== null && <p className="report-address">{card.road_address}</p>}
       <dl className="report-scores">
-        <div><dt>급성도</dt><dd>{formatScore(card.급성도_점수)}</dd></div>
-        <div><dt>취약도</dt><dd>{formatScore(card.취약도_점수)}</dd></div>
+        <div><dt>심각도</dt><dd>{formatScore(severity.점수)}</dd></div>
       </dl>
       <section className="report-reasons">
         <h4>사유</h4>
-        <ul>{card.사유_요약.map((reason) => <li key={`${reason.축}-${reason.근거}`}>{reason.축} · {reason.근거} · {formatScore(reason.가산점)}점</li>)}</ul>
+        <ul>
+          {card.사유_요약.map((reason) => <li key={`${reason.축}-${reason.근거}`}>{reason.근거} · {formatScore(reason.가산점)}점</li>)}
+          {severity.상승_근거.map((reason) => <li key={reason.근거}>{reason.근거} · {formatScore(reason.가산점)}점</li>)}
+        </ul>
       </section>
       <section className="report-agencies">
         <h4>권고 기관</h4>
@@ -345,7 +355,7 @@ function ReportCardView({
 
   return collapsible ? (
     <details className="report-accordion" data-grade={card.등급}>
-      <summary>{heading}<span className="report-accordion-score">급성도 {formatScore(card.급성도_점수)}</span></summary>
+      <summary>{heading}<span className="report-accordion-score">심각도 {formatScore(severity.점수)}</span></summary>
       {article}
     </details>
   ) : article
@@ -549,7 +559,7 @@ export function CenterPage({ reviewCaseId = null }: { reviewCaseId?: string | nu
               <span>{inbox.district} {inbox.dong_name}</span>
               <h2 id="center-review-title">방문 승격 검토</h2>
             </div>
-            {selectedVisit && <GradeChip grade={selectedVisit.triage?.급성도_등급 ?? selectedVisitReport?.등급 ?? null} />}
+            {selectedVisit && <GradeChip grade={caseDetailDisplaySeverity(selectedVisit).등급 ?? selectedVisitReport?.등급 ?? null} />}
           </div>
 
           {selectedVisit === null ? (
@@ -565,9 +575,8 @@ export function CenterPage({ reviewCaseId = null }: { reviewCaseId?: string | nu
                     <span className="center-review-kicker">검토 대상</span>
                     <h3>{selectedVisitDisplayName} 어르신</h3>
                   </div>
-                  <div className="center-review-scores" aria-label="급성도와 취약도">
-                    <span>급성도 <strong>{formatScore(selectedVisit.triage?.급성도_점수)}</strong></span>
-                    <span>취약도 <strong>{formatScore(selectedVisit.triage?.취약도_점수)}</strong></span>
+                  <div className="center-review-scores" aria-label="심각도">
+                    <span>심각도 <strong>{formatScore(caseDetailDisplaySeverity(selectedVisit).점수)}</strong></span>
                   </div>
                 </header>
                 <p className="center-review-address">{selectedVisitReport?.road_address ?? selectedVisit.household.location.road_address}</p>
@@ -682,7 +691,7 @@ export function CenterPage({ reviewCaseId = null }: { reviewCaseId?: string | nu
                           {escalatedVisits.map((item) => (
                             <li key={item.case_id}>
                               <span className="case-id">{item.display_name} 어르신</span>
-                              <GradeChip grade={item.급성도_등급} />
+                              <GradeChip grade={proposalItemDisplaySeverity(item).등급 ?? item.급성도_등급} />
                               <span className="escalated-meta">{item.escalation!.agency} · {item.escalation!.reported_at.slice(0, 10)}</span>
                             </li>
                           ))}
@@ -725,7 +734,7 @@ export function CenterPage({ reviewCaseId = null }: { reviewCaseId?: string | nu
                       <li key={item.household.id}>
                         <a href={`/center/visit-review/${encodeURIComponent(item.household.id)}`}>
                           <span className="case-id">{displayNameForCase(item.household.id)} 어르신</span>
-                          <span>급성도 {formatScore(item.triage?.급성도_점수)} · 취약도 {formatScore(item.triage?.취약도_점수)}</span>
+                          <span>심각도 {formatScore(caseDetailDisplaySeverity(item).점수)}</span>
                           <strong>검토하기 →</strong>
                         </a>
                       </li>

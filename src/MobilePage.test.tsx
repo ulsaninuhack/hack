@@ -120,7 +120,7 @@ describe('MobilePage (조사원 /m)', () => {
     expect(screen.getByRole('heading', { name: '오늘 방문 대상' })).toBeInTheDocument()
     expect(within(visitList).getByText('이순자 어르신')).toBeInTheDocument()
     expect(within(visitList).getByText('담당자 승인·배치 확인 완료')).toBeInTheDocument()
-    expect(within(visitList).getByText('급성도 62점 · 방문권고')).toBeInTheDocument()
+    expect(within(visitList).getByText('심각도 68점 · 방문권고')).toBeInTheDocument()
     expect(within(visitList).getByText('주요 근거 · 연속 미응답 2회 (+25점)')).toBeInTheDocument()
     expect(within(visitList).queryByText('김영자 어르신')).toBeNull()
     expect(within(visitList).getByText('선호 시간')).toBeInTheDocument()

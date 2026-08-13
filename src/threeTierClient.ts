@@ -1,5 +1,5 @@
 import { ContactOpsClientError, CONTACT_OPS_REFERENCE_DATE } from './contactOpsClient'
-import type { CanonicalObservations, ContactResultLabel } from './contactOpsClient'
+import type { CanonicalObservations, CaseDetail, ContactResultLabel } from './contactOpsClient'
 
 // 원시 결과 코드는 렌더 파일(.tsx)에 쓰지 않는다. 이 매핑만 통해 한국어
 // 라벨로 변환한다(UI copy 게이트 계약).
@@ -189,9 +189,85 @@ export interface TodayLanes {
   completed: CompletedContact[]
 }
 
-// 취약도는 점수 그대로 표시하되, 이 값 이상이면 목록·보고에서 '취약도 높음'
-// 뱃지를 함께 보여준다. 표시 전용 기준값이며 종합 점수가 아니다.
-export const VULNERABILITY_ATTENTION_THRESHOLD = 70
+// 표시용 심각도. 엔진의 급성도·취약도 점수는 분리 저장·서빙을 유지하고,
+// 화면에서만 두 점수의 최댓값에 연락 실패 가산을 더해 하나의 심각도로
+// 보여준다. 등급 임계값은 contact-triage-scoring.mjs와 동일(75/50/30).
+export interface DisplaySeverity {
+  점수: number | null
+  등급: string | null
+  상승_근거: Array<{ 근거: string; 가산점: number }>
+}
+
+const SEVERITY_CONTACT_BUMPS: Array<{ labels: string[]; perCount: boolean; points: number; reason: string }> = [
+  { labels: ['연락(또는 방문) 거부', '연락 거부'], perCount: false, points: 12, reason: '연락 거부' },
+  { labels: ['연락처 확인 필요'], perCount: false, points: 8, reason: '연락처 확인 필요' },
+  { labels: ['연락 안 됨', '미응답'], perCount: true, points: 6, reason: '미응답 지속' },
+]
+
+function severityGrade(score: number): string {
+  if (score >= 75) return '방문권고-우선'
+  if (score >= 50) return '방문권고'
+  if (score >= 30) return '주시'
+  return '정상'
+}
+
+export function caseDetailDisplaySeverity(item: CaseDetail): DisplaySeverity {
+  return displaySeverity({
+    급성도_점수: item.triage?.급성도_점수 ?? null,
+    취약도_점수: item.triage?.취약도_점수 ?? null,
+    결과_라벨: contactResultLabelFromCode(String(item.household.contact.last_contact_result ?? '')),
+    연속_미응답: Number(item.household.contact.consecutive_no_answer_count ?? 0),
+  })
+}
+
+export function proposalItemDisplaySeverity(item: AssignmentProposalItem): DisplaySeverity {
+  return displaySeverity({
+    급성도_점수: item.급성도_점수,
+    취약도_점수: item.취약도_점수 ?? null,
+    결과_라벨: item.last_contact.result_label,
+    연속_미응답: item.last_contact.consecutive_no_answer_count ?? null,
+  })
+}
+
+export function laneItemDisplaySeverity(item: LaneItem): DisplaySeverity {
+  return displaySeverity({
+    급성도_점수: item.급성도_점수,
+    취약도_점수: item.취약도_점수,
+    결과_라벨: item.last_contact.result_label,
+    연속_미응답: item.last_contact.consecutive_no_answer_count,
+  })
+}
+
+export function displaySeverity(input: {
+  급성도_점수: number | null
+  취약도_점수?: number | null
+  결과_라벨?: string | null
+  연속_미응답?: number | null
+}): DisplaySeverity {
+  const acute = input.급성도_점수
+  const vulnerability = input.취약도_점수 ?? null
+  if (acute === null && vulnerability === null) return { 점수: null, 등급: null, 상승_근거: [] }
+  const base = Math.max(acute ?? 0, vulnerability ?? 0)
+  const 상승_근거: Array<{ 근거: string; 가산점: number }> = []
+  if (vulnerability !== null && vulnerability > (acute ?? 0)) {
+    상승_근거.push({ 근거: '생활 기반 취약', 가산점: Math.round((vulnerability - (acute ?? 0)) * 10) / 10 })
+  }
+  let bump = 0
+  const label = input.결과_라벨 ?? null
+  if (label !== null) {
+    const matched = SEVERITY_CONTACT_BUMPS.find((rule) => rule.labels.includes(label))
+    if (matched) {
+      const count = matched.perCount ? Math.min(Math.max(input.연속_미응답 ?? 1, 1), 3) : 1
+      bump = matched.points * count
+      상승_근거.push({
+        근거: matched.perCount && count > 1 ? `${matched.reason} ${count}회` : matched.reason,
+        가산점: bump,
+      })
+    }
+  }
+  const score = Math.min(100, Math.round((base + bump) * 10) / 10)
+  return { 점수: score, 등급: severityGrade(score), 상승_근거 }
+}
 
 export interface AgencyRecommendation {
   기관: string
@@ -261,6 +337,7 @@ export interface AssignmentProposalItem {
   last_contact: {
     date: string | null
     result_label: string
+    consecutive_no_answer_count?: number
   }
   lane: 'phone' | 'visit'
   dong_code: string
@@ -272,6 +349,7 @@ export interface AssignmentProposalItem {
   confirmed_at?: string
   급성도_등급: string | null
   급성도_점수: number | null
+  취약도_점수?: number | null
   grade_source: '세션 기록' | '데모 사전 기록' | '미기록'
   기록_출처?: 'demo_precontact_record' | null
   프로필_버전?: 'demo-precontact-v1' | null

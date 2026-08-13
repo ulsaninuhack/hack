@@ -160,7 +160,7 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
 
     await expect(page.getByRole('heading', { name: '동 행정복지센터에 보고됨' })).toBeVisible()
     await expect(page.getByText('방문권고', { exact: true })).toBeVisible()
-    await expect(page.locator('.mobile-done-summary')).toContainText('62')
+    await expect(page.locator('.mobile-done-summary')).toContainText('심각도')
     await expect(page.getByLabel('권고 기관 미리보기')).toContainText('보건소·의료 연계')
     await page.screenshot({ path: `${SCREENSHOT_DIR}/p9-mobile-done.png` })
     expect(mutationPaths).toContain(`/api/v1/contact-ops/cases/${CASE_ID}/contact-results`)
@@ -212,7 +212,7 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
     await page.goto('/center')
     await page.getByRole('tab', { name: /^방문 \d+$/ }).click()
     const approvedVisit = page.getByLabel('방문 레인 할당 제안').locator('li').filter({ hasText: CASE_NAME })
-    await expect(approvedVisit).toContainText('급성도 62점 · 방문권고')
+    await expect(approvedVisit).toContainText('심각도 74점 · 방문권고')
     await expect(approvedVisit).toContainText('연속 미응답 2회')
     await expect(approvedVisit).toContainText('+25점')
     await approvedVisit.getByRole('button', { name: '확인' }).click()
@@ -225,7 +225,7 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
     await page.goto('/m')
     await page.getByRole('tab', { name: /방문 \d+건/ }).click()
     await expect(page.getByLabel('오늘 방문 목록')).toContainText(CASE_NAME)
-    await expect(page.getByLabel('오늘 방문 목록')).toContainText('급성도 62점 · 방문권고')
+    await expect(page.getByLabel('오늘 방문 목록')).toContainText('심각도 74점 · 방문권고')
   })
 
   await test.step('시·구 화면과 집계가 승인 결과를 반영한다 (INV17 유지)', async () => {
