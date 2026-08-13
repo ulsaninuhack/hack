@@ -157,9 +157,22 @@ const concernObservations = {
 describe('three-tier today lanes API', () => {
   const session = 'three-tier-lanes-session-01';
 
-  test('separates phone and visit lanes and serves virtual phones only (INV15/INV16)', async () => {
+  test('auto-assigns phone work and gates visits behind center confirm-or-escalate (배정 파이프라인)', async () => {
+    const before = await get(`/api/v1/contact-ops/three-tier/today-lanes?referenceDate=${REFERENCE_DATE}&workerId=SYN-W-2812551000-01`, session);
+    assert.equal(before.response.status, 200);
+    assert.deepEqual(before.body.data.lanes.phone.map((item) => item.case_id), ['SYN-HH-2812551000-0001']);
+    assert.deepEqual(before.body.data.lanes.visit, []);
+    assert.deepEqual(before.body.data.pending_confirmation, { phone: 0, visit: 1 });
+    assert.equal(before.body.data.assignment_rule, '전화는 자동 배정 · 방문은 동 행정복지센터 확인 또는 상급기관 신고');
+
+    const confirm = await post('/api/v1/contact-ops/three-tier/assignment-confirmations', {
+      dong_code: '2812551000', reference_date: REFERENCE_DATE, confirmed_by: '동센터 담당자', case_ids: null,
+    }, session);
+    assert.equal(confirm.response.status, 200);
+
     const { response, body } = await get(`/api/v1/contact-ops/three-tier/today-lanes?referenceDate=${REFERENCE_DATE}&workerId=SYN-W-2812551000-01`, session);
     assert.equal(response.status, 200);
+    assert.deepEqual(body.data.pending_confirmation, { phone: 0, visit: 0 });
     const lanes = body.data.lanes;
     assert.deepEqual(lanes.phone.map((item) => item.case_id), ['SYN-HH-2812551000-0001']);
     assert.deepEqual(lanes.visit.map((item) => item.case_id), ['SYN-HH-2812551000-0002']);
@@ -189,6 +202,42 @@ describe('three-tier today lanes API', () => {
     assert.equal(unknownWorker.response.status, 400);
     const extraQuery = await get(`/api/v1/contact-ops/three-tier/today-lanes?referenceDate=${REFERENCE_DATE}&workerId=SYN-W-2812551000-01&x=1`, session);
     assert.equal(extraQuery.response.status, 400);
+  });
+
+  test('an escalated visit case leaves the surveyor lanes and records the rule-table agency', async () => {
+    const escalationSession = 'three-tier-escalation-session-01';
+    const confirm = await post('/api/v1/contact-ops/three-tier/assignment-confirmations', {
+      dong_code: '2812551000', reference_date: REFERENCE_DATE, confirmed_by: '동센터 담당자', case_ids: null,
+    }, escalationSession);
+    assert.equal(confirm.response.status, 200);
+
+    const escalate = await post('/api/v1/contact-ops/three-tier/escalations', {
+      case_id: 'SYN-HH-2812551000-0002', reported_by: '동센터 담당자',
+    }, escalationSession);
+    assert.equal(escalate.response.status, 200);
+    assert.equal(escalate.body.data.escalation.status, '신고됨');
+    assert.equal(typeof escalate.body.data.escalation.agency, 'string');
+    assert.equal(escalate.body.data.escalation.reported_by, '동센터 담당자');
+
+    const after = await get(`/api/v1/contact-ops/three-tier/today-lanes?referenceDate=${REFERENCE_DATE}&workerId=SYN-W-2812551000-01`, escalationSession);
+    assert.deepEqual(after.body.data.lanes.visit, []);
+    assert.deepEqual(after.body.data.lanes.phone.map((item) => item.case_id), ['SYN-HH-2812551000-0001']);
+    assert.deepEqual(after.body.data.pending_confirmation, { phone: 0, visit: 0 });
+
+    const inbox = await get(`/api/v1/contact-ops/three-tier/center-inbox?dongCode=2812551000&referenceDate=${REFERENCE_DATE}`, escalationSession);
+    const visitRow = inbox.body.data.assignment_proposal.lanes.visit
+      .find((proposal) => proposal.case_id === 'SYN-HH-2812551000-0002');
+    assert.equal(visitRow.escalation.status, '신고됨');
+    assert.equal(inbox.body.data.assignment_proposal.lanes.phone[0].escalation, undefined);
+
+    const badCase = await post('/api/v1/contact-ops/three-tier/escalations', {
+      case_id: 'not-a-case', reported_by: '동센터 담당자',
+    }, escalationSession);
+    assert.equal(badCase.response.status, 400);
+    const noActor = await post('/api/v1/contact-ops/three-tier/escalations', {
+      case_id: 'SYN-HH-2812551000-0002', reported_by: '',
+    }, escalationSession);
+    assert.equal(noActor.response.status, 400);
   });
 });
 

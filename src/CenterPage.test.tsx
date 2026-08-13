@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => ({
   loadCenterInbox: vi.fn(),
   acknowledgeReport: vi.fn(),
   confirmAssignment: vi.fn(),
+  escalateCase: vi.fn(),
   loadRecommendations: vi.fn(),
   submitDecision: vi.fn(),
   loadData: vi.fn(),
@@ -30,6 +31,7 @@ vi.mock('./threeTierClient', async (importOriginal) => {
     loadCenterInbox: mocks.loadCenterInbox,
     acknowledgeReport: mocks.acknowledgeReport,
     confirmAssignment: mocks.confirmAssignment,
+    escalateCase: mocks.escalateCase,
   }
 })
 vi.mock('./contactOpsClient', async (importOriginal) => {
@@ -179,6 +181,7 @@ function arrange() {
   mocks.loadRecommendations.mockResolvedValue({ synthetic: true, displayMarker: '[합성]', items: [structuredClone(recommendation)] })
   mocks.acknowledgeReport.mockResolvedValue({ case_id: reportCard.case_id, acknowledgement: { status: '확인' } })
   mocks.confirmAssignment.mockResolvedValue({ assignment_proposal: { ...structuredClone(proposal), status: 'confirmed' } })
+  mocks.escalateCase.mockResolvedValue({ case_id: 'SYN-HH-2812551000-0002', escalation: { status: '신고됨', agency: '구 희망복지지원단', reported_by: '동센터 담당자', reported_at: '2026-08-12T09:00:00.000Z' } })
   mocks.submitDecision.mockResolvedValue(structuredClone(recommendation))
   mocks.loadData.mockResolvedValue({ dongs: { features: [] }, summary: {} })
 }
@@ -222,23 +225,47 @@ describe('CenterPage (동 행정복지센터)', () => {
     expect(within(visitLane).getAllByText(/시간창 불일치/).length).toBeGreaterThan(0)
   })
 
-  it('confirms assignments only through explicit actions (INV14)', async () => {
+  it('confirms visits only through explicit actions while phone work is auto-assigned (INV14)', async () => {
     arrange()
     const user = userEvent.setup()
     render(<CenterPage />)
-    await screen.findByLabelText('전화 레인 할당 제안')
+    const phoneLane = await screen.findByLabelText('전화 레인 할당 제안')
+    expect(within(phoneLane).getByText(/자동 배정됨/)).toBeInTheDocument()
+    expect(within(phoneLane).queryByRole('button', { name: '확인' })).toBeNull()
     expect(mocks.confirmAssignment).not.toHaveBeenCalled()
-    await user.click(screen.getByRole('button', { name: '오늘 배치 일괄 확인' }))
+    await user.click(screen.getByRole('tab', { name: /방문 \d/ }))
+    await user.click(screen.getByRole('button', { name: '오늘 방문 일괄 확인' }))
     await waitFor(() => expect(mocks.confirmAssignment).toHaveBeenCalledWith({
       dongCode: '2812551000', referenceDate: '2026-08-12',
-      confirmedBy: '동센터 담당자', caseIds: null,
+      confirmedBy: '동센터 담당자', caseIds: ['SYN-HH-2812551000-0002'],
     }))
     await user.click((await screen.findAllByRole('button', { name: '확인' }))[0])
     await waitFor(() => expect(mocks.confirmAssignment).toHaveBeenCalledWith({
       dongCode: '2812551000', referenceDate: '2026-08-12',
-      confirmedBy: '동센터 담당자', caseIds: ['SYN-HH-2812551000-0001'],
+      confirmedBy: '동센터 담당자', caseIds: ['SYN-HH-2812551000-0002'],
     }))
   })
+
+  it('escalates a visit case to the higher agency and shows the reported state', async () => {
+    arrange()
+    const user = userEvent.setup()
+    render(<CenterPage />)
+    await screen.findByLabelText('전화 레인 할당 제안')
+    await user.click(screen.getByRole('tab', { name: /방문 \d/ }))
+    const escalated = structuredClone(inbox)
+    escalated.assignment_proposal!.lanes.visit[0].escalation = {
+      status: '신고됨', agency: '구 희망복지지원단', reported_by: '동센터 담당자', reported_at: '2026-08-12T09:00:00.000Z',
+    }
+    mocks.loadCenterInbox.mockResolvedValue(escalated)
+    await user.click(screen.getByRole('button', { name: '신고' }))
+    await waitFor(() => expect(mocks.escalateCase).toHaveBeenCalledWith({
+      caseId: 'SYN-HH-2812551000-0002', reportedBy: '동센터 담당자',
+    }))
+    const visitLane = await screen.findByLabelText('방문 레인 할당 제안')
+    expect(within(visitLane).getByText(/상급기관 신고됨 · 구 희망복지지원단/)).toBeInTheDocument()
+    expect(within(visitLane).queryByRole('button', { name: '신고' })).toBeNull()
+  })
+
 
   it('acknowledges report cards with an explicit actor', async () => {
     arrange()

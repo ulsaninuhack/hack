@@ -817,3 +817,13 @@ select:focus-visible,
 .mobile-page .mobile-map-close { position: absolute; top: 8px; right: 8px; z-index: 5; display: grid; place-content: center; width: 48px; height: 48px; min-height: 48px; border: 1px solid var(--t-line); border-radius: 50%; background: var(--t-card); color: var(--t-sub); cursor: pointer; box-shadow: 0 2px 8px rgba(25, 27, 30, 0.15); transition: background .15s var(--ease), transform .2s var(--ease); }
 .mobile-page .mobile-map-close:hover { background: var(--t-track); }
 .mobile-page .mobile-map-close:active { transform: scale(0.94); }
+
+/* /center — 전화 자동 배정 · 방문 확인/신고 액션 */
+.center-page .assignment-rule-note { margin: -6px 0 12px; font-size: 14px; color: var(--t-faint); }
+.center-page .assignment-auto { color: var(--t-faint); }
+.center-page .assignment-actions { display: flex; gap: 8px; }
+.center-page .assignment-escalated { color: #d31530; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.center-page .escalate-one { background: #fef2f2; color: #d31530; border: 1px solid #f5c2c7; border-radius: 10px; min-height: 44px; padding: 0 18px; font-weight: 700; font-size: 14px; transition: background .15s var(--ease), transform .2s var(--ease); }
+.center-page .escalate-one:hover { background: #fde3e5; }
+.center-page .escalate-one:active { transform: scale(0.95); }
+.center-page .escalate-one:disabled { opacity: 0.5; cursor: default; }
