@@ -55,10 +55,27 @@ read `docs/DEPLOYMENT.md` and inspect the latest GitHub Actions run, Cloud Run r
 and deployed image digest before stating that a commit is live. Never reuse a dirty user
 checkout, silently reset another agent's work, or treat screenshots as deployment proof.
 
+Three-tier redesign (2026-08-13, branch `claude/three-tier-care-redesign-8lpmkw`):
+`REDESIGN_SPEC.md` freezes the phases and INV14-19. Routes: `/city` (시·구, dong
+rollups only — no case IDs), `/center` (동 행정복지센터 inbox/confirm/approve),
+`/m` (surveyor mobile, three input paths converging on one confirm-required
+checklist). Adapter modules `backend/src/three-tier-ops.mjs` +
+`three-tier-service.mjs` sit on top of the frozen engines; virtual phones are
+derived at serve time (`010-0000-XXXX` + `[가상]`, fixtures untouched).
+Assignment-confirmation and report-acknowledgement state is deliberately
+session-scoped in-memory demo state (not Firestore) and resets with the session;
+a transfer-'confirm' API intentionally does not exist (wording-only track-switch
+guidance in `/center`). District AI summaries quote server-injected aggregates
+only; the live LLM path is env-gated (`THREE_TIER_AI_SUMMARY=live` +
+`OPENAI_API_KEY`, never committed). Golden E2E: `e2e/p9-three-tier.spec.ts`.
+Proven/unproven split lives in `MORNING_HANDOFF.md`.
+
 The primary continuation seams are:
 
 | Work area | Start here | Contract to preserve |
 | --- | --- | --- |
+| Three-tier views | `src/CityPage.tsx`, `src/CenterPage.tsx`, `src/MobilePage.tsx`, `src/threeTierClient.ts` | INV14 proposals-vs-explicit-confirmation, INV16 lane separation, INV17 no case IDs on `/city`, INV18 grade vocabulary, INV19 AI summary label/quoting |
+| Three-tier adapter API | `backend/src/three-tier-ops.mjs`, `backend/src/three-tier-service.mjs`, routes in `backend/src/app.mjs` under `/api/v1/contact-ops/three-tier/` | frozen engines untouched; deterministic proposals only; in-memory confirmation state is demo-scope |
 | Public and operations UI | `src/App.tsx`, `src/Operations.tsx`, `src/MapView.tsx` | static outage fallback, 156 zones / 162 current dongs, separate axes |
 | Frontend/API integration | `src/contactOpsClient.ts`, `src/AiObservationClient.ts` | session header, revision conflicts, explicit AI confirmation |
 | ContactOps backend | `backend/src/app.mjs`, `backend/src/contact-ops-service.mjs`, `backend/src/contact-ops-state.mjs` | synthetic-only Firestore state, no browser-direct database access |
