@@ -3,20 +3,17 @@ import * as maplibregl from 'maplibre-gl'
 import type { ExpressionSpecification, Map, MapMouseEvent } from 'maplibre-gl'
 import type { FeatureCollection, Point } from 'geojson'
 import type { DataBundle, DongProperties, MetricKey } from './types'
-import { caseDisplayName } from './caseDisplayName'
 
 interface MapViewProps {
   data: DataBundle
   metric: MetricKey
   showFacilities: boolean
   showTransit: boolean
-  showBubbles: boolean
   facilityCategory: string
   selectedZoneId: string | null
   onSelectDong: (properties: DongProperties) => void
   syntheticPoint?: { caseId: string; longitude: number; latitude: number } | null
   mapMode?: 'public' | 'operations'
-  structuralScores?: Record<string, number>
   operationsByZone?: Record<string, { acute_color_metric: number | null; vulnerability_size_metric: number | null }>
   ariaLabel?: string
 }
@@ -36,7 +33,7 @@ if (import.meta.env.PROD) maplibregl.setWorkerUrl('/assets/maplibre-gl-worker.mj
 
 function colorExpression(metric: MetricKey): ExpressionSpecification {
   if (metric === 'one_person_households_age_65_plus') {
-    return ['interpolate', ['linear'], ['get', metric], 0, '#f4f1ea', 600, '#dce9c7', 1000, '#a8cf9e', 1500, '#58a68c', 2500, '#14685e']
+    return ['interpolate', ['linear'], ['get', metric], 0, '#eef7e1', 600, '#a9d18a', 1000, '#f4d35e', 1500, '#ee9b3a', 2500, '#c1443c']
   }
   if (metric === 'housing_age_30_plus_share_valid_pct') {
     return [
@@ -46,12 +43,11 @@ function colorExpression(metric: MetricKey): ExpressionSpecification {
       ['interpolate', ['linear'], ['get', metric], 0, '#f6f1e7', 35, '#f2d39b', 55, '#df9d67', 75, '#b95e4c', 95, '#702e3f'],
     ]
   }
-  return ['interpolate', ['linear'], ['get', metric], 0.12, '#f2f1e9', 0.24, '#dcebc6', 0.3, '#a9d2a3', 0.36, '#57a68c', 0.48, '#12665b']
+  return ['interpolate', ['linear'], ['get', metric], 0.12, '#eef7e1', 0.24, '#a9d18a', 0.3, '#f4d35e', 0.36, '#ee9b3a', 0.48, '#c1443c']
 }
 
 function mapColorExpression(mode: MapViewProps['mapMode'], metric: MetricKey): ExpressionSpecification {
   if (mode === 'operations') return ['case', ['==', ['feature-state', 'acute'], null], '#d8dedb', ['interpolate', ['linear'], ['feature-state', 'acute'], 0, '#f6f0df', 25, '#edbb67', 50, '#db7049', 75, '#8f2f3c', 100, '#4d1830']]
-  if (mode === 'public') return ['case', ['==', ['feature-state', 'structuralScore'], null], colorExpression(metric), ['interpolate', ['linear'], ['feature-state', 'structuralScore'], 0, '#f4f1ea', 12.5, '#dce9c7', 25, '#a8cf9e', 37.5, '#58a68c', 50, '#14685e']]
   return colorExpression(metric)
 }
 
@@ -148,7 +144,7 @@ export default function MapView(props: MapViewProps) {
       setVisibility(map, 'facility-cluster-count', current.showFacilities)
       setVisibility(map, 'facility-points', current.showFacilities)
       setVisibility(map, 'transit-points', current.showTransit)
-      setVisibility(map, 'dong-bubbles', current.mapMode === 'operations' ? true : current.showBubbles)
+      setVisibility(map, 'dong-bubbles', current.mapMode === 'operations')
       updateContextStates(map, current)
 
       // `idle` waits for all network activity, including optional external raster
@@ -205,7 +201,7 @@ export default function MapView(props: MapViewProps) {
     updateContextStates(map, props)
     const bubbleSource = map.getSource(BUBBLE_SOURCE) as maplibregl.GeoJSONSource | undefined
     bubbleSource?.setData(toBubbleCollection(props.data, props.operationsByZone))
-  }, [props.metric, props.mapMode, props.structuralScores, props.operationsByZone, props.data])
+  }, [props.metric, props.mapMode, props.operationsByZone, props.data])
 
   useEffect(() => {
     const map = mapRef.current
@@ -214,8 +210,8 @@ export default function MapView(props: MapViewProps) {
     setVisibility(map, 'facility-cluster-count', props.showFacilities)
     setVisibility(map, 'facility-points', props.showFacilities)
     setVisibility(map, 'transit-points', props.showTransit)
-    setVisibility(map, 'dong-bubbles', props.mapMode === 'operations' ? true : props.showBubbles)
-  }, [props.showFacilities, props.showTransit, props.showBubbles, props.mapMode])
+    setVisibility(map, 'dong-bubbles', props.mapMode === 'operations')
+  }, [props.showFacilities, props.showTransit, props.mapMode])
 
   useEffect(() => {
     const map = mapRef.current
@@ -273,7 +269,7 @@ function toSyntheticPointCollection(point: MapViewProps['syntheticPoint']): Feat
     features: point ? [{
       type: 'Feature',
       geometry: { type: 'Point', coordinates: [point.longitude, point.latitude] },
-      properties: { display_name: caseDisplayName(point.caseId), synthetic: true },
+      properties: { case_id: point.caseId, synthetic: true },
     }] : [],
   }
 }
@@ -284,7 +280,6 @@ function updateContextStates(map: Map, props: MapViewProps) {
     const id = feature.properties.geometry_zone_id
     const operation = props.operationsByZone?.[id]
     map.setFeatureState({ source: DONG_SOURCE, id }, {
-      structuralScore: props.structuralScores?.[id] ?? null,
       acute: operation?.acute_color_metric ?? null,
     })
   }

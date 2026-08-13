@@ -9,28 +9,12 @@ import { createThreeTierService } from '../src/three-tier-service.mjs';
 
 const REFERENCE_DATE = '2026-08-12';
 
-const managementEntry = {
-  synthetic: true,
-  status: 'active_contact_management',
-  intake_channel: 'family_request',
-  intake_recorded_date: '2026-08-05',
-  ongoing_contact_permission: {
-    status: 'recorded', recorded_date: '2026-08-05', basis: 'synthetic_demo_scenario',
-  },
-  duplicate_service_check: {
-    status: 'completed_no_overlapping_schedule', checked_date: '2026-08-05',
-    scope: 'regular_wellbeing_contact_or_home_visit',
-    interpretation: 'workflow_duplicate_check_not_welfare_eligibility',
-  },
-};
-
 function household(id, overrides = {}) {
   const dongCode = id.slice(7, 17);
   const jemulpo = dongCode === '2812551000';
   return {
     id,
     synthetic: true,
-    management_entry: structuredClone(overrides.management_entry ?? managementEntry),
     location: {
       current_admin_dong_code_20260701: dongCode,
       current_admin_dong_name_20260701: jemulpo ? '신포동' : '삼산1동',
@@ -59,13 +43,27 @@ function household(id, overrides = {}) {
       visit_approval_status: null, transfer_status: 'not_required', visit_decision: null,
       ...overrides.workflow,
     },
+    management_entry: {
+      synthetic: true,
+      status: 'active_contact_management',
+      intake_channel: 'family_request',
+      intake_recorded_date: '2026-07-21',
+      ongoing_contact_permission: { status: 'recorded', recorded_date: '2026-07-22', basis: 'synthetic_demo_scenario' },
+      duplicate_service_check: {
+        status: 'completed_no_overlapping_schedule', checked_date: '2026-07-23',
+        scope: 'regular_wellbeing_contact_or_home_visit', interpretation: 'workflow_duplicate_check_not_welfare_eligibility',
+      },
+    },
     approved_visit_constraints: overrides.approved_visit_constraints ?? null,
   };
 }
 
 const households = [
   household('SYN-HH-2812551000-0001'),
-  household('SYN-HH-2812551000-0002', { contact: { preferred_contact_method: 'visit' } }),
+  household('SYN-HH-2812551000-0002', {
+    contact: { preferred_contact_method: 'visit' },
+    workflow: { visit_approval_status: 'approved' },
+  }),
   household('SYN-HH-2812551000-0003', { contact: { next_contact_date: '2026-08-20' } }),
   household('SYN-HH-2826051000-0001'),
 ];
@@ -173,21 +171,31 @@ const concernObservations = {
 describe('three-tier today lanes API', () => {
   const session = 'three-tier-lanes-session-01';
 
-  test('keeps visit-preferred due work in phone until recommendation review and explicit approval (INV14/INV15/INV16)', async () => {
-    const initial = await get(`/api/v1/contact-ops/three-tier/today-lanes?referenceDate=${REFERENCE_DATE}&workerId=SYN-W-2812551000-01`, session);
-    assert.equal(initial.response.status, 200);
-    assert.deepEqual(initial.body.data.lanes.phone.map((item) => item.case_id), [
-      'SYN-HH-2812551000-0001',
-      'SYN-HH-2812551000-0002',
-    ]);
-    assert.deepEqual(initial.body.data.lanes.visit, []);
-    assert.equal(initial.body.data.lane_rule, '방문 레인에는 담당자가 승인한 오늘 방문 업무만 포함');
-    for (const item of initial.body.data.lanes.phone) {
-      assert.equal(item.assignment_status, 'proposed');
-      assert.equal(item.worker_display_name, '연결단원 001');
-      assert.ok(item.selection_reason_labels.includes('오늘 정기 연락'));
-      assert.deepEqual(item.management_entry, households.find((entry) => entry.id === item.case_id).management_entry);
-      assert.deepEqual(item.급성도_기여내역, []);
+  test('auto-assigns phone work and gates visits behind center confirm-or-escalate (배정 파이프라인)', async () => {
+    const before = await get(`/api/v1/contact-ops/three-tier/today-lanes?referenceDate=${REFERENCE_DATE}&workerId=SYN-W-2812551000-01`, session);
+    assert.equal(before.response.status, 200);
+    assert.deepEqual(before.body.data.lanes.phone.map((item) => item.case_id), ['SYN-HH-2812551000-0001']);
+    assert.deepEqual(before.body.data.lanes.visit, []);
+    assert.deepEqual(before.body.data.pending_confirmation, { phone: 0, visit: 1 });
+    assert.equal(before.body.data.assignment_rule, '전화는 자동 배정 · 방문은 동 행정복지센터 확인 또는 상급기관 신고');
+
+    const confirm = await post('/api/v1/contact-ops/three-tier/assignment-confirmations', {
+      dong_code: '2812551000', reference_date: REFERENCE_DATE, confirmed_by: '동센터 담당자', case_ids: null,
+    }, session);
+    assert.equal(confirm.response.status, 200);
+
+    const { response, body } = await get(`/api/v1/contact-ops/three-tier/today-lanes?referenceDate=${REFERENCE_DATE}&workerId=SYN-W-2812551000-01`, session);
+    assert.equal(response.status, 200);
+    assert.deepEqual(body.data.pending_confirmation, { phone: 0, visit: 0 });
+    const lanes = body.data.lanes;
+    assert.deepEqual(lanes.phone.map((item) => item.case_id), ['SYN-HH-2812551000-0001']);
+    assert.deepEqual(lanes.visit.map((item) => item.case_id), ['SYN-HH-2812551000-0002']);
+    assert.equal(body.data.lane_rule, '방문 레인에는 담당자가 승인하고 배치를 확인한 방문만 포함');
+    assert.equal(lanes.phone[0].assignment_status, 'confirmed');
+    assert.deepEqual(lanes.phone[0].selection_reason_labels, ['오늘 정기 연락']);
+    assert.equal(lanes.phone[0].management_entry.intake_channel, 'family_request');
+    assert.equal(lanes.visit[0].assignment_status, 'confirmed');
+    for (const item of [...lanes.phone, ...lanes.visit]) {
       assert.match(item.virtual_phone.display_number, /^010-0000-\d{4}$/);
       assert.equal(item.virtual_phone.label, '[가상]');
       assert.equal(item.virtual_phone.dialable, false);
@@ -195,73 +203,10 @@ describe('three-tier today lanes API', () => {
       assert.equal(item.location.road_address, '인천광역시 제물포구 답동로 7-2');
       assert.equal(item.location.building_name, null);
       assert.equal(item.last_contact.result_label, '연락 안 됨');
-      assert.equal(item.visit_context, undefined);
     }
-
-    const recorded = await post('/api/v1/contact-ops/cases/SYN-HH-2812551000-0002/contact-results', {
-      expected_revision: 0,
-      contact_date: '2026-08-11',
-      contact_result: 'no_answer',
-      observations: concernObservations,
-    }, session);
-    assert.equal(recorded.response.status, 200);
-    assert.equal(recorded.body.data.household.workflow.visit_approval_status, 'recommended');
-
-    const awaitingApproval = await get(`/api/v1/contact-ops/three-tier/today-lanes?referenceDate=${REFERENCE_DATE}&workerId=SYN-W-2812551000-01`, session);
-    const awaitingIds = [...awaitingApproval.body.data.lanes.phone, ...awaitingApproval.body.data.lanes.visit]
-      .map((item) => item.case_id);
-    assert.equal(awaitingIds.includes('SYN-HH-2812551000-0002'), false,
-      'a visit recommendation must leave worker lanes until a manager approves it');
-
-    const approved = await post('/api/v1/contact-ops/cases/SYN-HH-2812551000-0002/visit-decisions', {
-      expected_revision: 1,
-      decision: 'approved',
-      decided_by: 'synthetic-manager',
-      decided_at: `${REFERENCE_DATE}T09:00:00Z`,
-      note: 'API 레인 계약 검증',
-      assigned_worker_ids: ['SYN-W-2812551000-01'],
-      max_route_distance_km: 2,
-    }, session);
-    assert.equal(approved.response.status, 200);
-
-    const afterApproval = await get(`/api/v1/contact-ops/three-tier/today-lanes?referenceDate=${REFERENCE_DATE}&workerId=SYN-W-2812551000-01`, session);
-    assert.deepEqual(afterApproval.body.data.lanes.phone.map((item) => item.case_id), ['SYN-HH-2812551000-0001']);
-    assert.deepEqual(afterApproval.body.data.lanes.visit.map((item) => item.case_id), ['SYN-HH-2812551000-0002']);
-    const visit = afterApproval.body.data.lanes.visit[0];
-    assert.equal(visit.assignment_status, 'proposed');
-    assert.equal(visit.worker_display_name, '연결단원 001');
-    assert.equal(Array.isArray(visit.selection_reason_labels), true);
-    assert.deepEqual(visit.management_entry, approved.body.data.household.management_entry);
-    const expectedAcuteContributions = recorded.body.data.triage.점수_기여내역
-      .filter((item) => item.축 === '급성도')
-      .toSorted((left, right) => right.가산점 - left.가산점 || left.코드.localeCompare(right.코드))
-      .slice(0, 3);
-    assert.deepEqual(visit.급성도_기여내역, expectedAcuteContributions.map(({ 코드, 근거, 가산점 }) => ({ 코드, 근거, 가산점 })));
-    assert.deepEqual(visit.visit_context.preferred_visit_time_window, { start: '13:00', end: '16:00' });
-    assert.equal(visit.visit_context.requires_public_official_companion, true);
-  });
-
-  test('reflects partial assignment confirmation metadata in a subsequent today-lanes GET', async () => {
-    const partialSession = 'three-tier-lanes-session-02';
-    const partial = await post('/api/v1/contact-ops/three-tier/assignment-confirmations', {
-      dong_code: '2812551000',
-      reference_date: REFERENCE_DATE,
-      confirmed_by: '동센터 담당자',
-      case_ids: ['SYN-HH-2812551000-0001'],
-    }, partialSession);
-    assert.equal(partial.response.status, 200);
-
-    const today = await get(`/api/v1/contact-ops/three-tier/today-lanes?referenceDate=${REFERENCE_DATE}&workerId=SYN-W-2812551000-01`, partialSession);
-    assert.equal(today.response.status, 200);
-    const confirmed = today.body.data.lanes.phone.find((item) => item.case_id === 'SYN-HH-2812551000-0001');
-    assert.equal(confirmed.assignment_status, 'confirmed');
-    assert.equal(confirmed.confirmed_by, '동센터 담당자');
-    assert.equal(confirmed.confirmed_at, '2026-08-12T09:00:00.000Z');
-
-    const proposed = today.body.data.lanes.phone.find((item) => item.case_id === 'SYN-HH-2812551000-0002');
-    assert.equal(proposed.assignment_status, 'proposed');
-    assert.equal(Object.hasOwn(proposed, 'confirmed_by'), false);
-    assert.equal(Object.hasOwn(proposed, 'confirmed_at'), false);
+    assert.equal(lanes.phone[0].visit_context, undefined);
+    assert.deepEqual(lanes.visit[0].visit_context.preferred_visit_time_window, { start: '13:00', end: '16:00' });
+    assert.equal(lanes.visit[0].visit_context.requires_public_official_companion, true);
   });
 
   test('validates worker and date query parameters', async () => {
@@ -275,6 +220,42 @@ describe('three-tier today lanes API', () => {
     assert.equal(unknownWorker.response.status, 400);
     const extraQuery = await get(`/api/v1/contact-ops/three-tier/today-lanes?referenceDate=${REFERENCE_DATE}&workerId=SYN-W-2812551000-01&x=1`, session);
     assert.equal(extraQuery.response.status, 400);
+  });
+
+  test('an escalated visit case leaves the surveyor lanes and records the rule-table agency', async () => {
+    const escalationSession = 'three-tier-escalation-session-01';
+    const confirm = await post('/api/v1/contact-ops/three-tier/assignment-confirmations', {
+      dong_code: '2812551000', reference_date: REFERENCE_DATE, confirmed_by: '동센터 담당자', case_ids: null,
+    }, escalationSession);
+    assert.equal(confirm.response.status, 200);
+
+    const escalate = await post('/api/v1/contact-ops/three-tier/escalations', {
+      case_id: 'SYN-HH-2812551000-0002', reported_by: '동센터 담당자',
+    }, escalationSession);
+    assert.equal(escalate.response.status, 200);
+    assert.equal(escalate.body.data.escalation.status, '신고됨');
+    assert.equal(typeof escalate.body.data.escalation.agency, 'string');
+    assert.equal(escalate.body.data.escalation.reported_by, '동센터 담당자');
+
+    const after = await get(`/api/v1/contact-ops/three-tier/today-lanes?referenceDate=${REFERENCE_DATE}&workerId=SYN-W-2812551000-01`, escalationSession);
+    assert.deepEqual(after.body.data.lanes.visit, []);
+    assert.deepEqual(after.body.data.lanes.phone.map((item) => item.case_id), ['SYN-HH-2812551000-0001']);
+    assert.deepEqual(after.body.data.pending_confirmation, { phone: 0, visit: 0 });
+
+    const inbox = await get(`/api/v1/contact-ops/three-tier/center-inbox?dongCode=2812551000&referenceDate=${REFERENCE_DATE}`, escalationSession);
+    const visitRow = inbox.body.data.assignment_proposal.lanes.visit
+      .find((proposal) => proposal.case_id === 'SYN-HH-2812551000-0002');
+    assert.equal(visitRow.escalation.status, '신고됨');
+    assert.equal(inbox.body.data.assignment_proposal.lanes.phone[0].escalation, undefined);
+
+    const badCase = await post('/api/v1/contact-ops/three-tier/escalations', {
+      case_id: 'not-a-case', reported_by: '동센터 담당자',
+    }, escalationSession);
+    assert.equal(badCase.response.status, 400);
+    const noActor = await post('/api/v1/contact-ops/three-tier/escalations', {
+      case_id: 'SYN-HH-2812551000-0002', reported_by: '',
+    }, escalationSession);
+    assert.equal(noActor.response.status, 400);
   });
 });
 
@@ -371,8 +352,7 @@ describe('three-tier center inbox and explicit confirmations (INV14)', () => {
     assert.equal(partial.body.data.assignment_proposal.confirmed_count, 1);
     const lanes = partial.body.data.assignment_proposal.lanes;
     assert.equal(lanes.phone[0].status, 'confirmed');
-    assert.equal(lanes.phone[1].status, 'proposed');
-    assert.deepEqual(lanes.visit, []);
+    assert.equal(lanes.visit[0].status, 'proposed');
 
     const badCase = await post('/api/v1/contact-ops/three-tier/assignment-confirmations', {
       dong_code: '2812551000', reference_date: REFERENCE_DATE, confirmed_by: '동센터 담당자', case_ids: ['SYN-HH-2826051000-0001'],
@@ -511,7 +491,8 @@ describe('three-tier district rollups (INV17) and AI summary (INV19)', () => {
     const first = await get(`/api/v1/contact-ops/three-tier/district-ai-summary?district=${encodeURIComponent('제물포구')}&referenceDate=${REFERENCE_DATE}`, session);
     assert.equal(first.response.status, 200);
     assert.equal(first.body.data.label, '[AI 생성 · 관측 집계 해석 · 개인 예측 아님]');
-    assert.equal(first.body.data.generator, 'mock_deterministic');
+    assert.equal(first.body.data.generator, 'codex_authored_v1');
+    assert.match(first.body.data.summary_text, /제물포구/);
     assert.ok(first.body.data.summary_text.includes(first.body.data.input_metrics.노인인구_비율_퍼센트));
     assert.ok(first.body.data.mixed_snapshot_warnings.length === 2);
     const second = await get(`/api/v1/contact-ops/three-tier/district-ai-summary?district=${encodeURIComponent('제물포구')}&referenceDate=${REFERENCE_DATE}`, session);

@@ -124,6 +124,9 @@ describe('P6 surveyor breadth projection', () => {
     )
 
     expect(screen.getByRole('region', { name: '오늘 연락업무 요약과 목록' })).toBeInTheDocument()
+    expect(screen.getByText('김영자 어르신')).toBeInTheDocument()
+    expect(screen.getByText('이순자 어르신')).toBeInTheDocument()
+    expect(document.body.textContent).not.toMatch(/SYN-HH-|\[합성\]/)
     expect(screen.getByText('오늘 연락업무 2건')).toBeInTheDocument()
     expect(screen.getAllByText('연속 미응답 3회').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('후속조치 기한 지남').length).toBeGreaterThanOrEqual(1)
@@ -157,8 +160,8 @@ describe('P6 surveyor breadth projection', () => {
       />,
     )
 
-    const first = screen.getByRole('option', { name: /박영희/ })
-    const second = screen.getByRole('option', { name: /이민수/ })
+    const first = screen.getByRole('option', { name: /김영자 어르신/ })
+    const second = screen.getByRole('option', { name: /이순자 어르신/ })
     expect(first).toHaveStyle({ minHeight: '48px' })
     await user.click(second)
     expect(onSelect).toHaveBeenLastCalledWith(queueItems[1].household_id)
@@ -214,7 +217,7 @@ describe('P6 explicit loading, empty, and error states', () => {
         items={[]}
         details={[]}
         loading={false}
-        error="연락업무를 불러오지 못했습니다."
+        error="합성 연락업무를 불러오지 못했습니다."
         selectedId={null}
         onSelect={() => {}}
         onRetry={onRetry}

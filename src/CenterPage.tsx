@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-import { AlertTriangle, CheckCircle2, ClipboardCheck, Inbox, MapPinned, RefreshCw } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, MapPinned, RefreshCw } from 'lucide-react'
 import MapView from './MapView'
 import { loadData } from './data'
 import type { DataBundle } from './types'
@@ -13,16 +13,19 @@ import {
 import type { CaseDetail } from './contactOpsClient'
 import {
   DEMO_CENTER_DONG_CODE,
+  DEMO_WORKER_ID,
   acknowledgeReport,
   confirmAssignment,
+  escalateCase,
   loadCenterInbox,
+  managementIntakeLabel,
 } from './threeTierClient'
 import type { AssignmentProposalItem, CenterInbox, ReportCard } from './threeTierClient'
-import { caseDisplayName, workerDisplayName, workerIdForDong } from './caseDisplayName'
+import { caseDisplayName } from './caseDisplayName'
 
 const CENTER_ACTOR = '동센터 담당자'
-const DEMO_MESSAGE = '데모 화면 · 표시된 이름은 모두 가명이며 실제 주민·업무·개인 판정이 아닙니다.'
-const TRANSFER_TRACK_MESSAGE = '안부확인 트랙에서 사례관리·전문기관 트랙으로 전환하는 권고입니다. 전환 확정은 별도 행정 절차이며 이 데모의 범위 밖입니다.'
+const ATTENTION_CONTACT_LABELS = new Set(['연락 안 됨', '연락(또는 방문) 거부', '연락처 확인 필요', '우려 사항 있음'])
+const TRANSFER_TRACK_MESSAGE = '안부확인 트랙에서 사례관리·전문기관 트랙으로 전환하는 권고입니다. 전환 확정은 별도 행정 절차로 진행합니다.'
 
 function errorText(cause: unknown, fallback: string) {
   if (cause instanceof ContactOpsClientError && cause.code === 'STATE_CONFLICT') {
@@ -36,42 +39,60 @@ function GradeChip({ grade }: { grade: string | null }) {
   return <span className="grade-chip" data-grade={value}>{value}</span>
 }
 
-function proposalStatusLabel(item: AssignmentProposalItem) {
-  if (item.lane === 'visit') return item.assignment_status === 'confirmed' ? '오늘 방문 할당 확정' : '오늘 방문 배치 제안'
-  return item.assignment_status === 'confirmed' ? '오늘 전화 할당 확정' : '오늘 전화 배치 제안'
-}
-
 function ProposalRow({
   item,
   onConfirm,
+  onEscalate,
   busy,
 }: {
   item: AssignmentProposalItem
   onConfirm: (caseId: string) => void
+  onEscalate: (caseId: string) => void
   busy: boolean
 }) {
   return (
     <li className="assignment-row" data-lane={item.lane}>
       <div className="assignment-row-main">
-        <span className="case-id">{caseDisplayName(item.case_id)}</span>
-        <span className="assignment-status" data-status={item.assignment_status}>{proposalStatusLabel(item)}</span>
-        <span className="assignment-worker">담당 {item.worker_display_name ?? '미배정'}</span>
+        <span className="case-id">{item.display_name} 어르신</span>
+        <GradeChip grade={item.급성도_등급} />
+        <span className="assignment-worker">{item.worker_display_name ?? '담당 미배정'}</span>
       </div>
-      {item.lane === 'phone' && (
-        <>
-          <div className="selection-reasons" aria-label="전화 대상 선정 사유">
-            {(item.selection_reason_labels ?? []).map((label) => <span key={label}>{label}</span>)}
+      <p className="assignment-address">{item.road_address ?? '주소 정보 없음'}</p>
+      {item.lane === 'phone' && <div className="selection-reasons" aria-label="전화 대상 선정 사유">
+        {item.selection_reason_labels.map((label) => <span key={label}>{label}</span>)}
+      </div>}
+      {item.lane === 'visit' && <p className="mobile-acute-summary">급성도 {item.급성도_점수 ?? '기록 없음'}{item.급성도_점수 === null ? '' : '점'} · {item.급성도_등급 ?? '등급 기록 없음'}</p>}
+      <dl className="assignment-facts">
+        <div className="assignment-fact">
+          <dt>마지막 연락</dt>
+          <dd>
+            {item.last_contact.date === null ? '기록 없음' : (
+              <>
+                {item.last_contact.date}
+                <span
+                  className="fact-status"
+                  data-attention={ATTENTION_CONTACT_LABELS.has(item.last_contact.result_label) || undefined}
+                >
+                  {item.last_contact.result_label}
+                </span>
+              </>
+            )}
+          </dd>
+        </div>
+        {item.lane === 'phone' && item.earliest_due_date !== null && (
+          <div className="assignment-fact">
+            <dt>연락 기한</dt>
+            <dd>{item.earliest_due_date}</dd>
           </div>
-          <p className="assignment-due">연락 기한 {item.earliest_due_date ?? '기한 없음'}</p>
-        </>
-      )}
-      {item.lane === 'visit' && (
-        <>
-          <p className="visit-approved"><CheckCircle2 aria-hidden="true" size={17} /> 담당자 승인 완료</p>
-          <p className="assignment-acute">급성도 {item.급성도_점수 ?? '기록 없음'}{item.급성도_점수 === null ? '' : '점'} · {item.급성도_등급 ?? '등급 기록 없음'}</p>
-        </>
-      )}
-      <p className="assignment-basis">{item.제안_근거.join(' · ')}</p>
+        )}
+        {item.lane === 'phone' && <>
+          <div className="assignment-fact"><dt>등록 근거</dt><dd>{managementIntakeLabel(item.management_entry.intake_channel)}</dd></div>
+          <div className="assignment-fact"><dt>관리 확인</dt><dd>연락 동의 기록 · 기존 정기 안부확인 중복 없음</dd></div>
+        </>}
+      </dl>
+      {item.lane === 'visit' && item.급성도_기여내역.length > 0 && <ul className="mobile-acute-contributions" aria-label="급성도 주요 기여내역">
+        {item.급성도_기여내역.map((entry) => <li key={entry.코드}>{entry.근거} · +{entry.가산점}점</li>)}
+      </ul>}
       {item.adjustment_flags.length > 0 && (
         <p className="assignment-flags" role="note">조정 필요: {item.adjustment_flags.map((flag) => ({
           no_worker_for_dong: '담당 연결단원 없음',
@@ -79,9 +100,18 @@ function ProposalRow({
           capacity_exceeded: '일일 방문 용량 초과',
         }[flag] ?? flag)).join(' · ')}</p>
       )}
-      {item.assignment_status === 'confirmed'
-        ? <p className="assignment-confirmed"><CheckCircle2 aria-hidden="true" size={17} /> 확인됨 · {item.confirmed_by}</p>
-        : <button className="confirm-one" disabled={busy} onClick={() => onConfirm(item.case_id)}>이 제안 확인</button>}
+      {item.lane === 'phone'
+        ? <p className="assignment-confirmed assignment-auto"><CheckCircle2 aria-hidden="true" size={17} /> 자동 배정됨 · {item.worker_display_name ?? '담당 미배정'}</p>
+        : item.escalation
+          ? <p className="assignment-escalated"><AlertTriangle aria-hidden="true" size={17} /> 상급기관 신고됨 · {item.escalation.agency}</p>
+          : item.status === 'confirmed'
+            ? <p className="assignment-confirmed"><CheckCircle2 aria-hidden="true" size={17} /> 방문 확인됨 · {item.confirmed_by}</p>
+            : (
+              <div className="assignment-actions">
+                <button className="confirm-one" disabled={busy} onClick={() => onConfirm(item.case_id)}>확인</button>
+                <button className="escalate-one" disabled={busy} onClick={() => onEscalate(item.case_id)}>신고</button>
+              </div>
+            )}
     </li>
   )
 }
@@ -97,28 +127,29 @@ function ReportCardView({
 }) {
   const [showTransfer, setShowTransfer] = useState(false)
   return (
-    <article className="report-card" aria-label={`${caseDisplayName(card.case_id)} 보고 카드`}>
+    <article className="report-card" data-grade={card.등급} aria-label={`${card.display_name} 어르신 보고 카드`}>
       <header>
         <GradeChip grade={card.등급} />
-        <span className="case-id">{caseDisplayName(card.case_id)}</span>
+        <span className="case-id">{card.display_name} 어르신</span>
         <span className="report-meta">{card.evidence.마지막_연락_결과_라벨} · {card.evidence.마지막_연락_일자 ?? '기록 없음'}</span>
       </header>
+      {card.road_address !== null && <p className="report-address">{card.road_address}</p>}
       <dl className="report-scores">
         <div><dt>급성도</dt><dd>{card.급성도_점수}</dd></div>
         <div><dt>취약도</dt><dd>{card.취약도_점수}</dd></div>
       </dl>
       <section className="report-reasons">
-        <h4>사유 요약</h4>
+        <h4>사유</h4>
         <ul>{card.사유_요약.map((reason) => <li key={`${reason.축}-${reason.근거}`}>{reason.축} · {reason.근거} · {reason.가산점}점</li>)}</ul>
       </section>
       <section className="report-agencies">
-        <h4>권고 기관 (권고와 사유까지만 · 확정은 담당자)</h4>
+        <h4>권고 기관</h4>
         {card.권고_기관.length === 0 ? <p>권고할 기관 신호가 없습니다.</p> : (
           <ul>{card.권고_기관.map((agency) => <li key={agency.기관}><strong>{agency.기관}</strong><span>{agency.사유}</span></li>)}</ul>
         )}
       </section>
       <details className="report-evidence">
-        <summary>관찰 근거 열기</summary>
+        <summary>관찰 근거</summary>
         <ul>
           <li>연속 미응답 {card.evidence.연속_미응답_횟수}회</li>
           <li>식사 상태: {card.evidence.관찰.식사상태 ?? '확인하지 못함'}</li>
@@ -194,17 +225,20 @@ export function CenterPage() {
   }, [mapOpen, mapData])
 
   const proposal = inbox?.assignment_proposal ?? null
-  const approvedVisitProposalItems = useMemo(
-    () => proposal?.lanes.visit.filter((item) => item.approved_visit) ?? [],
-    [proposal],
-  )
-  const laneItems = useMemo(
-    () => lane === 'phone' ? proposal?.lanes.phone ?? [] : approvedVisitProposalItems,
-    [approvedVisitProposalItems, lane, proposal],
-  )
+  const laneItems = useMemo(() => proposal?.lanes[lane] ?? [], [proposal, lane])
+  const pendingVisitIds = useMemo(() => (proposal?.lanes.visit ?? [])
+    .filter((item) => item.status !== 'confirmed' && !item.escalation)
+    .map((item) => item.case_id), [proposal])
   const selectedVisit = recommendations.find((item) => item.household.id === selectedVisitId) ?? null
-  const workerId = workerIdForDong(DEMO_CENTER_DONG_CODE)
-  const selectedWorkerDisplayName = proposal?.worker_display_name ?? workerDisplayName(workerId)
+  const displayNameForCase = (caseId: string) => {
+    const reportName = inbox?.report_cards.find((card) => card.case_id === caseId)?.display_name
+    if (reportName) return reportName
+    const assignment = inbox?.assignment_proposal
+    return [...(assignment?.lanes.phone ?? []), ...(assignment?.lanes.visit ?? [])]
+      .find((item) => item.case_id === caseId)?.display_name ?? caseDisplayName(caseId)
+  }
+  const selectedVisitDisplayName = selectedVisit ? displayNameForCase(selectedVisit.household.id) : ''
+  const workerId = DEMO_WORKER_ID
 
   const act = async (action: () => Promise<void>, doneMessage: string, failMessage: string) => {
     try {
@@ -222,13 +256,18 @@ export function CenterPage() {
 
   const confirmOne = (caseId: string) => act(
     async () => { await confirmAssignment({ dongCode: DEMO_CENTER_DONG_CODE, referenceDate: CONTACT_OPS_REFERENCE_DATE, confirmedBy: CENTER_ACTOR, caseIds: [caseId] }) },
-    '할당 제안 1건을 확인했습니다.',
-    '할당 제안을 확인하지 못했습니다.',
+    '방문 1건을 확인했습니다. 조사원 방문 목록에 반영됩니다.',
+    '방문을 확인하지 못했습니다.',
   )
-  const confirmAll = () => act(
-    async () => { await confirmAssignment({ dongCode: DEMO_CENTER_DONG_CODE, referenceDate: CONTACT_OPS_REFERENCE_DATE, confirmedBy: CENTER_ACTOR, caseIds: null }) },
-    '오늘 배치안을 일괄 확인했습니다.',
-    '오늘 배치안을 확인하지 못했습니다.',
+  const confirmAllVisits = (caseIds: string[]) => act(
+    async () => { await confirmAssignment({ dongCode: DEMO_CENTER_DONG_CODE, referenceDate: CONTACT_OPS_REFERENCE_DATE, confirmedBy: CENTER_ACTOR, caseIds }) },
+    '오늘 방문을 일괄 확인했습니다. 조사원 방문 목록에 반영됩니다.',
+    '오늘 방문을 확인하지 못했습니다.',
+  )
+  const escalateOne = (caseId: string) => act(
+    async () => { await escalateCase({ caseId, reportedBy: CENTER_ACTOR }) },
+    '상급기관에 신고했습니다. 해당 방문은 조사원 배정에서 제외됩니다.',
+    '상급기관 신고를 기록하지 못했습니다.',
   )
   const acknowledge = (card: ReportCard) => act(
     async () => { await acknowledgeReport({ caseId: card.case_id, revision: card.revision, acknowledgedBy: CENTER_ACTOR }) },
@@ -260,16 +299,12 @@ export function CenterPage() {
 
   return (
     <main className="tier-page center-page">
-      <header className="tier-header">
-        <div>
-          <h1>동 행정복지센터용 · {inbox?.dong_name ?? '신포동'}</h1>
-          <p className="tier-audience">{inbox?.district ?? '제물포구'} {inbox?.dong_name ?? '신포동'} 행정복지센터 확인·승인 화면</p>
-        </div>
-        <p>{DEMO_MESSAGE}</p>
+      <header className="center-header">
+        <h1>{inbox?.dong_name ?? '신포동'} 행정복지센터</h1>
         <nav aria-label="3계층 화면 이동">
-          <a href="/m">조사원 모바일</a>
-          <a href="/city">시·구 지도</a>
-          <a href="/">공개 지도</a>
+          <a href="/m">조사원</a>
+          <a href="/city">시·구</a>
+          <a href="/">지도</a>
         </nav>
       </header>
 
@@ -281,85 +316,89 @@ export function CenterPage() {
         </div>
       )}
       {feedback && <p className="ops-feedback" role="status" aria-live="polite">{feedback}</p>}
-      {loading && !inbox && <p className="ops-state" role="status">동 행정복지센터 업무를 불러오는 중입니다.</p>}
+      {loading && !inbox && <p className="ops-state" role="status">불러오는 중입니다.</p>}
 
       {inbox && (
         <>
-          <section className="center-summary" aria-label="오늘 처리 요약과 다음 행동">
-            <a href="#center-reports"><strong>{inbox.summary.보고_대기_수}건</strong><span>보고 확인 대기</span></a>
-            <a href="#center-assignment"><strong>{inbox.summary.배치_상태 === 'confirmed' ? '완료' : inbox.summary.배치_상태 === 'partially_confirmed' ? '일부 확인' : '대기'}</strong><span>오늘 배치 확인</span></a>
-            <a href="#center-visit-review"><strong>{inbox.summary.방문승인_대기_수}건</strong><span>방문 검토 대기</span></a>
-            <p><strong>{inbox.summary.처리_완료율_pct ?? 0}%</strong><span>보고 처리 완료율</span></p>
+          <section className="center-hero" aria-label="오늘 처리 요약과 다음 행동">
+            <div className="center-hero-lead">
+              <span className="center-hero-date">{inbox.reference_date} · {inbox.district} {inbox.dong_name}</span>
+              <strong className="center-hero-count">오늘 처리할 일 {inbox.summary.보고_대기_수 + inbox.summary.방문승인_대기_수}건</strong>
+            </div>
+            <div className="center-hero-pills">
+              <a href="#center-reports"><strong>{inbox.summary.보고_대기_수}건</strong><span>보고 확인 대기</span></a>
+              <a href="#center-assignment"><strong>{(proposal?.lanes.visit.length ?? 0) === 0 ? '없음' : pendingVisitIds.length === 0 ? '완료' : `대기 ${pendingVisitIds.length}건`}</strong><span>방문 확인·신고</span></a>
+              <a href="#center-visit-review"><strong>{inbox.summary.방문승인_대기_수}건</strong><span>방문 검토 대기</span></a>
+              <div
+                className="center-hero-ring"
+                role="img"
+                aria-label={`보고 처리 완료율 ${inbox.summary.처리_완료율_pct ?? 0}%`}
+                style={{ '--ring': String(inbox.summary.처리_완료율_pct ?? 0) } as React.CSSProperties}
+              >
+                <span>{inbox.summary.처리_완료율_pct ?? 0}%</span>
+                <small>처리율</small>
+              </div>
+            </div>
           </section>
 
           <div className="center-columns">
             <div className="center-main">
               <section id="center-assignment" className="center-section" aria-labelledby="assignment-heading">
-                <h2 id="assignment-heading"><ClipboardCheck aria-hidden="true" size={20} /> 오늘 배치 확인</h2>
+                <h2 id="assignment-heading">오늘 배치</h2>
+                <p className="assignment-rule-note">전화는 자동 배정됩니다. 방문은 확인 또는 상급기관 신고로 처리합니다.</p>
                 {proposal === null ? <p className="ops-empty">오늘 예정된 배치 제안이 없습니다.</p> : (
                   <>
-                    <p className="center-section-note">
-                      결정론 규칙이 만든 <strong>제안</strong>입니다. {proposal.confirmation_rule}.
-                      담당 {proposal.worker_display_name} · 일일 승인 방문 용량 {proposal.max_daily_approved_visits}건.
-                    </p>
                     <div className="lane-tabs" role="tablist" aria-label="전화 레인과 방문 레인">
-                      <button role="tab" aria-selected={lane === 'phone'} onClick={() => setLane('phone')}>전화 레인 {proposal.lanes.phone.length}건</button>
-                      <button role="tab" aria-selected={lane === 'visit'} onClick={() => setLane('visit')}>방문 레인 {approvedVisitProposalItems.length}건</button>
+                      <button role="tab" aria-selected={lane === 'phone'} onClick={() => setLane('phone')}>전화 {proposal.lanes.phone.length}</button>
+                      <button role="tab" aria-selected={lane === 'visit'} onClick={() => setLane('visit')}>방문 {proposal.lanes.visit.length}</button>
                     </div>
-                    <p className="lane-rule">방문 레인에는 담당자가 승인한 오늘 방문 업무만 들어옵니다. 전화 큐와 섞지 않습니다.</p>
                     <ul className="assignment-list" aria-label={lane === 'phone' ? '전화 레인 할당 제안' : '방문 레인 할당 제안'}>
                       {laneItems.length === 0 ? <li className="ops-empty">이 레인에는 오늘 제안이 없습니다.</li>
-                        : laneItems.map((item) => <ProposalRow key={item.case_id} item={item} onConfirm={confirmOne} busy={busy} />)}
+                        : laneItems.map((item) => <ProposalRow key={item.case_id} item={item} onConfirm={confirmOne} onEscalate={escalateOne} busy={busy} />)}
                     </ul>
-                    {proposal.status !== 'confirmed' && (
-                      <button className="confirm-all" disabled={busy} onClick={confirmAll}>오늘 배치 일괄 확인</button>
+                    {lane === 'visit' && pendingVisitIds.length > 0 && (
+                      <button className="confirm-all" disabled={busy} onClick={() => confirmAllVisits(pendingVisitIds)}>오늘 방문 일괄 확인</button>
                     )}
-                    {proposal.status === 'confirmed' && <p className="assignment-confirmed" role="status">오늘 배치안이 모두 확인되었습니다.</p>}
+                    {lane === 'visit' && proposal.lanes.visit.length > 0 && pendingVisitIds.length === 0 && (
+                      <p className="assignment-confirmed" role="status">오늘 방문이 모두 처리되었습니다. 확인된 방문은 조사원 목록에 반영됩니다.</p>
+                    )}
                   </>
                 )}
               </section>
 
               <section id="center-reports" className="center-section" aria-labelledby="reports-heading">
-                <h2 id="reports-heading"><Inbox aria-hidden="true" size={20} /> 보고 확인</h2>
-                <p className="center-section-note">조사원 제출이 도착하면 등급·사유·권고 기관이 담긴 보고 카드가 쌓입니다.</p>
+                <h2 id="reports-heading">보고 확인</h2>
                 {inbox.report_cards.length === 0
-                  ? <p className="ops-empty">아직 도착한 보고가 없습니다. 조사원 모바일 화면에서 통화(또는 방문) 결과를 제출하면 이곳에 나타납니다.</p>
+                  ? <p className="ops-empty">아직 도착한 보고가 없습니다. 조사원 화면에서 통화(또는 방문) 결과를 제출하면 이곳에 나타납니다.</p>
                   : inbox.report_cards.map((card) => (
                     <ReportCardView key={card.card_id} card={card} onAcknowledge={acknowledge} busy={busy} />
                   ))}
               </section>
 
               <section id="center-visit-review" className="center-section" aria-labelledby="visit-review-heading">
-                <h2 id="visit-review-heading"><CheckCircle2 aria-hidden="true" size={20} /> 방문 검토</h2>
-                <p className="center-section-note">방문 권고는 담당자의 명시적 승인 또는 반려로만 확정됩니다.</p>
+                <h2 id="visit-review-heading">방문 검토</h2>
                 {recommendations.length === 0 ? <p className="ops-empty">현재 검토할 방문 권고가 없습니다.</p> : (
                   <div className="visit-review">
                     <ul className="visit-review-list" aria-label="방문 권고 대기 목록">
                       {recommendations.map((item) => (
                         <li key={item.household.id}>
                           <button aria-pressed={item.household.id === selectedVisitId} onClick={() => { setSelectedVisitId(item.household.id); setDecision(null) }}>
-                            <span className="case-id">{caseDisplayName(item.household.id)}</span>
+                            <span className="case-id">{displayNameForCase(item.household.id)} 어르신</span>
                             <span>급성도 {item.triage?.급성도_점수 ?? '–'} · 취약도 {item.triage?.취약도_점수 ?? '–'}</span>
-                            {item.triage?.점수_기여내역.find((contribution) => contribution.축 === '급성도') && (
-                              <span className="visit-review-contribution">
-                                주요 급성도 근거 · {item.triage.점수_기여내역.find((contribution) => contribution.축 === '급성도')?.근거}
-                                {' '}(+{item.triage.점수_기여내역.find((contribution) => contribution.축 === '급성도')?.가산점}점)
-                              </span>
-                            )}
                           </button>
                         </li>
                       ))}
                     </ul>
                     {selectedVisit && (
-                      <form className="ops-form" onSubmit={submitVisitDecision}>
+                      <form className="ops-form center-decision-form" onSubmit={submitVisitDecision}>
                         <fieldset>
-                          <legend>담당자 결정 · {caseDisplayName(selectedVisit.household.id)}</legend>
+                          <legend>담당자 결정 · {selectedVisitDisplayName} 어르신</legend>
                           <label className="ops-choice"><input checked={decision === 'approved'} onChange={() => setDecision('approved')} type="radio" name="center-decision" /><span>방문 권고 승인</span></label>
                           <label className="ops-choice"><input checked={decision === 'rejected'} onChange={() => setDecision('rejected')} type="radio" name="center-decision" /><span>방문 권고 반려</span></label>
                           {decision === 'approved' && (
                             <>
                               <label>연결단원 배정
-                                <select value={workerId} onChange={() => {}}><option value={workerId}>{selectedWorkerDisplayName}</option></select>
+                                <select value={workerId} onChange={() => {}}><option value={workerId}>{proposal?.worker_display_name ?? '연결단원 001'}</option></select>
                               </label>
                               <label>승인된 방문 거리 제한 (km)
                                 <input min="0.1" max="50" step="0.1" type="number" value={distance} onChange={(event) => setDistance(event.target.value)} required />
@@ -382,8 +421,7 @@ export function CenterPage() {
 
             <aside className="center-side">
               <details className="center-map-widget" onToggle={(event) => setMapOpen((event.target as HTMLDetailsElement).open)}>
-                <summary><MapPinned aria-hidden="true" size={18} /> 우리 동 지도 열기 (참고용)</summary>
-                <p className="center-section-note">지도는 위치 확인 보조 수단입니다. 업무 처리는 왼쪽 목록에서 합니다.</p>
+                <summary><MapPinned aria-hidden="true" size={18} /> 우리 동 지도 열기</summary>
                 <div className="center-map-frame">
                   {mapOpen && mapData ? (
                     <MapView
@@ -391,7 +429,6 @@ export function CenterPage() {
                       metric="age_65_plus_one_person_share_of_age_65_plus_population"
                       showFacilities={false}
                       showTransit={false}
-                      showBubbles={false}
                       facilityCategory="전체"
                       selectedZoneId={selectedVisit?.household.location.geometry_zone_id ?? 'vworld_sgis_20250630:23010530'}
                       syntheticPoint={selectedVisit ? {
@@ -399,20 +436,12 @@ export function CenterPage() {
                         longitude: selectedVisit.household.location.longitude,
                         latitude: selectedVisit.household.location.latitude,
                       } : null}
-                      ariaLabel="우리 동 케이스 위치 참고 지도"
+                      ariaLabel="우리 동 대상 위치 참고 지도"
                       onSelectDong={() => {}}
                     />
                   ) : <p role="status">지도를 열면 우리 동 위치를 확인할 수 있습니다.</p>}
                 </div>
               </details>
-              <section className="center-side-note" aria-label="처리 원칙">
-                <h3>처리 원칙</h3>
-                <ul>
-                  <li>자동 산출은 전부 제안입니다. 확정은 이 화면의 확인·승인 버튼만 만듭니다.</li>
-                  <li>전화 레인과 방문 레인은 분리 운영합니다.</li>
-                  <li>이관 권고는 {TRANSFER_TRACK_MESSAGE}</li>
-                </ul>
-              </section>
             </aside>
           </div>
         </>

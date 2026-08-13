@@ -20,8 +20,6 @@ import { ManagerPage, SurveyorPage, ZoneOperationsPanel } from './Operations'
 import { CenterPage } from './CenterPage'
 import { MobilePage } from './MobilePage'
 import { CityPage } from './CityPage'
-import { loadStructuralContext } from './structuralContext'
-import type { StructuralContext } from './structuralContext'
 import { loadOperationsMap } from './contactOpsClient'
 import type { OperationsMap } from './contactOpsClient'
 
@@ -65,14 +63,12 @@ function PublicMapApp() {
   const [metric, setMetric] = useState<MetricKey>('age_65_plus_one_person_share_of_age_65_plus_population')
   const [showFacilities, setShowFacilities] = useState(true)
   const [showTransit, setShowTransit] = useState(false)
-  const [showBubbles, setShowBubbles] = useState(true)
   const [facilityCategory, setFacilityCategory] = useState('전체')
   const [selectedDong, setSelectedDong] = useState<DongProperties | null>(null)
   const [search, setSearch] = useState('')
   const [mobilePanel, setMobilePanel] = useState(false)
   const [showMethodology, setShowMethodology] = useState(false)
   const [mapMode, setMapMode] = useState<'public' | 'operations'>('public')
-  const [structuralContext, setStructuralContext] = useState<StructuralContext | null>(null)
   const [operationsMap, setOperationsMap] = useState<OperationsMap | null>(null)
   const [selectedOperationsZoneId, setSelectedOperationsZoneId] = useState<string | null>(null)
   const methodologyButtonRef = useRef<HTMLButtonElement>(null)
@@ -87,12 +83,11 @@ function PublicMapApp() {
 
   useEffect(() => {
     let active = true
-    void Promise.all([loadStructuralContext(), loadOperationsMap()]).then(([context, operations]) => {
+    void loadOperationsMap().then((operations) => {
       if (!active) return
-      setStructuralContext(context)
       setOperationsMap(operations)
     }).catch(() => {
-      // The public aggregate map remains usable if the optional P7 overlays fail.
+      // The public aggregate map remains usable if the optional P7 overlay fails.
     })
     return () => { active = false }
   }, [])
@@ -215,7 +210,6 @@ function PublicMapApp() {
                 {FACILITY_GROUPS.map((category) => <option key={category}>{category}</option>)}
               </select>
             )}
-            <label className="layer-row"><span><i className="legend-dot bubble" />65세+ 1인세대 규모</span><input type="checkbox" checked={showBubbles} onChange={(event) => setShowBubbles(event.target.checked)} /></label>
             <label className="layer-row"><span><i className="legend-dot transit" />버스 승하차 <small>참고</small></span><input type="checkbox" checked={showTransit} onChange={(event) => setShowTransit(event.target.checked)} /></label>
           </section>
 
@@ -238,7 +232,6 @@ function PublicMapApp() {
             <div className="mobile-controls" role="toolbar" aria-label="지도 지표와 레이어">
               {METRICS.map((item) => <button key={item.key} className={metric === item.key ? 'active' : ''} aria-pressed={metric === item.key} onClick={() => setMetric(item.key)}>{item.short}</button>)}
               <button className={showFacilities ? 'active layer-chip' : 'layer-chip'} aria-pressed={showFacilities} onClick={() => setShowFacilities((value) => !value)}>시설</button>
-              <button className={showBubbles ? 'active layer-chip' : 'layer-chip'} aria-pressed={showBubbles} onClick={() => setShowBubbles((value) => !value)}>규모 원</button>
               <button className={showTransit ? 'active layer-chip' : 'layer-chip'} aria-pressed={showTransit} onClick={() => setShowTransit((value) => !value)}>교통</button>
             </div>
             <span className="mobile-scroll-cue" aria-hidden="true"><ChevronRight size={17} /></span>
@@ -261,22 +254,20 @@ function PublicMapApp() {
             metric={metric}
             showFacilities={showFacilities}
             showTransit={showTransit}
-            showBubbles={showBubbles}
             facilityCategory={facilityCategory}
             selectedZoneId={selectedDong?.geometry_zone_id ?? null}
             mapMode={mapMode}
-            structuralScores={structuralContext ? Object.fromEntries(structuralContext.zones.map((zone) => [zone.geometry_zone_id, zone.score_0_50])) : undefined}
             operationsByZone={operationsMap ? Object.fromEntries(operationsMap.zones.map((zone) => [zone.geometry_zone_id, zone.operations])) : undefined}
             onSelectDong={(dong) => { setSelectedDong(dong); setSelectedOperationsZoneId(dong.geometry_zone_id); setMobilePanel(true) }}
           />
 
-          <Legend metric={metric} showFacilities={showFacilities} showBubbles={showBubbles} showTransit={showTransit} />
+          <Legend metric={metric} showFacilities={showFacilities} showTransit={showTransit} />
 
           {selectedDong && (
             <DetailPanel dong={selectedDong} openMobile={mobilePanel} onClose={() => { setSelectedDong(null); setMobilePanel(false) }} />
           )}
           {mapMode === 'operations' && selectedOperationsZoneId && (
-            <div className="public-zone-operations" tabIndex={0} role="region" aria-label="선택한 구역의 데모 예시 상세">
+            <div className="public-zone-operations" tabIndex={0} role="region" aria-label="선택한 구역의 연락업무 상세">
               <ZoneOperationsPanel zone={operationsMap?.zones.find((zone) => zone.geometry_zone_id === selectedOperationsZoneId) ?? null} />
             </div>
           )}
@@ -289,8 +280,7 @@ function PublicMapApp() {
             <span className="section-kicker">HOW TO READ</span>
             <h2 id="method-title">이 지도는 ‘판정’이 아니라<br />추가 검토의 출발점입니다</h2>
             <ol>
-              <li><strong>채색</strong><span>65세 이상 인구 대비 주민등록상 65세 이상 1인세대의 관측 비율을 구역끼리 비교합니다.</span></li>
-              <li><strong>노란 원</strong><span>65세 이상 1인세대 수를 면적 비례로 보여 줍니다. 대표점이며 실제 가구 위치가 아닙니다.</span></li>
+              <li><strong>채색</strong><span>65세 이상 인구 대비 주민등록상 65세 이상 1인세대의 관측 비율을 구역 색상 단계로 비교합니다.</span></li>
               <li><strong>참고 레이어</strong><span>공식 시설, 버스 승하차 이벤트, 건축물대장 연령을 서로 분리해 겹쳐 봅니다.</span></li>
             </ol>
             <div className="method-warning"><ShieldCheck size={16} /><p>{P2_MIXED_SNAPSHOT_WARNING} 개인·가구의 위험이나 복지 미수혜를 판정하지 않습니다.</p></div>
@@ -326,7 +316,7 @@ function DetailPanel({ dong, onClose, openMobile }: { dong: DongProperties; onCl
   )
 }
 
-function Legend({ metric, showFacilities, showBubbles, showTransit }: { metric: MetricKey; showFacilities: boolean; showBubbles: boolean; showTransit: boolean }) {
+function Legend({ metric, showFacilities, showTransit }: { metric: MetricKey; showFacilities: boolean; showTransit: boolean }) {
   const labels = metric === 'one_person_households_age_65_plus'
     ? ['적은 편', '600', '1,000', '1,500', '많은 편']
     : metric === 'housing_age_30_plus_share_valid_pct'
@@ -339,10 +329,9 @@ function Legend({ metric, showFacilities, showBubbles, showTransit }: { metric: 
       <div className="legend-labels">{labels.map((label) => <small key={label}>{label}</small>)}</div>
       {metric === 'housing_age_30_plus_share_valid_pct' && <p className="no-data-key"><i />회색 구역은 주택 연령 자료 없음</p>}
       {metric === 'age_65_plus_one_person_share_of_age_65_plus_population' && <p className="snapshot-key">{P2_MIXED_SNAPSHOT_WARNING}</p>}
-      {(showFacilities || showBubbles || showTransit) && (
+      {(showFacilities || showTransit) && (
         <div className="point-legend" aria-label="활성 점 레이어 기호">
           {showFacilities && <><span><i className="facility-point-symbol" />시설</span><span><i className="facility-cluster-symbol">12</i>시설 묶음</span></>}
-          {showBubbles && <span><i className="demand-bubble-symbol" />규모 원</span>}
           {showTransit && <span><i className="transit-point-symbol" />승하차</span>}
         </div>
       )}

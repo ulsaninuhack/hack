@@ -6,7 +6,6 @@ import { createContactOpsService } from './contact-ops-service.mjs';
 import { createFirestoreContactOpsState, createMemoryContactOpsState } from './contact-ops-state.mjs';
 import { buildDemoPrecontactSeedRecords } from './contact-triage-synthetic-scenario.mjs';
 import { loadDataStore } from './data-store.mjs';
-import { createDistrictAiSummaryAdapter } from './three-tier-ops.mjs';
 import { createThreeTierService } from './three-tier-service.mjs';
 import { createVoiceAudioUploader } from './voice-audio-upload.mjs';
 
@@ -50,37 +49,7 @@ async function loadSyntheticWorkers() {
   }
   return dataset.workers;
 }
-// INV19 env gate: the live LLM interpreter is opt-in only; without the gate the
-// deterministic mock interprets server-injected aggregates. Keys never ship.
-function buildDistrictAiSummaryAdapter() {
-  if (process.env.THREE_TIER_AI_SUMMARY !== 'live') {
-    return createDistrictAiSummaryAdapter({ mode: 'mock' });
-  }
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error('THREE_TIER_AI_SUMMARY=live requires OPENAI_API_KEY');
-  return createDistrictAiSummaryAdapter({
-    mode: 'live',
-    async liveGenerator({ input, instructions }) {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({
-          model: process.env.THREE_TIER_AI_SUMMARY_MODEL || 'gpt-4o-mini',
-          temperature: 0,
-          messages: [
-            { role: 'system', content: instructions },
-            { role: 'user', content: JSON.stringify(input) },
-          ],
-        }),
-      });
-      if (!response.ok) throw new Error('District AI summary generator is unavailable');
-      const payload = await response.json();
-      return payload.choices?.[0]?.message?.content ?? '';
-    },
-  });
-}
-
-async function loadContactOpsState(households, initialRecords = []) {
+async function loadContactOpsState(households, initialRecords) {
   const backend = process.env.CONTACT_OPS_STATE_BACKEND || 'memory';
   if (backend === 'memory') return createMemoryContactOpsState({ households, initialRecords });
   if (backend !== 'firestore') throw new Error('CONTACT_OPS_STATE_BACKEND must be memory or firestore');
@@ -124,12 +93,12 @@ async function loadTuningReport() {
 }
 const syntheticDataset = await loadSyntheticHouseholds();
 const structuralContext = await loadStructuralContext();
-const demoPrecontactSeeds = buildDemoPrecontactSeedRecords(
+const demoPrecontactRecords = buildDemoPrecontactSeedRecords(
   syntheticDataset.households,
   syntheticDataset.scenario_reference_date,
   structuralContext,
 );
-const contactOpsState = await loadContactOpsState(syntheticDataset.households, demoPrecontactSeeds);
+const contactOpsState = await loadContactOpsState(syntheticDataset.households, demoPrecontactRecords);
 const contactOpsService = createContactOpsService({
   state: contactOpsState,
   aiAdapter,
@@ -142,7 +111,6 @@ const threeTierService = createThreeTierService({
   store,
   structuralContext,
   workers: await loadSyntheticWorkers(),
-  aiSummaryAdapter: buildDistrictAiSummaryAdapter(),
   operationsMapProvider: ({ sessionId }) => contactOpsService.getOperationsMap({ sessionId }),
 });
 const server = createApiServer({

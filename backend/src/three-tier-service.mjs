@@ -6,6 +6,7 @@ import {
   buildStaffingReview,
   contactResultLabel,
   createDistrictAiSummaryAdapter,
+  deriveCaseDisplayName,
   deriveVirtualPhone,
 } from './three-tier-ops.mjs';
 
@@ -38,7 +39,7 @@ function createSessionMemory() {
       if (sessions.size >= MAX_TRACKED_SESSIONS) {
         sessions.delete(sessions.keys().next().value);
       }
-      sessions.set(sessionId, { assignmentConfirmations: new Map(), reportAcknowledgements: new Map() });
+      sessions.set(sessionId, { assignmentConfirmations: new Map(), reportAcknowledgements: new Map(), escalations: new Map() });
     }
     const memory = sessions.get(sessionId);
     sessions.delete(sessionId);
@@ -63,9 +64,10 @@ function laneItem(record, proposal, referenceDate) {
     synthetic: true,
     displayMarker: '[합성]',
     case_id: household.id,
+    display_name: deriveCaseDisplayName(household.id),
     revision: record.revision,
     lane: proposal.lane,
-    assignment_status: proposal.assignment_status,
+    assignment_status: proposal.lane === 'phone' ? 'confirmed' : proposal.status,
     worker_display_name: proposal.worker_display_name,
     ...(proposal.confirmed_by ? { confirmed_by: proposal.confirmed_by } : {}),
     ...(proposal.confirmed_at ? { confirmed_at: proposal.confirmed_at } : {}),
@@ -165,7 +167,7 @@ export function createThreeTierService({
   if (!Array.isArray(workers) || workers.length === 0) {
     throw new TypeError('workers fixture is required');
   }
-  const summaryAdapter = aiSummaryAdapter ?? createDistrictAiSummaryAdapter({ mode: 'mock' });
+  const summaryAdapter = aiSummaryAdapter ?? createDistrictAiSummaryAdapter();
   const memoryStore = createSessionMemory();
   const facilityDistribution = store.summary?.distributions?.facilityDistrict ?? {};
   const structuralZones = structuralContext?.zones ?? [];
@@ -195,12 +197,21 @@ export function createThreeTierService({
       const records = await state.list({ sessionId });
       const recordById = new Map(records.map((record) => [record.household.id, record]));
       const batches = buildAssignmentProposals({ records, workers, referenceDate, dongCode });
-      const proposedBatch = batches[0] ?? null;
-      const batch = proposedBatch === null
-        ? null
-        : applyConfirmation(proposedBatch, memoryStore.forSession(sessionId));
+      const rawBatch = batches[0] ?? null;
+      // 전화 레인은 자동 배정된다(규칙 산출 그대로). 방문 레인은 동 센터의
+      // 명시적 확인이 있어야 조사원에게 내려가고, 상급기관 신고된 케이스는
+      // 조사원 배정에서 빠진다(방문은 확인 or 신고).
+      const memory = memoryStore.forSession(sessionId);
+      const batch = rawBatch === null ? null : applyConfirmation(rawBatch, memory);
+      const assignedToSurveyor = (proposal) => (
+        proposal.lane === 'phone'
+        || (proposal.status === 'confirmed' && !memory.escalations.has(proposal.case_id))
+      );
       const toItems = (lane) => (batch?.lanes[lane] ?? [])
+        .filter(assignedToSurveyor)
         .map((proposal) => laneItem(recordById.get(proposal.case_id), proposal, referenceDate));
+      const pendingVisit = (batch?.lanes.visit ?? [])
+        .filter((proposal) => proposal.status !== 'confirmed' && !memory.escalations.has(proposal.case_id)).length;
       return {
         synthetic: true,
         displayMarker: '[합성]',
@@ -209,7 +220,9 @@ export function createThreeTierService({
         worker_display_name: worker.display_name,
         dong_code: dongCode,
         dong_name: worker.location.current_admin_dong_name_20260701,
-        lane_rule: '방문 레인에는 담당자가 승인한 오늘 방문 업무만 포함',
+        lane_rule: '방문 레인에는 담당자가 승인하고 배치를 확인한 방문만 포함',
+        assignment_rule: '전화는 자동 배정 · 방문은 동 행정복지센터 확인 또는 상급기관 신고',
+        pending_confirmation: { phone: 0, visit: pendingVisit },
         lanes: { phone: toItems('phone'), visit: toItems('visit') },
       };
     },
@@ -254,7 +267,17 @@ export function createThreeTierService({
         }));
       const acknowledgedCount = cards.filter((card) => card.acknowledgement.status === '확인').length;
       const batches = buildAssignmentProposals({ records: dongRecords, workers, referenceDate, dongCode });
-      const assignment = batches[0] ? applyConfirmation(batches[0], memory) : null;
+      const confirmedBatch = batches[0] ? applyConfirmation(batches[0], memory) : null;
+      const assignment = confirmedBatch === null ? null : {
+        ...confirmedBatch,
+        lanes: {
+          phone: confirmedBatch.lanes.phone,
+          visit: confirmedBatch.lanes.visit.map((proposal) => ({
+            ...proposal,
+            escalation: memory.escalations.get(proposal.case_id) ?? null,
+          })),
+        },
+      };
       const pendingVisit = dongRecords.filter(
         ({ household }) => household.workflow.visit_approval_status === 'recommended',
       ).length;
@@ -346,6 +369,31 @@ export function createThreeTierService({
         synthetic: true,
         displayMarker: '[합성]',
         assignment_proposal: applyConfirmation(batch, memory),
+      };
+    },
+
+    // 방문 레인의 두 번째 액션: 상급기관 신고. 명시적 사람 액션으로만 기록되고
+    // (INV14), 신고된 케이스는 조사원 방문 배정에서 빠진다. 신고 대상 기관은
+    // 규칙 테이블의 권고 기관을 그대로 쓴다(권고 이상을 만들지 않는다).
+    async escalateCase({ sessionId, caseId, reportedBy }) {
+      assertActor(reportedBy, 'reported_by');
+      const record = await state.get({ sessionId, caseId });
+      const card = buildReportCard(record);
+      const agency = card?.권고_기관?.[0]?.기관 ?? '구 희망복지지원단';
+      const memory = memoryStore.forSession(sessionId);
+      const escalation = {
+        status: '신고됨',
+        agency,
+        reported_by: reportedBy,
+        reported_at: now(),
+      };
+      memory.escalations.set(caseId, escalation);
+      return {
+        synthetic: true,
+        displayMarker: '[합성]',
+        case_id: caseId,
+        escalation,
+        rule: '신고된 케이스는 조사원 방문 배정에서 제외되고 상급기관 절차로 넘어간다',
       };
     },
 

@@ -24,6 +24,36 @@ const CONTACT_RESULT_LABELS = new Map([
   ['invalid_contact', '연락처 확인 필요'],
 ]);
 
+const FAMILY_NAMES = Object.freeze([
+  '김', '이', '박', '최', '정', '강', '조', '윤', '장', '임',
+  '한', '오', '서', '신', '권', '황', '안', '송', '전', '홍',
+]);
+
+// 현재 fixture는 동별 20~50건이다. 마지막 일련번호를 서로 다른 이름에
+// 대응시켜 한 동 안에서는 이름이 겹치지 않도록 한다. 내부 식별자는 그대로
+// 유지하지만 사용자 화면에는 이 표시명만 전달한다.
+const GIVEN_NAMES = Object.freeze([
+  '영자', '순자', '정자', '미자', '춘자', '옥자', '명자', '경자', '복자', '금자',
+  '영숙', '정숙', '현숙', '선희', '영희', '순희', '명희', '성자', '은자', '화자',
+  '점순', '말순', '재순', '봉순', '영순', '순덕', '정순', '미순', '경순', '명순',
+  '영옥', '정옥', '미옥', '명옥', '길자', '귀자', '영수', '성수', '동수', '종수',
+  '정호', '영호', '성호', '태수', '창수', '만수', '덕수', '병철', '상철', '영철',
+]);
+
+const DISTRICT_AUTHORED_GUIDANCE = Object.freeze({
+  강화군: '고령 인구와 일인가구 비율을 함께 보고, 읍·면별 접근 여건은 담당자가 별도로 확인하는 편이 좋습니다.',
+  검단구: '구조 맥락만으로 업무량을 판단하지 말고 연결단원당 예정 건수와 기한 경과 업무를 함께 확인해야 합니다.',
+  계양구: '운영 부하와 생활 여건 참고값이 동시에 나타나므로, 기한 경과 업무를 먼저 정리한 뒤 증원 필요를 검토할 수 있습니다.',
+  남동구: '연결단원당 예정 건수와 전체 예정 건수를 함께 보면 단기 업무 조정 필요성을 검토하기에 적합합니다.',
+  미추홀구: '일인가구 비율과 구조 맥락, 운영 부하를 나란히 보고 어느 한 지표만으로 우선순위를 확정하지 않아야 합니다.',
+  부평구: '예정 업무와 기한 경과 업무가 함께 쌓이는지 확인하고, 기존 인력 안에서 조정 가능한 범위를 먼저 살펴볼 수 있습니다.',
+  서해구: '구조 맥락과 연결단원당 업무량의 방향이 다를 수 있으므로 두 축을 분리해 검토하는 것이 중요합니다.',
+  연수구: '현재 집계의 상대적 규모뿐 아니라 동별 편차와 기한 경과 업무가 특정 동에 몰리는지 추가로 확인해야 합니다.',
+  영종구: '일인가구 비율과 복지시설 수를 함께 참고하되, 시설 수만으로 실제 접근 가능성을 판단하지 않아야 합니다.',
+  옹진군: '고령 인구와 일인가구 비율이 높게 관찰되지만, 섬 지역의 이동 여건은 이 집계에 포함되지 않아 별도 현장 검토가 필요합니다.',
+  제물포구: '구조 맥락 참고값이 높게 나타나는 만큼 단순 건수 확대보다 보고 근거와 후속 확인의 품질을 함께 살펴보는 편이 좋습니다.',
+});
+
 function assertIsoDate(value, label) {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)
       || Number.isNaN(Date.parse(`${value}T00:00:00.000Z`))
@@ -40,6 +70,18 @@ function assertCaseId(caseId) {
 
 export function contactResultLabel(result) {
   return CONTACT_RESULT_LABELS.get(result) ?? '기록 없음';
+}
+
+export function deriveCaseDisplayName(caseId) {
+  assertCaseId(caseId);
+  const match = CASE_ID_PATTERN.exec(caseId);
+  const dongCode = caseId.slice(7, 17);
+  const ordinal = Number(caseId.slice(-4));
+  const index = Math.max(ordinal - 1, 0);
+  const family = FAMILY_NAMES[(Number(dongCode.slice(-2)) + index) % FAMILY_NAMES.length];
+  const given = GIVEN_NAMES[index % GIVEN_NAMES.length];
+  if (!match || !family || !given) throw new TypeError('caseId cannot be mapped to a display name');
+  return `${family}${given}`;
 }
 
 // INV15: the only phone shape this system ever emits is a clearly-virtual
@@ -151,6 +193,8 @@ export function buildReportCard(record) {
     displayMarker: '[합성]',
     card_id: `RPT-${household.id}-r${record.revision}`,
     case_id: household.id,
+    display_name: deriveCaseDisplayName(household.id),
+    road_address: household.location.road_address ?? null,
     revision: record.revision,
     dong_code: household.location.current_admin_dong_code_20260701,
     dong_name: household.location.current_admin_dong_name_20260701,
@@ -256,6 +300,12 @@ export function buildAssignmentProposals({ records, workers, referenceDate, dong
       status: 'proposed',
       assignment_status: 'proposed',
       case_id: household.id,
+      display_name: deriveCaseDisplayName(household.id),
+      road_address: household.location.road_address ?? null,
+      last_contact: {
+        date: household.contact.last_contact_date,
+        result_label: contactResultLabel(household.contact.last_contact_result),
+      },
       lane,
       dong_code: code,
       dong_name: household.location.current_admin_dong_name_20260701,
@@ -541,55 +591,36 @@ export function buildDistrictAiSummaryInput(aggregate, referenceDate) {
   };
 }
 
-export function renderMockDistrictAiSummary(input) {
+export function renderAuthoredDistrictAiSummary(input) {
   if (!input || typeof input !== 'object' || typeof input.구 !== 'string') {
     throw new TypeError('input must be a district AI summary input');
   }
+  const guidance = DISTRICT_AUTHORED_GUIDANCE[input.구];
+  if (!guidance) throw new TypeError('district AI summary has no authored guidance');
   const sentences = [
     `${input.구}는 기준일 ${input.기준일} 관측 집계에서 노인 인구 비율 ${input.노인인구_비율_퍼센트}%, 일인가구 비율 ${input.일인가구_비율_퍼센트}%로 나타납니다.`,
     `고령 일인세대는 ${input.고령_일인세대_수}세대이고, 기초수급 밀도는 ${input.기초수급_밀도_퍼센트}%로 서로 다른 기준일이 섞인 참고값입니다.`,
     `복지시설은 ${input.복지시설_수}곳, 연결단원은 ${input.연결단원_수}명이 배치되어 있습니다.`,
     `연락업무는 오늘 예정 ${input.오늘_예정_건수}건, 기한 경과 ${input.기한_경과_건수}건, 방문승인 대기 ${input.방문승인_대기_건수}건이며 연결단원 한 명당 오늘 예정은 ${input.연결단원당_오늘_예정}건입니다.`,
+    guidance,
     '이 문단은 주입된 집계 수치를 그대로 인용한 해석이며, 개인 단위 예측이나 판정이 아닙니다.',
   ];
   return sentences.join(' ');
 }
 
-export function createDistrictAiSummaryAdapter({ mode = 'mock', liveGenerator = null } = {}) {
-  if (!['mock', 'live'].includes(mode)) {
-    throw new TypeError('district AI summary mode must be mock or live');
-  }
-  if (mode === 'live' && typeof liveGenerator !== 'function') {
-    throw new TypeError('live district AI summary mode requires a liveGenerator');
-  }
+export function createDistrictAiSummaryAdapter() {
   return Object.freeze({
     async summarize({ aggregate, referenceDate }) {
       const input = buildDistrictAiSummaryInput(aggregate, referenceDate);
-      let summaryText;
-      let generator;
-      if (mode === 'live') {
-        summaryText = await liveGenerator({ input, instructions: '주입된 수치를 그대로 인용해 해석 문단만 작성. 새 수치 계산 금지. 개인 예측 금지.' });
-        generator = 'live_llm_env_gated';
-        if (typeof summaryText !== 'string' || summaryText.trim() === '') {
-          throw new TypeError('live generator returned an empty summary');
-        }
-        const quoted = Object.values(input).filter((value) => summaryText.includes(String(value))).length;
-        if (quoted < 3) {
-          throw new TypeError('live summary must quote injected aggregate values');
-        }
-      } else {
-        summaryText = renderMockDistrictAiSummary(input);
-        generator = 'mock_deterministic';
-      }
       return {
         synthetic: true,
         displayMarker: '[합성]',
         label: AI_SUMMARY_LABEL,
-        generator,
+        generator: 'codex_authored_v1',
         district: input.구,
         reference_date: input.기준일,
         input_metrics: input,
-        summary_text: summaryText,
+        summary_text: renderAuthoredDistrictAiSummary(input),
         mixed_snapshot_warnings: [MIXED_SNAPSHOT_WARNING, WELFARE_MIXED_SNAPSHOT_WARNING],
       };
     },

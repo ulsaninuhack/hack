@@ -44,6 +44,25 @@ test('rejects 위험군 group labeling in UI source (three-tier INV18)', async (
   assert.equal(violations[0].value, '위험군');
 });
 
+test('rejects the bracketed synthetic badge in production UI source', async () => {
+  const root = await makeProject({
+    'src/App.tsx': '<span>[합성]</span>',
+  });
+  const violations = await findUiCopyViolations(root);
+  assert.equal(violations.length, 1);
+  assert.equal(violations[0].rule, 'presentation-marker');
+});
+
+test('rejects synthetic-data jargon in production UI copy', async () => {
+  const root = await makeProject({
+    'src/App.tsx': '<span>합성 예시</span>',
+  });
+  const violations = await findUiCopyViolations(root);
+  assert.equal(violations.length, 1);
+  assert.equal(violations[0].rule, 'presentation-marker');
+  assert.equal(violations[0].value, '합성');
+});
+
 test('rejects raw operational enum values in renderable files', async () => {
   const root = await makeProject({
     'src/Result.tsx': '<span>no_answer</span>',
@@ -59,9 +78,9 @@ test('rejects legacy synthetic markers and internal IDs in renderable UI files',
   });
   const violations = await findUiCopyViolations(root);
   assert.deepEqual(violations.map(({ rule, value }) => ({ rule, value })), [
-    { rule: 'legacy-ui-identifier', value: '[합성]' },
     { rule: 'legacy-ui-identifier', value: 'SYN-HH-' },
     { rule: 'legacy-ui-identifier', value: 'SYN-W-' },
+    { rule: 'presentation-marker', value: '합성' },
   ]);
 });
 

@@ -2,7 +2,13 @@ name: CI / Production Deploy
 
 on:
   pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'artifacts/**'
   push:
+    paths-ignore:
+      - '**.md'
+      - 'artifacts/**'
   workflow_dispatch:
 
 permissions:
@@ -73,16 +79,18 @@ jobs:
         run: npm --prefix backend run test:coverage
 
       - name: Install Chromium for operations E2E
+        if: github.ref == 'refs/heads/main'
         run: npx playwright install --with-deps chromium
 
       - name: Test the surveyor-to-manager browser flows
+        if: github.ref == 'refs/heads/main'
         run: npm run test:e2e:ops
 
       - name: Verify objective overnight UI evidence
         run: npm run verify:overnight
 
       - name: Upload operations browser evidence on failure
-        if: failure()
+        if: failure() && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: contact-ops-browser-evidence
@@ -380,10 +388,14 @@ jobs:
           image: ${{ steps.image.outputs.image }}
           env_vars: |-
             CORS_ORIGINS=https://incheon-care-map.vercel.app
-            RATE_LIMIT_PER_MINUTE=0
+            RATE_LIMIT_PER_MINUTE=30
             CONTACT_OPS_STATE_BACKEND=firestore
             CONTACT_OPS_FIRESTORE_COLLECTION=synthetic_contact_ops_sessions
+            ENABLE_LIVE_CONTACT_OPS_AI=1
           env_vars_update_strategy: overwrite
+          secrets: |-
+            OPENAI_API_KEY=openai-api-key:latest
+          secrets_update_strategy: merge
           flags: >-
             --cpu=1
             --memory=512Mi

@@ -13,7 +13,7 @@ describe('P2 Care Operations routes', () => {
     window.history.pushState({}, '', '/ops/surveyor')
     render(<App />)
     expect(screen.getByRole('heading', { name: '오늘 연락할 대상' })).toBeInTheDocument()
-    expect(screen.queryByText('[합성]')).toBeNull()
+    expect(document.body.textContent).not.toContain('[합성]')
     expect(screen.getByRole('group', { name: '통화(또는 방문) 결과 입력' })).toBeInTheDocument()
   })
 
@@ -21,7 +21,7 @@ describe('P2 Care Operations routes', () => {
     window.history.pushState({}, '', '/ops/manager')
     render(<App />)
     expect(screen.getByRole('heading', { name: '방문 권고 승인' })).toBeInTheDocument()
-    expect(screen.queryByText('[합성]')).toBeNull()
+    expect(document.body.textContent).not.toContain('[합성]')
     expect(screen.getByText('담당자 승인 대기')).toBeInTheDocument()
   })
 })

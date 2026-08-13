@@ -48,14 +48,16 @@ for (const [path] of screenshots) {
 }
 
 const operationsSource = readFileSync('src/Operations.tsx', 'utf8')
-for (const required of ['caseDisplayName', '급성도', '취약도', '담당자 승인 대기', '통화(또는 방문) 결과 입력']) {
+for (const required of ['급성도', '취약도', '담당자 승인 대기', '통화(또는 방문) 결과 입력']) {
   if (!operationsSource.includes(required)) throw new Error(`Operations UI is missing ${required}`)
 }
-if (operationsSource.includes('[합성]')) throw new Error('Operations UI must not render the legacy synthetic marker')
 const renderedUiSource = ['src/App.tsx', 'src/Operations.tsx', 'src/SurveyorBreadth.tsx']
   .map((path) => readFileSync(path, 'utf8'))
   .join('\n')
 const normalizedRenderedUiSource = renderedUiSource.toLowerCase()
+if (renderedUiSource.includes('합성')) {
+  throw new Error('Rendered UI source contains synthetic-data presentation jargon')
+}
 for (const forbidden of [
   '종합점수', '종합 점수', '합산점수', '합산 점수', '합계 점수', '통합 점수', '전체 점수',
   'composite score', 'combined score', 'overall score', 'total score',
@@ -93,7 +95,7 @@ const exactChecks = {
   pageErrors: 0,
   axeSeriousCritical: 0,
   horizontalOverflowPx: 0,
-  syntheticMarker: true,
+  syntheticPresentationAbsent: true,
   separateAxes: true,
   mixedSnapshotWarning: true,
   modelOutputLabel: true,
@@ -149,7 +151,7 @@ process.stdout.write([
   'targets>=48px',
   'horizontal-overflow=0',
   'axes=separate',
-  'synthetic-marker=present',
+  'synthetic-presentation=absent',
   'p2-warning=present',
   'model-label=present',
   'composite-score=absent',

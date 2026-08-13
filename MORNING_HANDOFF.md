@@ -33,17 +33,20 @@
   `three-tier/city-operations-map`을 사용하고, 프런트·E2E는 전체 HTML
   직렬화 기준으로 `SYN-HH-` 부재를 단언(속성 누출 포함 검출).
 - INV18: `위험군` 금지어 게이트 추가, 등급 어휘는 엔진 등급만.
-- INV19: 구 AI 요약은 서버 주입 수치만 인용(목 골든: 요약 속 숫자 토큰 ⊆ 주입 수치),
-  라벨 `[AI 생성 · 관측 집계 해석 · 개인 예측 아님]` + 혼합 스냅샷 경고 2종.
+- INV19: OpenAI Codex가 작성한 11개 구·군별 해석문에 서버 집계 수치만 주입한다.
+  작성본 `codex_authored_v1`, 숫자 토큰 ⊆ 주입 수치 골든, 혼합 스냅샷 경고 2종.
+- 조사원·센터 화면은 내부 `SYN-HH-*` 대신 결정적 가상 표시명(예: 김영자 어르신)을
+  사용하며 `[합성]` 배지는 표시하지 않는다. 내부 ID와 synthetic 플래그는 API에 유지한다.
 - 접근성·가독성: `/m` 390×844에서 본문 ≥18px·타깃 ≥48px·수평 오버플로 0, 세 화면 ×
   두 뷰포트 axe serious/critical 0.
 
 ### 미증명 / 사람 확인 필요 (3계층)
 
-- [ ] 실 LLM 구 요약(env `THREE_TIER_AI_SUMMARY=live` + `OPENAI_API_KEY`) — 게이트만
-  구현, 실키 리허설 미실행(키 커밋 없음).
-- [ ] 음성 실파일 경로 — `/m` 경로 ①은 3b multipart 계약을 그대로 쓰지만 실전사는
-  live 게이트 뒤에 있어 실행 미검증(수동·문답 경로는 E2E 증명).
+- [x] 음성 합성 실파일 경로 — Cloud Run `incheon-care-api-00031-7t8`에서 7초 한국어
+  합성 M4A를 모바일과 동일한 multipart 경로로 전송해 HTTP 200, `source_kind=audio`,
+  `connected_concern`, 식사 `심각`, `confirmed=false` 후보를 확인했다.
+- [ ] 휴대폰 실기기 녹음 — 실제 조사원 음성·전화 음질·사투리·주변 소음은 별도 사람
+  리허설이 필요하다(수동·문답 경로는 E2E 증명).
 - [ ] Vercel 프리뷰 URL — PR에는 배포 자격 증명이 없어(배포 계약) 미생성. 로컬
   프로덕션 빌드 + `artifacts/screenshots/p9-*.png` 14장으로 대체.
 - [ ] 이관 '확정' API — 기존 API에 없음. `/center`는 이관 권고 표시 + 트랙 전환
@@ -60,8 +63,7 @@
    "구 단위 요약 읽기" → AI 라벨 확인. 증원 검토 표(부하/구조 순위 분리).
 2. `/center` — 상단 요약(보고 대기·배치 상태·방문 검토 대기), "오늘 배치 확인"
    전화/방문 레인 → 일괄 확인. 지도는 접힌 위젯.
-3. `/m` 390×844 — 전화 탭 → `SYN-HH-2812551000-0001`(공공 건물 주소 표기 ·
-   실제 거주자와 무관) → [가상] 전화 탭(발신 모사)
+3. `/m` 390×844 — 전화 탭 → `김영자 어르신`과 주소 확인 → [가상] 전화 탭(발신 모사)
    → "직접 체크하기"(또는 문답/음성) → 미응답+우편물 적체+식사 심각 → 확인하고 제출
    → "동 행정복지센터에 보고됨" + 등급·권고 기관.
 4. `/center` — 보고 카드 확인 → 방문 검토 승인(사유 입력) → 완료율 상승.
@@ -114,7 +116,6 @@
 ## Requires morning human review
 
 - [ ] actual Korean/telephone audio accuracy on a real device
-- [ ] live LLM usefulness and failure behavior
 - [ ] physical-device touch comfort and keyboard behavior
 - [ ] final Korean wording and visual polish
 - [ ] judge-readability and complete demo rehearsal
@@ -141,7 +142,7 @@
 - `POST /api/v1/contact-ops/cases/:caseId/ai-observations` now supports candidate and
   explicit-confirmation modes. Live provider calls remain fail-closed unless
   `ENABLE_LIVE_CONTACT_OPS_AI=1`; no live provider key is deployed yet.
-- Real-device Korean audio accuracy and live LLM usefulness remain morning-only human gates.
+- Real-device Korean audio accuracy remains a morning-only human gate.
 - Before enabling live AI on the public Cloud Run service, add authentication or a finite
   platform/API quota; the current demo endpoint is intentionally synthetic and unauthenticated.
 - The reset endpoint is test/E2E-only, gated by `CONTACT_OPS_ENABLE_TEST_RESET=1`, and

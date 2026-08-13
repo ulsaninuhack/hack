@@ -23,15 +23,14 @@ import type {
   OperationsMapZone,
 } from './contactOpsClient'
 import { SurveyorBreadth } from './SurveyorBreadth'
+import { demoWorkerIdForDong } from './threeTierClient'
 import { AiObservationPanel } from './AiObservationPanel'
 import { loadData } from './data'
 import type { DataBundle } from './types'
 import { loadStructuralContext } from './structuralContext'
 import type { StructuralContext, StructuralIndicator, StructuralZone } from './structuralContext'
-import { caseDisplayName, demoDisplayCopy, workerDisplayName, workerIdForDong } from './caseDisplayName'
+import { caseDisplayName } from './caseDisplayName'
 
-
-const DEMO_MESSAGE = '데모 화면 · 표시된 이름은 모두 가명이며 실제 주민·업무·개인 판정이 아닙니다.'
 const CONTACT_LABELS: ContactResultLabel[] = [
   '안부 확인 완료',
   '우려 사항 있음',
@@ -108,7 +107,6 @@ function OperationsHeader({ title }: { title: string }) {
       <div>
         <h1>{title}</h1>
       </div>
-      <p>{DEMO_MESSAGE}</p>
       <nav aria-label="연락업무 화면 이동">
         <a href="/ops/surveyor">연결단원 화면</a>
         <a href="/ops/manager">담당자 화면</a>
@@ -297,7 +295,7 @@ export function SurveyorPage() {
           <section className="ops-detail" aria-label="선택한 연락업무">
             <h2>선택한 연락업무</h2>
             {displayedDetail ? <>
-              <p className="case-id">{caseDisplayName(displayedDetail.household.id)}</p>
+              <p className="case-id">{caseDisplayName(displayedDetail.household.id)} 어르신</p>
               <AxisCards detail={displayedDetail} />
               <p className="recommendation">
                 {displayedDetail.household.workflow.visit_approval_status === 'recommended'
@@ -316,7 +314,7 @@ export function SurveyorPage() {
                 </select>
               </label>
               <ObservationForm value={observations} onChange={setObservations} />
-              <label>개인정보 없는 데모 메모
+              <label>통화 메모
                 <textarea value={memo} onChange={(event) => setMemo(event.target.value)} placeholder="수동 입력의 참고 메모이며 현재 화면에만 유지됩니다." />
                 <small>점수나 서버 기록에 넣지 않습니다. 아래 인공지능 후보 입력과 별개로 사용할 수 있습니다.</small>
               </label>
@@ -363,9 +361,8 @@ export function ManagerPage() {
 
   const selected = items.find((item) => item.household.id === selectedId) ?? null
   const workerId = selected
-    ? workerIdForDong(selected.household.location.current_admin_dong_code_20260701)
+    ? demoWorkerIdForDong(selected.household.location.current_admin_dong_code_20260701)
     : ''
-  const selectedWorkerDisplayName = workerDisplayName(workerId)
   const syntheticPoint = useMemo(() => selected ? {
     caseId: selected.household.id,
     longitude: selected.household.location.longitude,
@@ -468,7 +465,7 @@ export function ManagerPage() {
                     key={item.household.id}
                     onClick={() => { setSelectedId(item.household.id); setDecision(null) }}
                   >
-                    <span>{caseDisplayName(item.household.id)}</span>
+                    <span>{caseDisplayName(item.household.id)} 어르신</span>
                     <strong>
                       <b data-score-axis="acute">급성도 {item.triage?.급성도_점수 ?? '–'}</b>
                       <b data-score-axis="vulnerability">취약도 {item.triage?.취약도_점수 ?? '–'}</b>
@@ -483,10 +480,10 @@ export function ManagerPage() {
           <section className="ops-decision">
             <h2>선택한 권고 검토</h2>
             {selected ? <>
-              <p className="case-id">{caseDisplayName(selected.household.id)}</p>
+              <p className="case-id">{caseDisplayName(selected.household.id)} 어르신</p>
               <AxisCards detail={selected} />
-              <section className="ops-map-context" aria-label="선택한 연락업무 위치와 목록 대안">
-                <strong>선택한 연락업무 위치</strong>
+              <section className="ops-map-context" aria-label="선택한 대상 위치와 목록 대안">
+                <strong>선택한 대상 위치</strong>
                 <span>{selected.household.location.current_district_name_20260701} {selected.household.location.current_admin_dong_name_20260701}</span>
                 <small>지도는 맥락 확인용입니다. 왼쪽의 키보드 접근 가능 목록으로 같은 업무를 선택할 수 있습니다.</small>
                 <MapModeToggle mode={mapMode} onChange={setMapMode} />
@@ -496,12 +493,10 @@ export function ManagerPage() {
                     metric="age_65_plus_one_person_share_of_age_65_plus_population"
                     showFacilities={false}
                     showTransit={false}
-                    showBubbles={false}
                     facilityCategory="전체"
                     selectedZoneId={activeOperationsZoneId}
                     syntheticPoint={syntheticPoint}
                     mapMode={mapMode}
-                    structuralScores={structuralContext ? Object.fromEntries(structuralContext.zones.map((zone) => [zone.geometry_zone_id, zone.score_0_50])) : undefined}
                     operationsByZone={operationsMap ? Object.fromEntries(operationsMap.zones.map((zone) => [zone.geometry_zone_id, zone.operations])) : undefined}
                     ariaLabel="연락업무 위치와 공개 동단위 맥락 지도"
                     onSelectDong={(dong) => setSelectedOperationsZoneId(dong.geometry_zone_id)}
@@ -518,7 +513,7 @@ export function ManagerPage() {
                   <label className="ops-choice"><input checked={decision === 'rejected'} onChange={() => setDecision('rejected')} type="radio" name="decision" /><span>방문 권고 반려</span></label>
                   {decision === 'approved' && <>
                     <label>연결단원 배정
-                      <select value={workerId} onChange={() => {}}><option value={workerId}>{selectedWorkerDisplayName}</option></select>
+                      <select value={workerId} onChange={() => {}}><option value={workerId}>연결단원 001</option></select>
                     </label>
                     <label>승인된 방문 거리 제한 (km)
                       <input min="0.1" max="50" step="0.1" type="number" value={distance} onChange={(event) => setDistance(event.target.value)} required />
@@ -545,10 +540,10 @@ function ManagerBreadthPanel({ breadth, error }: { breadth: ManagerBreadth | nul
   if (error) return <section className="ops-breadth" aria-label="관리자 운영 요약"><p role="alert">{error}</p></section>
   if (!breadth) return <section className="ops-breadth" aria-label="관리자 운영 요약"><p role="status">관리자 운영 요약을 불러오는 중입니다.</p></section>
   return <aside className="ops-breadth" aria-label="관리자 운영 요약">
-    <section><h2>행정복지센터 이관</h2>{breadth.transfer_recommendations.length === 0 ? <p>현재 이관 권고가 없습니다.</p> : <ul>{breadth.transfer_recommendations.map((item) => <li key={item.case_id}><strong>{item.status_label}</strong><span>{caseDisplayName(item.case_id)}</span><small>급성도 {item.acute.score} · 취약도 {item.vulnerability.score}</small></li>)}</ul>}</section>
+    <section><h2>행정복지센터 이관</h2>{breadth.transfer_recommendations.length === 0 ? <p>현재 이관 권고가 없습니다.</p> : <ul>{breadth.transfer_recommendations.map((item) => <li key={item.case_id}><strong>{item.status_label}</strong><span>{caseDisplayName(item.case_id)} 어르신</span><small>급성도 {item.acute.score} · 취약도 {item.vulnerability.score}</small></li>)}</ul>}</section>
     <section><h2>분리된 2축 분포</h2><h3>급성도 분포</h3><Distribution values={breadth.grade_distribution.acute.grades} /><h3>취약도 분포</h3><Distribution values={breadth.grade_distribution.vulnerability.score_bands} /></section>
-    <section className="ops-tuning"><h2>{demoDisplayCopy(breadth.tuning_warning.title)}</h2><strong>{breadth.tuning_warning.current_mild_signal_count.toLocaleString()}건</strong><p>{demoDisplayCopy(breadth.tuning_warning.interpretation)}</p></section>
-    <section><h2>승인된 방문 {breadth.approved_visit_hint.approved_visit_count}건</h2><p>{breadth.approved_visit_hint.label}</p>{breadth.approved_visit_hint.items.length > 0 && <ol>{breadth.approved_visit_hint.items.map((item) => <li key={item.case_id}>{caseDisplayName(item.case_id)} · {item.admin_dong}{item.distance_from_previous_km != null ? ` · 이전 지점에서 ${item.distance_from_previous_km}km` : ''}</li>)}</ol>}</section>
+    <section className="ops-tuning"><h2>배점 점검</h2><strong>{breadth.tuning_warning.current_mild_signal_count.toLocaleString()}건</strong><p>점수 규칙 점검값이며 실제 개인 판정이 아닙니다.</p></section>
+    <section><h2>승인된 방문 {breadth.approved_visit_hint.approved_visit_count}건</h2><p>{breadth.approved_visit_hint.label}</p>{breadth.approved_visit_hint.items.length > 0 && <ol>{breadth.approved_visit_hint.items.map((item) => <li key={item.case_id}>{caseDisplayName(item.case_id)} 어르신 · {item.admin_dong}{item.distance_from_previous_km != null ? ` · 이전 지점에서 ${item.distance_from_previous_km}km` : ''}</li>)}</ol>}</section>
   </aside>
 }
 
@@ -571,17 +566,17 @@ export function ZoneOperationsPanel({ zone }: { zone: OperationsMapZone | null }
   const operations = zone.operations
   const sourceLabel = (source: typeof operations.acute_metric_source) => source === 'session_recorded'
     ? '세션 기록'
-    : source === 'synthetic_scenario' ? '데모 예시' : '자료 없음'
+    : source === 'synthetic_scenario' ? '고정 예시' : '자료 없음'
   return <section className="zone-operations-panel" aria-label="선택한 구역의 연락업무">
     <h3>선택한 구역의 연락업무</h3>
     <p>채색은 구역 내 급성도 최댓값, 원 크기는 취약도 최댓값입니다. 두 축은 각각 표시하며 자동 승인은 사용하지 않습니다.</p>
-    <p className="zone-scenario-note"><strong>데모 예시</strong><br />현행 행정동마다 1건의 고정 예시로 로직을 미리 보여줍니다. 같은 업무에 이 데모 세션의 입력 기록이 생기면 그 기록을 사용하며, 실제 주민 상태를 뜻하지 않습니다. 기준일 {operations.scenario_reference_date}</p>
+    <p className="zone-scenario-note"><strong>고정 운영 예시</strong><br />현행 행정동마다 한 건의 고정 예시로 로직을 보여줍니다. 같은 업무에 현재 세션의 입력 기록이 생기면 그 기록을 사용합니다. 기준일 {operations.scenario_reference_date}</p>
     <dl className="zone-operation-metrics">
-      <div><dt>급성도 채색값</dt><dd>{operations.acute_color_metric ?? '점수 없음'} · {sourceLabel(operations.acute_metric_source)}{operations.acute_max_case_id ? ` · ${caseDisplayName(operations.acute_max_case_id)}` : ''}</dd></div>
-      <div><dt>취약도 원 크기값</dt><dd>{operations.vulnerability_size_metric ?? '점수 없음'} · {sourceLabel(operations.vulnerability_metric_source)}{operations.vulnerability_max_case_id ? ` · ${caseDisplayName(operations.vulnerability_max_case_id)}` : ''}</dd></div>
-      <div><dt>점수 출처</dt><dd>세션 기록 {operations.session_scored_case_count}건 · 데모 예시 {operations.scenario_scored_case_count}건 · 미기록 {operations.unscored_case_count}건</dd></div>
+      <div><dt>급성도 채색값</dt><dd>{operations.acute_color_metric ?? '점수 없음'} · {sourceLabel(operations.acute_metric_source)}{operations.acute_max_case_id ? ` · ${caseDisplayName(operations.acute_max_case_id)} 어르신` : ''}</dd></div>
+      <div><dt>취약도 원 크기값</dt><dd>{operations.vulnerability_size_metric ?? '점수 없음'} · {sourceLabel(operations.vulnerability_metric_source)}{operations.vulnerability_max_case_id ? ` · ${caseDisplayName(operations.vulnerability_max_case_id)} 어르신` : ''}</dd></div>
+      <div><dt>점수 출처</dt><dd>세션 기록 {operations.session_scored_case_count}건 · 고정 예시 {operations.scenario_scored_case_count}건 · 미기록 {operations.unscored_case_count}건</dd></div>
     </dl>
-    <p className="zone-aggregation">구역 집계: 최댓값 우선 맥락. 동점이면 높은 축 점수 후 내부 업무 순서로 선택합니다.</p>
+    <p className="zone-aggregation">구역 집계: 최댓값 우선 맥락. 동점이면 높은 축 점수 후 내부 업무 식별자 오름차순으로 선택합니다.</p>
     <ContributionSummary title="급성도 기여" entries={operations.contribution_summaries.acute} />
     <ContributionSummary title="취약도 기여" entries={operations.contribution_summaries.vulnerability} />
   </section>

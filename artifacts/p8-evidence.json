@@ -13,7 +13,7 @@
       "file": "artifacts/screenshots/public-operations-scenario-desktop.png",
       "width": 1440,
       "height": 900,
-      "state": "공개 지도에서 실제 API가 채운 초기 데모 예시"
+      "state": "공개 지도에서 실제 API가 채운 초기 고정 운영 예시"
     },
     {
       "file": "artifacts/screenshots/surveyor-queue-mobile.png",
@@ -43,13 +43,13 @@
       "file": "artifacts/screenshots/manager-map-desktop.png",
       "width": 1440,
       "height": 900,
-      "state": "실제 선택 연락업무 위치와 키보드 목록 대안"
+      "state": "실제 선택 위치와 키보드 목록 대안"
     },
     {
       "file": "artifacts/screenshots/operations-scenario-desktop.png",
       "width": 1440,
       "height": 900,
-      "state": "실제 162개 행정동 데모 예시와 세션·예시·미기록 출처"
+      "state": "실제 162개 행정동 고정 운영 예시와 세션·예시·미기록 출처"
     },
     {
       "file": "artifacts/screenshots/operations-overlay-desktop.png",
@@ -90,7 +90,7 @@
     "minTargetWidthPx": 130.296875,
     "minTargetHeightPx": 48,
     "horizontalOverflowPx": 0,
-    "syntheticMarker": true,
+    "syntheticPresentationAbsent": true,
     "separateAxes": true,
     "mixedSnapshotWarning": true,
     "modelOutputLabel": true,

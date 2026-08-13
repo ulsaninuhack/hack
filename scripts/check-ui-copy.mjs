@@ -40,7 +40,9 @@ const RAW_ENUM_VALUES = [
   'no_answer',
   'invalid_contact',
 ];
-const LEGACY_UI_IDENTIFIERS = ['[합성]', 'SYN-HH-', 'SYN-W-'];
+// `합성` 표시는 위 presentation-marker 규칙이 이미 잡는다. 여기서는
+// 중복 진단 없이 사용자 화면에 노출되면 안 되는 내부 ID 접두사만 검사한다.
+const LEGACY_UI_IDENTIFIERS = ['SYN-HH-', 'SYN-W-'];
 
 function isTestFile(file) {
   return /(?:^|\/)[^/]+\.(?:test|spec)\.[^.]+$/.test(file);
@@ -108,6 +110,9 @@ export async function findUiCopyViolations(cwd = process.cwd()) {
     const file = relative(cwd, absolutePath);
     for (const { rule, values } of RULES) {
       addMatches(violations, content, file, rule, values);
+    }
+    if (RENDERABLE_EXTENSIONS.has(extname(absolutePath).toLowerCase()) && !file.includes('.test.')) {
+      addMatches(violations, content, file, 'presentation-marker', ['합성']);
     }
     if (RENDERABLE_EXTENSIONS.has(extname(absolutePath).toLowerCase())) {
       addMatches(violations, content, file, 'raw-enum', RAW_ENUM_VALUES);

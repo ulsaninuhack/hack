@@ -38,6 +38,11 @@ export const DEMO_CENTER_DONG_CODE = '2812551000'
 export const DEMO_CENTER_DONG_NAME = '신포동'
 export const DEMO_WORKER_ID = 'SYN-W-2812551000-01'
 
+export function demoWorkerIdForDong(dongCode: string): string {
+  if (!/^\d{10}$/.test(dongCode)) throw new TypeError('dongCode must be 10 digits')
+  return `SYN-W-${dongCode}-01`
+}
+
 function demoSessionId(): string {
   const existing = sessionStorage.getItem(SESSION_KEY)
   if (existing) return existing
@@ -118,6 +123,7 @@ export interface LaneItem {
   synthetic: true
   displayMarker: string
   case_id: string
+  display_name: string
   revision: number
   lane: 'phone' | 'visit'
   assignment_status: AssignmentStatus
@@ -162,6 +168,8 @@ export interface TodayLanes {
   dong_code: string
   dong_name: string
   lane_rule: string
+  assignment_rule: string
+  pending_confirmation: { phone: number; visit: number }
   lanes: { phone: LaneItem[]; visit: LaneItem[] }
 }
 
@@ -185,6 +193,8 @@ export interface ReportCard {
   displayMarker: string
   card_id: string
   case_id: string
+  display_name: string
+  road_address: string | null
   revision: number
   dong_code: string
   dong_name: string
@@ -211,10 +221,24 @@ export interface ReportCard {
   acknowledgement: ReportAcknowledgement
 }
 
+export interface CaseEscalation {
+  status: '신고됨'
+  agency: string
+  reported_by: string
+  reported_at: string
+}
+
 export interface AssignmentProposalItem {
   status: 'proposed' | 'confirmed'
   assignment_status: AssignmentStatus
   case_id: string
+  display_name: string
+  escalation?: CaseEscalation | null
+  road_address: string | null
+  last_contact: {
+    date: string | null
+    result_label: string
+  }
   lane: 'phone' | 'visit'
   dong_code: string
   dong_name: string
@@ -414,6 +438,17 @@ export async function confirmAssignment(input: {
       confirmed_by: input.confirmedBy,
       case_ids: input.caseIds,
     }),
+  })
+}
+
+export async function escalateCase(input: {
+  caseId: string
+  reportedBy: string
+}): Promise<{ case_id: string; escalation: CaseEscalation }> {
+  return request('/api/v1/contact-ops/three-tier/escalations', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ case_id: input.caseId, reported_by: input.reportedBy }),
   })
 }
 

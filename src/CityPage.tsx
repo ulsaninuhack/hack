@@ -5,12 +5,8 @@ import { loadData } from './data'
 import type { DataBundle, DongProperties } from './types'
 import { loadCityOperationsMap } from './threeTierClient'
 import type { CityOperationsMap, CityOperationsMapZone } from './threeTierClient'
-import { loadStructuralContext } from './structuralContext'
-import type { StructuralContext } from './structuralContext'
 import { loadDistrictAggregates, loadDistrictAiSummary } from './threeTierClient'
 import type { DistrictAggregate, DistrictAggregates, DistrictAiSummary } from './threeTierClient'
-
-const DEMO_MESSAGE = '데모 화면 · 표시된 이름은 모두 가명이며 실제 주민·업무·개인 판정이 아닙니다.'
 
 function formatPct(value: number | null) {
   return value === null ? '자료 없음' : `${value}%`
@@ -30,9 +26,9 @@ function CityZoneRollup({ zone, dong }: { zone: CityOperationsMapZone | null; do
       <dl className="city-zone-metrics">
         <div><dt>급성도 최대(구역)</dt><dd>{operations.acute_color_metric ?? '점수 없음'}</dd></div>
         <div><dt>취약도 최대(구역)</dt><dd>{operations.vulnerability_size_metric ?? '점수 없음'}</dd></div>
-        <div><dt>점수 출처</dt><dd>세션 기록 {operations.session_scored_case_count}건 · 데모 예시 {operations.scenario_scored_case_count}건 · 미기록 {operations.unscored_case_count}건</dd></div>
+        <div><dt>점수 출처</dt><dd>세션 기록 {operations.session_scored_case_count}건 · 고정 예시 {operations.scenario_scored_case_count}건 · 미기록 {operations.unscored_case_count}건</dd></div>
       </dl>
-      <p className="zone-scenario-note"><strong>데모 예시</strong> 기준일 {operations.scenario_reference_date} · 실제 주민 상태가 아닙니다.</p>
+      <p className="zone-scenario-note"><strong>고정 운영 예시</strong> 기준일 {operations.scenario_reference_date} · 실제 주민 상태가 아닙니다.</p>
       <div className="city-zone-structure">
         <span className="structural-model-label">{zone.public_structural_context.model_output_label}</span>
         <p>공개 구조 맥락 {zone.public_structural_context.score_0_50.toFixed(1)} / 50</p>
@@ -71,7 +67,7 @@ function DistrictBrief({
           <p className="mixed-snapshot-note">{structure.basic_livelihood.mixed_snapshot_warning}</p>
         </article>
         <article aria-label="운영 부하">
-          <h4><Building2 aria-hidden="true" size={17} /> 운영 부하 (데모 연락업무)</h4>
+          <h4><Building2 aria-hidden="true" size={17} /> 운영 부하</h4>
           <ul>
             <li>연결단원 <strong>{operations.worker_count}명</strong></li>
             <li>오늘 예정 <strong>{operations.due_count}건</strong> · 연결단원당 {operations.per_worker.due ?? '자료 없음'}건</li>
@@ -111,7 +107,6 @@ function DistrictBrief({
 export function CityPage() {
   const [mapData, setMapData] = useState<DataBundle | null>(null)
   const [operationsMap, setOperationsMap] = useState<CityOperationsMap | null>(null)
-  const [structuralContext, setStructuralContext] = useState<StructuralContext | null>(null)
   const [aggregates, setAggregates] = useState<DistrictAggregates | null>(null)
   const [selectedDong, setSelectedDong] = useState<DongProperties | null>(null)
   const [selectedDistrict, setSelectedDistrict] = useState<string>('')
@@ -121,12 +116,11 @@ export function CityPage() {
 
   useEffect(() => {
     let active = true
-    void Promise.all([loadData(), loadCityOperationsMap(), loadStructuralContext(), loadDistrictAggregates()])
-      .then(([bundle, operations, structural, districtAggregates]) => {
+    void Promise.all([loadData(), loadCityOperationsMap(), loadDistrictAggregates()])
+      .then(([bundle, operations, districtAggregates]) => {
         if (!active) return
         setMapData(bundle)
         setOperationsMap(operations)
-        setStructuralContext(structural)
         setAggregates(districtAggregates)
         setSelectedDistrict((current) => current || districtAggregates.districts[0]?.district || '')
       })
@@ -161,7 +155,6 @@ export function CityPage() {
           <h1>시·구 배치 브리핑 · 인천</h1>
           <p className="tier-audience">시·구 담당자용 · 동 단위 롤업까지만 표시(개인정보 최소수집·목적제한)</p>
         </div>
-        <p>{DEMO_MESSAGE}</p>
         <nav aria-label="3계층 화면 이동">
           <a href="/center">동 센터</a>
           <a href="/m">조사원 모바일</a>
@@ -238,11 +231,9 @@ export function CityPage() {
               metric="age_65_plus_one_person_share_of_age_65_plus_population"
               showFacilities={false}
               showTransit={false}
-              showBubbles={false}
               facilityCategory="전체"
               selectedZoneId={selectedDong?.geometry_zone_id ?? null}
               mapMode="operations"
-              structuralScores={structuralContext ? Object.fromEntries(structuralContext.zones.map((zone) => [zone.geometry_zone_id, zone.score_0_50])) : undefined}
               operationsByZone={operationsMap ? Object.fromEntries(operationsMap.zones.map((zone) => [zone.geometry_zone_id, zone.operations])) : undefined}
               ariaLabel="인천 전체 운영 오버레이 지도 · 동 단위 롤업 전용"
               onSelectDong={(dong) => {

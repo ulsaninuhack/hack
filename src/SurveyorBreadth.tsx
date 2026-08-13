@@ -62,7 +62,7 @@ export function SurveyorBreadth({
       <header className="surveyor-breadth__header">
         <div>
           <h2>오늘 연락업무</h2>
-          <p>데모 화면 · 표시된 이름은 모두 가명이며 실제 주민·업무·개인 판정이 아닙니다.</p>
+          <p>예정 업무와 후속 확인이 필요한 항목을 정리합니다.</p>
         </div>
       </header>
 
@@ -117,7 +117,7 @@ export function SurveyorBreadth({
                   onClick={() => onSelect(task.item.household_id)}
                   onKeyDown={(event) => moveSelection(event, index)}
                 >
-                  <span className="surveyor-breadth__case">{caseDisplayName(task.item.household_id)}</span>
+                  <span className="surveyor-breadth__case">{caseDisplayName(task.item.household_id)} 어르신</span>
                   <span className="surveyor-breadth__axes">
                     <b>급성도 {task.item.triage.급성도_점수}</b>
                     <b>취약도 {task.item.triage.취약도_점수}</b>

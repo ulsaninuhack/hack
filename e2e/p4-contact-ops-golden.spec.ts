@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import type { BrowserContext, Page } from '@playwright/test'
 
 const CASE_ID = 'SYN-HH-2812551000-0001'
-const DISPLAY_NAME = '박영희'
+const CASE_NAME = '김영자 어르신'
 const API_ORIGIN = process.env.PLAYWRIGHT_API_URL ?? 'http://127.0.0.1:18082'
 const SESSION_STORAGE_KEY = 'care-ops-demo-session-id'
 const PUBLIC_STRUCTURAL_VULNERABILITY = 37.602737968418836
@@ -40,10 +40,17 @@ function trueObservationCount(mutation: ContactMutation) {
 }
 
 async function selectGoldenCase(page: Page) {
-  const option = page.getByRole('option', { name: new RegExp(DISPLAY_NAME) })
+  const option = page.getByRole('listbox', { name: '오늘 연락업무 목록' })
+    .getByRole('option', { name: new RegExp(CASE_NAME) })
   await option.scrollIntoViewIfNeeded()
   await option.click()
-  await expect(page.locator('.ops-detail .case-id')).toHaveText(DISPLAY_NAME)
+  await expect(page.locator('.ops-detail .case-id')).toContainText(CASE_NAME)
+}
+
+function managerGoldenCase(page: Page) {
+  return page.getByRole('listbox', { name: '방문 권고 목록' }).getByRole('option')
+    .filter({ hasText: CASE_NAME }).filter({ hasText: '급성도 57' })
+    .filter({ hasText: `취약도 ${PUBLIC_STRUCTURAL_VULNERABILITY}` })
 }
 
 async function expectSeparatedAxes(page: Page, acute: string) {
@@ -100,7 +107,7 @@ test('P4 golden: two real contact mutations raise acute score before manager-onl
 
   await test.step('오늘 연락에서 관찰 없이 첫 미응답을 기록한다', async () => {
     await page.goto('/ops/surveyor')
-    await expect(page.locator('main.ops-page')).toContainText('표시된 이름은 모두 가명')
+    await expect(page.locator('main.ops-page')).not.toContainText('합성')
     await selectGoldenCase(page)
     await expect(page.getByRole('button', { name: /방문 권고 (승인|반려) 기록/ })).toHaveCount(0)
 
@@ -164,7 +171,7 @@ test('P4 golden: two real contact mutations raise acute score before manager-onl
 
   await test.step('브라우저 reload 뒤에도 권고와 분리된 축이 유지된다', async () => {
     await page.reload()
-    await expect(page.locator('main.ops-page')).toContainText('표시된 이름은 모두 가명')
+    await expect(page.locator('main.ops-page')).not.toContainText('합성')
     await selectGoldenCase(page)
     await expectSeparatedAxes(page, '57')
     await expect(page.locator('.ops-detail')).toContainText('방문 권고 · 담당자 승인 대기')
@@ -175,12 +182,14 @@ test('P4 golden: two real contact mutations raise acute score before manager-onl
   await test.step('담당자 화면에서만 승인 transition을 기록한다', async () => {
     await page.setViewportSize({ width: 1440, height: 900 })
     await page.goto('/ops/manager')
-    await expect(page.locator('main.ops-page')).toContainText('표시된 이름은 모두 가명')
-    await expect(page.getByRole('option', { name: new RegExp(DISPLAY_NAME) })).toBeVisible()
+    await expect(page.locator('main.ops-page')).not.toContainText('합성')
+    const target = managerGoldenCase(page)
+    await expect(target).toBeVisible()
+    await target.click()
     await expectSeparatedAxes(page, '57')
 
     await page.getByLabel('방문 권고 승인').check()
-    await page.getByLabel('결정 사유').fill('P4 데모 골든 경로 담당자 승인')
+    await page.getByLabel('결정 사유').fill('P4 골든 경로 담당자 승인')
     await page.getByRole('button', { name: '방문 권고 승인 기록' }).click()
 
     await expect(page.getByText('담당자 승인을 기록했습니다.')).toBeVisible()
@@ -194,8 +203,8 @@ test('P4 golden: two real contact mutations raise acute score before manager-onl
 
   await test.step('승인 상태도 reload 후 같은 격리 세션에 남는다', async () => {
     await page.reload()
-    await expect(page.locator('main.ops-page')).toContainText('표시된 이름은 모두 가명')
-    await expect(page.getByRole('option', { name: new RegExp(DISPLAY_NAME) })).toHaveCount(0)
+    await expect(page.locator('main.ops-page')).not.toContainText('합성')
+    await expect(managerGoldenCase(page)).toHaveCount(0)
     const approvedAfterReload = await readCase(context, sessionId)
     expect(approvedAfterReload.household.workflow.visit_approval_status).toBe('approved')
   })
