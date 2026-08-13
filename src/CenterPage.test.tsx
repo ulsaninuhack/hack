@@ -19,6 +19,9 @@ const mocks = vi.hoisted(() => ({
   acknowledgeReport: vi.fn(),
   confirmAssignment: vi.fn(),
   escalateCase: vi.fn(),
+  loadCaseHistory: vi.fn(),
+  loadCaseHistorySummary: vi.fn(),
+  loadCenterCalendar: vi.fn(),
   loadRecommendations: vi.fn(),
   submitDecision: vi.fn(),
   loadData: vi.fn(),
@@ -32,6 +35,9 @@ vi.mock('./threeTierClient', async (importOriginal) => {
     acknowledgeReport: mocks.acknowledgeReport,
     confirmAssignment: mocks.confirmAssignment,
     escalateCase: mocks.escalateCase,
+    loadCaseHistory: mocks.loadCaseHistory,
+    loadCaseHistorySummary: mocks.loadCaseHistorySummary,
+    loadCenterCalendar: mocks.loadCenterCalendar,
   }
 })
 vi.mock('./contactOpsClient', async (importOriginal) => {
@@ -204,6 +210,32 @@ function arrange() {
   mocks.escalateCase.mockResolvedValue({ case_id: 'SYN-HH-2812551000-0002', escalation: { status: '신고됨', agency: '구 희망복지지원단', reported_by: '동센터 담당자', reported_at: '2026-08-12T09:00:00.000Z' } })
   mocks.submitDecision.mockResolvedValue(structuredClone(recommendation))
   mocks.loadData.mockResolvedValue({ dongs: { features: [] }, summary: {} })
+  mocks.loadCaseHistory.mockResolvedValue({
+    synthetic: true, displayMarker: '[합성]',
+    case_id: 'SYN-HH-2812551000-0001', display_name: '김영자', trend_label: '악화',
+    source_note: '과거 기록은 시연용 합성 기록이며 세션에서 제출한 기록이 맨 위에 병합됩니다.',
+    entries: [
+      { 일자: '2026-08-11', 결과_라벨: '연락 안 됨', 식사상태: '심각', 위생상태: '불량', 특이_징후_수: 2, 출처: '합성 과거 기록' },
+      { 일자: '2026-08-04', 결과_라벨: '안부 확인 완료', 식사상태: '양호', 위생상태: '양호', 특이_징후_수: 0, 출처: '합성 과거 기록' },
+    ],
+  })
+  mocks.loadCaseHistorySummary.mockResolvedValue({
+    case_id: 'SYN-HH-2812551000-0001',
+    summary_text: "최근 기록 2회 중 '연락 안 됨' 1회, 마지막 기록은 2026-08-11 '연락 안 됨'입니다. 기록상 식사 상태가 '양호'에서 '심각'(으)로 바뀌었습니다. 합성 시연 기록의 요약이며 개인 상태에 대한 판단이 아닙니다.",
+    generator: 'deterministic_v1',
+    label: '[AI 생성 · 기록 요약 · 개인 예측 아님]',
+  })
+  mocks.loadCenterCalendar.mockResolvedValue({
+    synthetic: true, displayMarker: '[합성]', month: '2026-08',
+    source_note: '과거 기록은 시연용 합성 기록이며 세션에서 제출한 기록이 반영됩니다.',
+    days: [{
+      일자: '2026-08-11', 기록_수: 2, 미응답_수: 1,
+      사례: [
+        { case_id: 'SYN-HH-2812551000-0001', display_name: '김영자', 결과_라벨: '연락 안 됨', 출처: '합성 과거 기록' },
+        { case_id: 'SYN-HH-2812551000-0002', display_name: '이순자', 결과_라벨: '안부 확인 완료', 출처: '합성 과거 기록' },
+      ],
+    }],
+  })
 }
 
 afterEach(() => {
@@ -347,7 +379,7 @@ describe('CenterPage (동 행정복지센터)', () => {
     }))
   })
 
-  it('escalates a visit case to the higher agency and shows the reported state', async () => {
+  it('escalates a visit case and removes it from the visit confirmation list', async () => {
     arrange()
     const user = userEvent.setup()
     render(<CenterPage />)
@@ -363,8 +395,14 @@ describe('CenterPage (동 행정복지센터)', () => {
       caseId: 'SYN-HH-2812551000-0002', reportedBy: '동센터 담당자',
     }))
     const visitLane = await screen.findByLabelText('방문 레인 할당 제안')
-    expect(within(visitLane).getByText(/상급기관 신고됨 · 구 희망복지지원단/)).toBeInTheDocument()
-    expect(within(visitLane).queryByRole('button', { name: '신고' })).toBeNull()
+    await waitFor(() => expect(within(visitLane).queryByText('이순자 어르신')).toBeNull())
+    expect(within(visitLane).getByText('이 레인에는 오늘 제안이 없습니다.')).toBeInTheDocument()
+    const escalatedBox = screen.getByLabelText('상급기관 신고 목록')
+    expect(within(escalatedBox).getByText('이순자 어르신')).toBeInTheDocument()
+    expect(within(escalatedBox).getByText(/구 희망복지지원단 · 2026-08-12/)).toBeInTheDocument()
+    expect(screen.getByText('상급기관 신고됨 1건')).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: '방문 0' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '신고' })).toBeNull()
   })
 
 
@@ -404,5 +442,32 @@ describe('CenterPage (동 행정복지센터)', () => {
     const card = await screen.findByLabelText('김영자 어르신 보고 카드')
     await user.click(within(card).getByRole('button', { name: '이관 안내' }))
     expect(within(card).getByText(/안부확인 트랙에서 사례관리·전문기관 트랙으로 전환/)).toBeInTheDocument()
+  })
+
+  it('opens the case history accordion with an AI-labeled summary and lazy loading', async () => {
+    arrange()
+    const user = userEvent.setup()
+    render(<CenterPage />)
+    const phoneLane = await screen.findByLabelText('전화 레인 할당 제안')
+    expect(mocks.loadCaseHistory).not.toHaveBeenCalled()
+    await user.click(within(phoneLane).getByText('지난 기록'))
+    expect(await within(phoneLane).findByText('[AI 생성 · 기록 요약 · 개인 예측 아님]')).toBeInTheDocument()
+    expect(within(phoneLane).getByText(/식사 상태가 '양호'에서 '심각'/)).toBeInTheDocument()
+    const entries = within(phoneLane).getByLabelText('지난 기록 목록')
+    expect(within(entries).getByText('2026-08-04')).toBeInTheDocument()
+    expect(within(entries).getByText('식사 심각')).toBeInTheDocument()
+    expect(within(entries).getAllByText('합성 과거 기록').length).toBeGreaterThan(0)
+  })
+
+  it('renders the month calendar and reveals a day of records on click', async () => {
+    arrange()
+    const user = userEvent.setup()
+    render(<CenterPage />)
+    const calendar = await screen.findByLabelText('우리 동 기록 캘린더')
+    expect(within(calendar).getByText(/2026년 8월/)).toBeInTheDocument()
+    await user.click(await within(calendar).findByRole('button', { name: '2026-08-11 기록 2건' }))
+    const dayList = await within(calendar).findByLabelText('2026-08-11 기록 목록')
+    expect(within(dayList).getByText('김영자 어르신')).toBeInTheDocument()
+    expect(within(dayList).getByText('이순자 어르신')).toBeInTheDocument()
   })
 })

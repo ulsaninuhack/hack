@@ -2,11 +2,15 @@ import { createApiServer } from './app.mjs';
 import { readFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { createContactOpsAiRuntime } from './contact-ops-ai-runtime.mjs';
+import { createLiveCallService } from './live-call-service.mjs';
+import { createLiveKitTokenProviderFromEnvironment } from './livekit-provider.mjs';
+import { createOpenAiRealtimeBridge } from './openai-realtime-bridge.mjs';
 import { createContactOpsService } from './contact-ops-service.mjs';
 import { createFirestoreContactOpsState, createMemoryContactOpsState } from './contact-ops-state.mjs';
 import { buildDemoPrecontactSeedRecords } from './contact-triage-synthetic-scenario.mjs';
 import { loadDataStore } from './data-store.mjs';
 import { createThreeTierService } from './three-tier-service.mjs';
+import { createHistorySummarizer } from './three-tier-history.mjs';
 import { createVoiceAudioUploader } from './voice-audio-upload.mjs';
 
 const port = Number(process.env.PORT || 8080);
@@ -106,12 +110,36 @@ const contactOpsService = createContactOpsService({
   structuralContext,
   scenarioReferenceDate: syntheticDataset.scenario_reference_date,
 });
+async function loadLiveCallService() {
+  const required = ['LIVEKIT_URL', 'LIVEKIT_API_KEY', 'LIVEKIT_API_SECRET', 'OPENAI_API_KEY'];
+  const configured = required.filter((name) => typeof process.env[name] === 'string' && process.env[name].trim() !== '');
+  if (configured.length === 0) return null;
+  if (configured.length !== required.length) {
+    throw new Error(`Realtime calling requires all of: ${required.join(', ')}`);
+  }
+  return createLiveCallService({
+    tokenProvider: await createLiveKitTokenProviderFromEnvironment(),
+    realtimeBridge: createOpenAiRealtimeBridge({ apiKey: process.env.OPENAI_API_KEY }),
+    caseAccess: {
+      async assertReadable({ sessionId, caseId, expectedRevision }) {
+        const detail = await contactOpsService.getCase({ sessionId, caseId });
+        if (detail.revision !== expectedRevision) {
+          const error = new Error('The case changed before the live call started.');
+          error.code = 'STATE_CONFLICT';
+          throw error;
+        }
+      },
+    },
+  });
+}
 const threeTierService = createThreeTierService({
   state: contactOpsState,
   store,
   structuralContext,
   workers: await loadSyntheticWorkers(),
   operationsMapProvider: ({ sessionId }) => contactOpsService.getOperationsMap({ sessionId }),
+  // 기록 요약은 키가 있으면 런타임 LLM, 없거나 실패하면 결정론 요약을 쓴다.
+  historySummarizer: createHistorySummarizer({ apiKey: process.env.OPENAI_API_KEY || null }),
 });
 const server = createApiServer({
   store,
@@ -119,6 +147,7 @@ const server = createApiServer({
   contactOpsService,
   threeTierService,
   voiceAudioUploader: createVoiceAudioUploader({ audioDirectory: voiceAudioDirectory }),
+  liveCallService: await loadLiveCallService(),
   enableDemoSessionReset: process.env.CONTACT_OPS_ENABLE_TEST_RESET === '1',
 });
 

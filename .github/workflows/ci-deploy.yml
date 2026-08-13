@@ -407,6 +407,9 @@ jobs:
           secrets: |-
             OPENAI_API_KEY=openai-api-key:latest
             CONTACT_OPS_CODEX_BRIDGE_TOKEN=codex-bridge-token:latest
+            LIVEKIT_URL=livekit-url:latest
+            LIVEKIT_API_KEY=livekit-api-key:latest
+            LIVEKIT_API_SECRET=livekit-api-secret:latest
           secrets_update_strategy: merge
           flags: >-
             --cpu=1
@@ -437,7 +440,9 @@ jobs:
           health_body="$(mktemp)"
           summary_body="$(mktemp)"
           summary_headers="$(mktemp)"
-          trap 'rm -f "$health_body" "$summary_body" "$summary_headers"' EXIT
+          live_case_body="$(mktemp)"
+          live_call_body="$(mktemp)"
+          trap 'rm -f "$health_body" "$summary_body" "$summary_headers" "$live_case_body" "$live_call_body"' EXIT
 
           curl_args=(
             --fail
@@ -467,7 +472,30 @@ jobs:
             | grep --fixed-strings --ignore-case --line-regexp \
               "access-control-allow-origin: ${ALLOWED_ORIGIN}" >/dev/null
 
-          echo "Backend smoke tests: /health and summary CORS passed" \
+          live_session_id="production-deploy-smoke-${GITHUB_RUN_ID}"
+          live_case_id="SYN-HH-2812551000-0001"
+          curl "${curl_args[@]}" \
+            --header "X-Demo-Session-ID: ${live_session_id}" \
+            --output "$live_case_body" \
+            "${service_url}/api/v1/contact-ops/cases/${live_case_id}"
+          live_revision="$(jq --raw-output '.data.revision' "$live_case_body")"
+          curl "${curl_args[@]}" \
+            --request POST \
+            --header "Content-Type: application/json" \
+            --header "X-Demo-Session-ID: ${live_session_id}" \
+            --data "{\"expected_revision\":${live_revision}}" \
+            --output "$live_call_body" \
+            "${service_url}/api/v1/contact-ops/cases/${live_case_id}/live-calls"
+          jq --exit-status \
+            '.data.provider == "livekit"
+             and .data.transcription.model == "gpt-live-transcribe"
+             and .data.host.role == "surveyor"
+             and .data.guest.role == "resident"
+             and (.data.host.participant_token | type == "string" and length > 20)
+             and (.data.guest.participant_token | type == "string" and length > 20)' \
+            "$live_call_body" >/dev/null
+
+          echo "Backend smoke tests: /health, summary CORS, and live-call token issuance passed" \
             >> "$GITHUB_STEP_SUMMARY"
 
       - name: Record backend deployment

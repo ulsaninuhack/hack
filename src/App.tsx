@@ -9,7 +9,6 @@ import {
   Layers3,
   MapPinned,
   Search,
-  ShieldCheck,
   UsersRound,
   X,
 } from 'lucide-react'
@@ -20,10 +19,9 @@ import { ManagerPage, SurveyorPage, ZoneOperationsPanel } from './Operations'
 import { CenterPage } from './CenterPage'
 import { MobilePage } from './MobilePage'
 import { CityPage } from './CityPage'
+import { LiveCallPage } from './LiveCallPage'
 import { loadOperationsMap } from './contactOpsClient'
 import type { OperationsMap } from './contactOpsClient'
-
-const P2_MIXED_SNAPSHOT_WARNING = '분자 2026-07-31 · 분모 2026-06-30 · 서로 다른 기준월의 참고 비율이며 동시점 비율이 아닙니다.'
 
 const METRICS: Array<{ key: MetricKey; short: string; label: string; description: string }> = [
   {
@@ -58,6 +56,7 @@ export default function App() {
   if (window.location.pathname === '/center') return <CenterPage />
   if (window.location.pathname === '/m') return <MobilePage />
   if (window.location.pathname === '/city') return <CityPage />
+  if (window.location.pathname === '/call') return <LiveCallPage />
   return <PublicMapApp />
 }
 
@@ -169,16 +168,11 @@ function PublicMapApp() {
           <h1>인천 돌봄 수요 맥락 지도</h1>
         </div>
         <div className="header-actions">
-          <button ref={methodologyButtonRef} className="method-button" onClick={() => setShowMethodology(true)}><Info size={15} /> 방법론</button>
-          <a className="data-link" href="/data/manifest.json" target="_blank" rel="noreferrer"><Database size={15} /> 데이터 명세</a>
+          <a className="data-link" href="/city"><MapPinned size={18} /> 시·구 브리핑</a>
+          <button ref={methodologyButtonRef} className="method-button" onClick={() => setShowMethodology(true)}><Info size={18} /> 방법론</button>
+          <a className="data-link" href="/data/manifest.json" target="_blank" rel="noreferrer"><Database size={18} /> 데이터 명세</a>
         </div>
       </header>
-
-      <section className="guardrail" role="note">
-        <ShieldCheck size={17} />
-        <p><strong>지역 검토를 돕는 공개 집계 지도입니다.</strong> 개인·가구의 위험이나 복지 미수혜를 판정하지 않습니다.</p>
-        <span>{P2_MIXED_SNAPSHOT_WARNING}</span>
-      </section>
 
       <main className="workspace">
         <aside className="sidebar">
@@ -245,7 +239,6 @@ function PublicMapApp() {
             <span>현재 채색 기준</span>
             <strong>{activeMetric.label}</strong>
             <p>{activeMetric.description}</p>
-            {metric === 'age_65_plus_one_person_share_of_age_65_plus_population' && <em>{P2_MIXED_SNAPSHOT_WARNING}</em>}
           </div>
 
           <div className="public-map-mode map-mode-toggle" role="group" aria-label="지도 표시 모드">
@@ -287,7 +280,6 @@ function PublicMapApp() {
               <li><strong>채색</strong><span>65세 이상 인구 대비 주민등록상 65세 이상 1인세대의 관측 비율을 구역 색상 단계로 비교합니다.</span></li>
               <li><strong>참고 레이어</strong><span>공식 시설, 버스 승하차 이벤트, 건축물대장 연령을 서로 분리해 겹쳐 봅니다.</span></li>
             </ol>
-            <div className="method-warning"><ShieldCheck size={16} /><p>{P2_MIXED_SNAPSHOT_WARNING} 개인·가구의 위험이나 복지 미수혜를 판정하지 않습니다.</p></div>
             <a href="/data/manifest.json" target="_blank" rel="noreferrer">전체 데이터 명세 열기</a>
           </section>
         </div>
@@ -307,7 +299,6 @@ function DetailPanel({ dong, onClose, openMobile }: { dong: DongProperties; onCl
       <button className="panel-close" onClick={onClose} aria-label="상세 닫기"><X size={18} /></button>
       <div className="detail-location"><span>{dong.current_district_name_20260701}</span><h2>{dong.current_admin_dong_names_20260701.join(' · ')}</h2><small>{statusLabel}</small></div>
       <div className="detail-hero"><span>65세 이상 1인세대</span><strong>{dong.one_person_households_age_65_plus.toLocaleString()}<small>세대</small></strong><p>65세 이상 인구 대비 {(dong.age_65_plus_one_person_share_of_age_65_plus_population * 100).toFixed(1)}%</p></div>
-      <p className="mixed-snapshot-note">{P2_MIXED_SNAPSHOT_WARNING}</p>
       <div className="detail-stats">
         <div><span>총인구</span><strong>{dong.total_population.toLocaleString()}명</strong></div>
         <div><span>65세 이상 인구</span><strong>{dong.population_age_65_plus.toLocaleString()}명</strong></div>
@@ -332,7 +323,6 @@ function Legend({ metric, showFacilities, showTransit }: { metric: MetricKey; sh
       <div className="legend-gradient" />
       <div className="legend-labels">{labels.map((label) => <small key={label}>{label}</small>)}</div>
       {metric === 'housing_age_30_plus_share_valid_pct' && <p className="no-data-key"><i />회색 구역은 주택 연령 자료 없음</p>}
-      {metric === 'age_65_plus_one_person_share_of_age_65_plus_population' && <p className="snapshot-key">{P2_MIXED_SNAPSHOT_WARNING}</p>}
       {(showFacilities || showTransit) && (
         <div className="point-legend" aria-label="활성 점 레이어 기호">
           {showFacilities && <><span><i className="facility-point-symbol" />시설</span><span><i className="facility-cluster-symbol">12</i>시설 묶음</span></>}

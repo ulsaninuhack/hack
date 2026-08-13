@@ -21,6 +21,8 @@ import {
 import type { LaneItem, ReportCard, TodayLanes, VoiceCandidate } from './threeTierClient'
 import { createAiObservationCandidate } from './AiObservationClient'
 import { formatScore } from './scoreFormat'
+import { buildGuestInviteUrl, createLiveCall, type LiveCallCredentials, type LiveCallJoin } from './liveCallClient'
+import { LiveCallPanel } from './LiveCallPanel'
 
 const CONTACT_LABELS: ContactResultLabel[] = [
   '안부 확인 완료', '우려 사항 있음', '미응답', '연락(또는 방문) 거부', '연락처 확인 필요',
@@ -36,7 +38,7 @@ const SIGN_FIELDS: Array<{ key: keyof CanonicalObservations['관찰_6징후']; l
 ]
 
 type Step = 'list' | 'case' | 'done'
-type InputPath = 'memo' | 'voice' | 'chat' | 'manual'
+type InputPath = 'live' | 'memo' | 'voice' | 'chat' | 'manual'
 
 interface ChatQuestion {
   id: string
@@ -105,7 +107,7 @@ function assignmentStatusLabel(item: LaneItem) {
 
 function ManagementEntrySummary({ item }: { item: LaneItem }) {
   return <>
-    <span className="mobile-task-meta">등록 근거 · {managementIntakeLabel(item.management_entry.intake_channel)}</span>
+    <span className="mobile-task-meta">등록 근거 · {item.management_entry ? managementIntakeLabel(item.management_entry.intake_channel) : '기록 확인 필요'}</span>
     <span className="mobile-task-meta">연락 동의 기록 · 기존 정기 안부확인 중복 없음</span>
   </>
 }
@@ -140,6 +142,8 @@ export function MobilePage() {
   const [loading, setLoading] = useState(true)
   const [visitMapOpen, setVisitMapOpen] = useState(false)
   const [mapData, setMapData] = useState<DataBundle | null>(null)
+  const [liveCallCredentials, setLiveCallCredentials] = useState<LiveCallCredentials | null>(null)
+  const [liveInviteUrl, setLiveInviteUrl] = useState<string | null>(null)
 
   useEffect(() => {
     if (!visitMapOpen || mapData) return
@@ -180,6 +184,8 @@ export function MobilePage() {
     setChatIndex(0)
     setChatLog([])
     setShowDial(false)
+    setLiveCallCredentials(null)
+    setLiveInviteUrl(null)
   }
 
   const applyCandidate = (
@@ -196,6 +202,55 @@ export function MobilePage() {
       ...candidate.critic.missing_fields.map((field) => `누락 확인: ${field}`),
     ])
   }
+
+  const startLiveCall = async () => {
+    if (!selected) return
+    try {
+      setBusy(true)
+      setError(null)
+      setInputPath('live')
+      const credentials = await createLiveCall({ caseId: selected.case_id, revision: selected.revision })
+      setLiveCallCredentials(credentials)
+      setLiveInviteUrl(buildGuestInviteUrl(credentials))
+    } catch (cause) {
+      setInputPath(null)
+      setError(errorText(cause, '실시간 통화를 시작하지 못했습니다. 음성 파일이나 직접 입력을 사용할 수 있습니다.'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const finishLiveCall = async (transcript: string) => {
+    if (!selected) return
+    try {
+      setBusy(true)
+      setError(null)
+      const response = await createAiObservationCandidate({
+        caseId: selected.case_id,
+        revision: selected.revision,
+        source: { kind: 'text', text: transcript },
+      })
+      applyCandidate(
+        response.candidate,
+        '실시간 통화에서 만든 후보입니다. 아래 체크리스트를 확인하고 고친 뒤 제출해 주세요.',
+      )
+      setLiveCallCredentials(null)
+      setLiveInviteUrl(null)
+      setInputPath('manual')
+    } catch (cause) {
+      setError(errorText(cause, '통화 내용에서 체크리스트 후보를 만들지 못했습니다. 음성 파일이나 직접 입력을 사용할 수 있습니다.'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const liveHostJoin: LiveCallJoin | null = liveCallCredentials ? {
+    callId: liveCallCredentials.call_id,
+    serverUrl: liveCallCredentials.server_url,
+    participantToken: liveCallCredentials.host.participant_token,
+    expiresAt: liveCallCredentials.expires_at,
+    role: 'surveyor',
+  } : null
 
   const onVoiceFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -406,7 +461,7 @@ export function MobilePage() {
               <div><dt>선정 사유</dt><dd>{selected.selection_reason_labels.join(' · ') || '선정 사유 확인 중'}</dd></div>
               <div><dt>연락 기한</dt><dd>{selected.earliest_due_date ?? '기한 없음'}</dd></div>
               <div><dt>담당</dt><dd>{selected.worker_display_name ?? '미배정'}</dd></div>
-              <div><dt>등록 근거</dt><dd>{managementIntakeLabel(selected.management_entry.intake_channel)}</dd></div>
+              <div><dt>등록 근거</dt><dd>{selected.management_entry ? managementIntakeLabel(selected.management_entry.intake_channel) : '기록 확인 필요'}</dd></div>
               <div><dt>관리 확인</dt><dd>연락 동의 기록 · 기존 정기 안부확인 중복 없음</dd></div>
             </>}
             <div><dt>위치</dt><dd>{selected.location.district} {selected.location.dong_name}</dd></div>
@@ -473,10 +528,30 @@ export function MobilePage() {
           <h2>통화(또는 방문) 결과 입력</h2>
           {inputPath === null && (
             <div className="mobile-input-paths" role="group" aria-label="입력 방법 선택">
+              <button className="mobile-live-call-start" onClick={() => void startLiveCall()} disabled={busy}>
+                <Phone aria-hidden="true" /> 실시간 통화 시작
+              </button>
               <button onClick={() => setInputPath('memo')}><Sparkles aria-hidden="true" /> 메모로 채우기 (AI 후보)</button>
               <button onClick={() => setInputPath('voice')}><Mic aria-hidden="true" /> 음성 파일로 채우기</button>
               <button onClick={() => setInputPath('chat')}>문답 또는 직접 체크하기</button>
             </div>
+          )}
+
+          {inputPath === 'live' && !liveHostJoin && busy && (
+            <p className="mobile-path-note" role="status">통화방을 준비하고 있습니다.</p>
+          )}
+
+          {inputPath === 'live' && liveHostJoin && liveInviteUrl && !candidateNote && (
+            <LiveCallPanel
+              join={liveHostJoin}
+              inviteUrl={liveInviteUrl}
+              onFinish={finishLiveCall}
+              onCancel={() => {
+                setLiveCallCredentials(null)
+                setLiveInviteUrl(null)
+                setInputPath(null)
+              }}
+            />
           )}
 
           {inputPath === 'memo' && !candidateNote && (

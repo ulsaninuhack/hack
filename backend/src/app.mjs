@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { createServer } from 'node:http';
 
+import { LiveCallError, SDP_MAX_BYTES } from './live-call-service.mjs';
 import { VoiceAudioUploadError } from './voice-audio-upload.mjs';
 
 const API_VERSION = 'v1';
@@ -14,7 +15,7 @@ const MAX_ROUTE_COUNT = 1_000;
 const MAX_URL_LENGTH = 4_096;
 const DATA_INTERPRETATION = 'official-facility-locations-not-individual-beneficiaries';
 const REQUEST_ID_PATTERN = /^[A-Za-z0-9._:-]{1,128}$/;
-const ALLOWED_PREFLIGHT_HEADERS = new Set(['accept', 'content-type', 'x-request-id', 'x-demo-session-id']);
+const ALLOWED_PREFLIGHT_HEADERS = new Set(['accept', 'content-type', 'x-request-id']);
 const CASE_ID_PATTERN = /^SYN-HH-\d{10}-\d{4}$/;
 const WORKER_ID_PATTERN = /^SYN-W-\d{10}-01$/;
 const SESSION_ID_PATTERN = /^[A-Za-z0-9_-]{16,128}$/;
@@ -122,6 +123,14 @@ function sendJson(request, response, status, value, context, cacheable = false) 
 
   response.writeHead(status, headers);
   response.end(payload);
+}
+
+function sendSdp(request, response, status, value, context) {
+  const headers = securityHeaders(context.requestId, context.origin, context.corsAllowed);
+  headers['Content-Type'] = 'application/sdp; charset=utf-8';
+  headers['Content-Length'] = Buffer.byteLength(value);
+  response.writeHead(status, headers);
+  response.end(value);
 }
 
 function sendError(request, response, error, context) {
@@ -449,7 +458,9 @@ function rejectBodyBearingRequest(request) {
 
 function handlePreflight(request, response, context) {
   const requestedMethod = request.headers['access-control-request-method'];
-  const operations = (request.url || '').startsWith('/api/v1/contact-ops');
+  const pathname = new URL(request.url || '/', 'http://localhost').pathname;
+  const operations = pathname.startsWith('/api/v1/contact-ops');
+  const realtimeSdp = pathname === '/api/v1/contact-ops/live-calls/realtime-sdp';
   if (requestedMethod && (!['GET', 'POST'].includes(requestedMethod) || (requestedMethod === 'POST' && !operations))) {
     throw new ApiError(405, 'METHOD_NOT_ALLOWED', 'Only GET, POST, and OPTIONS are supported');
   }
@@ -457,7 +468,10 @@ function handlePreflight(request, response, context) {
     .split(',')
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean);
-  const unsupported = requestedHeaders.filter((header) => !ALLOWED_PREFLIGHT_HEADERS.has(header));
+  const allowedHeaders = new Set(ALLOWED_PREFLIGHT_HEADERS);
+  if (operations) allowedHeaders.add('x-demo-session-id');
+  if (realtimeSdp) allowedHeaders.add('authorization');
+  const unsupported = requestedHeaders.filter((header) => !allowedHeaders.has(header));
   if (unsupported.length > 0) {
     throw new ApiError(400, 'INVALID_PREFLIGHT', 'Unsupported preflight request headers', {
       unsupportedHeaders: unsupported,
@@ -465,7 +479,11 @@ function handlePreflight(request, response, context) {
   }
   const headers = securityHeaders(context.requestId, context.origin, context.corsAllowed);
   headers['Access-Control-Allow-Methods'] = operations ? 'GET, POST, OPTIONS' : 'GET, OPTIONS';
-  headers['Access-Control-Allow-Headers'] = operations ? 'Accept, Content-Type, X-Request-ID, X-Demo-Session-ID' : 'Accept, Content-Type, X-Request-ID';
+  headers['Access-Control-Allow-Headers'] = realtimeSdp
+    ? 'Accept, Authorization, Content-Type, X-Request-ID, X-Demo-Session-ID'
+    : operations
+      ? 'Accept, Content-Type, X-Request-ID, X-Demo-Session-ID'
+      : 'Accept, Content-Type, X-Request-ID';
   headers['Access-Control-Max-Age'] = '600';
   headers['Cache-Control'] = 'public, max-age=600';
   response.writeHead(204, headers);
@@ -479,6 +497,31 @@ function readBody(request) {
     request.on('end', () => { try { resolve(JSON.parse(body)); } catch { reject(new ApiError(400, 'INVALID_JSON', 'Request body must be valid JSON')); } });
     request.on('error', reject);
   });
+}
+function readTextBody(request, maxBytes = SDP_MAX_BYTES) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let bytes = 0;
+    request.on('data', (chunk) => {
+      bytes += chunk.length;
+      if (bytes > maxBytes) {
+        reject(new ApiError(413, 'REQUEST_TOO_LARGE', 'Request body is too large'));
+        request.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+    request.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    request.on('error', reject);
+  });
+}
+function bearerToken(request) {
+  const value = request.headers.authorization;
+  const match = typeof value === 'string' && value.length <= 4_096
+    ? /^Bearer ([A-Za-z0-9._~-]+)$/.exec(value)
+    : null;
+  if (!match) throw new ApiError(401, 'LIVE_CALL_UNAUTHORIZED', '통화 참여 정보를 확인할 수 없습니다.');
+  return match[1];
 }
 function exactBody(body, keys) {
   if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).length !== keys.length || keys.some((key) => !Object.hasOwn(body, key))) {
@@ -536,6 +579,26 @@ async function routeThreeTier(request, url, threeTierService) {
       if (!CASE_ID_PATTERN.test(caseId)) throw new ApiError(400, 'INVALID_PATH', 'caseId must be a synthetic case ID');
       return threeTierService.getReportCard({ sessionId: readSession(), caseId });
     }
+    if (url.pathname.startsWith(`${THREE_TIER_PREFIX}case-history-summaries/`)) {
+      assertKnownQuery(url.searchParams, new Set());
+      const caseId = url.pathname.slice(`${THREE_TIER_PREFIX}case-history-summaries/`.length);
+      if (!CASE_ID_PATTERN.test(caseId)) throw new ApiError(400, 'INVALID_PATH', 'caseId must be a synthetic case ID');
+      return threeTierService.getCaseHistorySummary({ sessionId: readSession(), caseId });
+    }
+    if (url.pathname.startsWith(`${THREE_TIER_PREFIX}case-histories/`)) {
+      assertKnownQuery(url.searchParams, new Set());
+      const caseId = url.pathname.slice(`${THREE_TIER_PREFIX}case-histories/`.length);
+      if (!CASE_ID_PATTERN.test(caseId)) throw new ApiError(400, 'INVALID_PATH', 'caseId must be a synthetic case ID');
+      return threeTierService.getCaseHistory({ sessionId: readSession(), caseId });
+    }
+    if (url.pathname === `${THREE_TIER_PREFIX}center-calendar`) {
+      assertKnownQuery(url.searchParams, new Set(['dongCode', 'month']));
+      const dongCode = url.searchParams.get('dongCode');
+      if (dongCode === null || !DONG_CODE_QUERY_PATTERN.test(dongCode)) throw new ApiError(400, 'INVALID_QUERY', 'dongCode must be a 10-digit current admin dong code');
+      const month = url.searchParams.get('month');
+      if (month === null || !/^\d{4}-(?:0[1-9]|1[0-2])$/.test(month)) throw new ApiError(400, 'INVALID_QUERY', 'month must use the YYYY-MM form');
+      return threeTierService.getCenterCalendar({ sessionId: readSession(), dongCode, month });
+    }
     if (url.pathname === `${THREE_TIER_PREFIX}city-operations-map`) {
       assertKnownQuery(url.searchParams, new Set());
       return threeTierService.getCityOperationsMap({ sessionId: readSession() });
@@ -579,12 +642,24 @@ async function routeContactOps(request, url, service, {
   enableDemoSessionReset = false,
   voiceAudioUploader = null,
   threeTierService = null,
+  liveCallService = null,
 } = {}) {
   if (url.pathname.startsWith(THREE_TIER_PREFIX)) {
     return routeThreeTier(request, url, threeTierService);
   }
-  if (!service) throw new ApiError(503, 'CONTACT_OPS_UNAVAILABLE', 'ContactOps state is unavailable');
   const readSession = () => sessionFor(request);
+  if (request.method === 'POST' && url.pathname.endsWith('/live-calls')) {
+    if (!liveCallService) throw new ApiError(503, 'LIVE_CALL_UNAVAILABLE', '실시간 통화를 사용할 수 없습니다.');
+    if (!/^application\/json(?:;|$)/i.test(String(request.headers['content-type'] || ''))) throw new ApiError(415, 'UNSUPPORTED_MEDIA_TYPE', 'Content-Type must be application/json');
+    const body = await readBody(request);
+    exactBody(body, ['expected_revision']);
+    return liveCallService.createCall({
+      sessionId: sessionFor(request, { required: true }),
+      caseId: caseIdFrom(url.pathname, '/live-calls'),
+      expectedRevision: body.expected_revision,
+    });
+  }
+  if (!service) throw new ApiError(503, 'CONTACT_OPS_UNAVAILABLE', 'ContactOps state is unavailable');
   if (request.method === 'GET' && url.pathname === '/api/v1/contact-ops/today') {
     assertKnownQuery(url.searchParams, new Set(['referenceDate', 'workerId']));
     const referenceDate = url.searchParams.get('referenceDate');
@@ -728,6 +803,7 @@ export function createApiHandler({
   voiceAudioUploader = null,
   enableDemoSessionReset = false,
   threeTierService = null,
+  liveCallService = null,
 }) {
   if (!store) throw new Error('store is required');
   if (!Number.isSafeInteger(rateLimitPerMinute) || rateLimitPerMinute < 0 || rateLimitPerMinute > 100_000) {
@@ -783,12 +859,28 @@ export function createApiHandler({
         }
       }
 
+      if (pathname === '/api/v1/contact-ops/live-calls/realtime-sdp') {
+        if (!liveCallService) throw new ApiError(503, 'LIVE_CALL_UNAVAILABLE', '실시간 통화를 사용할 수 없습니다.');
+        if (request.method !== 'POST') throw new ApiError(405, 'METHOD_NOT_ALLOWED', 'Method is not allowed for this route');
+        if (!/^application\/sdp(?:;|$)/i.test(String(request.headers['content-type'] || ''))) {
+          throw new ApiError(415, 'UNSUPPORTED_MEDIA_TYPE', 'Content-Type must be application/sdp');
+        }
+        const answer = await liveCallService.exchangeRealtimeSdp({
+          participantToken: bearerToken(request),
+          sdp: await readTextBody(request),
+        });
+        sendSdp(request, response, 201, answer, context);
+        return;
+      }
+
       const result = isOps
-        ? { body: { apiVersion: API_VERSION, data: await routeContactOps(request, url, contactOpsService, { enableDemoSessionReset, voiceAudioUploader, threeTierService }) }, cacheable: false }
+        ? { body: { apiVersion: API_VERSION, data: await routeContactOps(request, url, contactOpsService, { enableDemoSessionReset, voiceAudioUploader, threeTierService, liveCallService }) }, cacheable: false }
         : routeRequest(store, url);
       sendJson(request, response, 200, result.body, context, result.cacheable);
     } catch (error) {
-      if (!(error instanceof ApiError) && error instanceof VoiceAudioUploadError) {
+      if (!(error instanceof ApiError) && error instanceof LiveCallError) {
+        error = new ApiError(error.status, error.code, error.message);
+      } else if (!(error instanceof ApiError) && error instanceof VoiceAudioUploadError) {
         error = new ApiError(error.status, error.code, error.message);
       } else if (!(error instanceof ApiError) && error?.code === 'STATE_CONFLICT') {
         error = new ApiError(409, 'STATE_CONFLICT', error.message);

@@ -7,7 +7,7 @@
       "file": "artifacts/screenshots/public-map-desktop.png",
       "width": 1440,
       "height": 900,
-      "state": "실제 공개 집계 지도와 혼합 시점 고지"
+      "state": "실제 공개 집계 지도"
     },
     {
       "file": "artifacts/screenshots/public-operations-scenario-desktop.png",
@@ -58,12 +58,6 @@
       "state": "실제 156구역 연락업무 모드와 투명한 구조 맥락"
     },
     {
-      "file": "artifacts/screenshots/error-mobile.png",
-      "width": 390,
-      "height": 844,
-      "state": "[검증 화면] error 상태 · 연락업무 API 가로채기"
-    },
-    {
       "file": "artifacts/screenshots/loading-mobile.png",
       "width": 390,
       "height": 844,
@@ -74,6 +68,12 @@
       "width": 390,
       "height": 844,
       "state": "[검증 화면] empty 상태 · 연락업무 API 가로채기"
+    },
+    {
+      "file": "artifacts/screenshots/error-mobile.png",
+      "width": 390,
+      "height": 844,
+      "state": "[검증 화면] error 상태 · 연락업무 API 가로채기"
     },
     {
       "file": "artifacts/screenshots/empty-loading-error-mobile.png",
@@ -92,7 +92,6 @@
     "horizontalOverflowPx": 0,
     "syntheticPresentationAbsent": true,
     "separateAxes": true,
-    "mixedSnapshotWarning": true,
     "modelOutputLabel": true,
     "compositeScoreAbsent": true
   },

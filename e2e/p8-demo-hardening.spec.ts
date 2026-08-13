@@ -9,7 +9,6 @@ const SCREENSHOT_DIR = 'artifacts/screenshots'
 const AXE_PATH = 'artifacts/axe/p8-axe-results.json'
 const EVIDENCE_PATH = 'artifacts/p8-evidence.json'
 const SESSION_KEY = 'care-ops-demo-session-id'
-const P2_WARNING = '분자 2026-07-31 · 분모 2026-06-30 · 서로 다른 기준월의 참고 비율이며 동시점 비율이 아닙니다.'
 const MODEL_LABEL = '[MODEL OUTPUT — UNVALIDATED]'
 
 type AxeSurfaceResult = {
@@ -215,12 +214,11 @@ test('P8 hardening: production-like surfaces, explicit states, accessibility, an
   listenForBrowserErrors(publicPage)
   await publicPage.goto('/')
   await expect(publicPage.locator('[data-map-ready="true"]')).toBeVisible({ timeout: 45_000 })
-  await expect(publicPage.locator('.guardrail > span')).toHaveText(P2_WARNING)
   await expect.poll(async () => publicPage.locator('.maplibregl-ctrl-attrib a').first().evaluate((link) => ({
     color: getComputedStyle(link).color,
     decoration: getComputedStyle(link).textDecorationLine,
   }))).toMatchObject({ decoration: 'underline' })
-  await capture(publicPage, 'public-map-desktop.png', 1440, 900, '실제 공개 집계 지도와 혼합 시점 고지')
+  await capture(publicPage, 'public-map-desktop.png', 1440, 900, '실제 공개 집계 지도')
   await audit(publicPage, 'public-map-desktop')
   await publicPage.getByRole('button', { name: '연락업무' }).click()
   await publicPage.getByRole('textbox', { name: '구 또는 동 검색' }).fill('신포동')
@@ -345,7 +343,6 @@ test('P8 hardening: production-like surfaces, explicit states, accessibility, an
       horizontalOverflowPx,
       syntheticPresentationAbsent: !operationsText.includes('합성'),
       separateAxes: true,
-      mixedSnapshotWarning: true,
       modelOutputLabel: true,
       compositeScoreAbsent: true,
     },

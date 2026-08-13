@@ -125,6 +125,13 @@ function assertStoredRecord(record, { sessionId, seeds }) {
       || Number.isNaN(Date.parse(record.updated_at))) {
     throw new ContactOpsStateError('STATE_INVALID', 'Firestore ContactOps override is invalid');
   }
+  // 이전 배포의 세션이 저장한 레코드에는 이후 계약에 추가된 가구 필드가
+  // 없을 수 있다. 세션이 덮어쓰지 않는 정적 필드는 시드에서 보충해
+  // 조회 결과를 항상 현재 계약 스키마로 맞춘다.
+  const seed = seeds.get(record.household.id);
+  if (!record.household.management_entry && seed.management_entry) {
+    record.household.management_entry = clone(seed.management_entry);
+  }
   return record;
 }
 

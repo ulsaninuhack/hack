@@ -7,9 +7,9 @@
 - **3a 완료:** 텍스트 입력 -> OpenAI Structured Outputs -> 계약 검증 -> JSON
 - **3b 완료(모킹 전사 검증):** WAV/MP3/M4A 파일 -> OpenAI 전사 -> 즉시 PII 마스킹 -> 기존 3a -> 같은 계약 검증 -> JSON
 - **ContactOps P3 어댑터 완료(모킹 검증):** Planner -> 기존 JSON 스키마 -> 영/한 관찰 매핑 -> Critic -> 명시적 사용자 확인 후보
-- **3c 미구현:** Realtime API(WebRTC) -> function calling -> 같은 JSON
+- **3c 코드 완료(모킹 검증):** LiveKit 2인 WebRTC 통화 -> 발화자별 OpenAI Realtime 전사 -> 연락 대상 확정 발화만 기존 3a/ContactOps 후보 경계 재사용
 
-3a가 최하단 폴백이다. 3b는 파일을 전사한 뒤 `processVoiceInput({ kind: 'text', ... })`에 그대로 넘기고, 3c도 실시간 전사·함수 호출이 실패하면 3b, 다시 3a 순서로 전환한다.
+3a가 최하단 폴백이다. 3b는 파일을 전사한 뒤 `processVoiceInput({ kind: 'text', ... })`에 그대로 넘긴다. 3c도 실시간 전사가 끝나면 기존 텍스트 후보 경계를 재사용하며, 실패하면 3b 파일 입력, 다시 문답·수동 입력 순서로 전환한다.
 
 > 3c는 코드와 mock 테스트가 통과해도 완료가 아니다. **실기기 마이크로 실제 발화 테스트가 반드시 필요하다.**
 
@@ -130,7 +130,14 @@ npm run test:live
 
 ContactOps 실제 Planner–Critic 그래프는 `ENABLE_LIVE_CONTACT_OPS_AI=1`이 명시되고 OpenAI 또는 Mac mini text transport가 설정된 경우에만 열린다. Planner 호출 후 두 번째 Structured Outputs Critic 호출이 실행되며, Critic은 `missing_fields`, `contradictions`, `low_confidence_fields`, `warnings` 배열만 반환할 수 있다. 기본값 `0`에서는 외부 호출을 막고 주입된 모킹 Planner/Critic만 실행한다. 오디오 파일 전사는 브리지 대상이 아니므로 계속 `OPENAI_API_KEY`가 필요하다.
 
-폴백 순서는 3c 실시간 입력 실패 시 3b 파일 업로드, 3b 실패 시 3a 텍스트 직접 입력이다. 3c는 아직 구현하지 않았다.
+3c는 조사원과 연락 대상에게 각각 서버 서명 역할 토큰을 발급한다. 두 브라우저는 LiveKit으로 서로의 음성을 듣고, 각자 자기 마이크만 OpenAI Realtime 전사에 보낸다. 자막은 두 역할 모두 화면에 표시하지만 기존 3a/ContactOps 후보에는 연락 대상의 확정 발화만 전달한다. 통화 종료는 후보 생성일 뿐이며 조사원이 체크리스트를 확인하고 제출해야 기존 결정론 점수와 보고가 실행된다. 폴백 순서는 3c 실패 시 3b 파일 업로드, 그다음 문답·수동 입력이다.
+
+`gpt-live-transcribe`를 전용 `type: transcription` 세션에서 쓰면서 `server_vad`를
+지정하면 `Turn detection is not supported for this transcription model.` 오류가 난다.
+현재 구현은 `type: realtime` 세션에 `gpt-live-transcribe`를 입력 전사기로 연결한다.
+발화 경계는 Realtime 세션의 `server_vad`가 만들며 `create_response`와
+`interrupt_response`는 모두 꺼서 AI 음성 응답은 생성하지 않는다. 전사 델타는 즉시
+표시되고 completed 이벤트만 체크리스트 후보에 들어간다.
 
 ### 초록이 증명하는 것
 
@@ -142,9 +149,15 @@ ContactOps 실제 Planner–Critic 그래프는 `ENABLE_LIVE_CONTACT_OPS_AI=1`�
 ### 초록이 증명하지 못하는 것
 
 - 실제 Whisper/OpenAI 전사 모델의 한국어 노인 음성, 전화 음질, 사투리, 소음 환경 정확도
-- 3c Realtime/WebRTC 및 실시간 마이크 동작
+- Galaxy/iPhone 두 대의 실제 WebRTC 마이크·스피커 동작과 네트워크 품질
 
 위 항목은 아침에 실기기·실오디오로 사람이 검증해야 한다. 모킹 테스트 통과를 실제 음성 품질 완료로 간주하지 않는다.
+
+2026-08-13 로컬 클라우드 스모크에서는 서로 다른 합성 WAV를 가짜 마이크로 넣은
+두 브라우저가 실제 LiveKit Cloud 방에 2명으로 참여하고, OpenAI Realtime SDP 201
+응답 뒤 연결단원 1턴과 연락 대상 1턴을 분리해 completed 자막으로 받았다. 이는 실제
+클라우드 배선과 애플리케이션 발화자 분리를 증명하지만 Galaxy/iPhone의 실제 마이크,
+스피커 에코, 이동통신망, Safari 권한 UX를 증명하지 않는다.
 
 2026-08-13 운영 리허설에서는 Secret Manager 키를 주입한 Cloud Run에서 7초 한국어
 합성 M4A를 모바일 multipart 경로로 전송해 전사·Planner·Critic 후보 HTTP 200을

@@ -23,13 +23,11 @@ function CityZoneRollup({ zone, dong }: { zone: CityOperationsMapZone | null; do
   return (
     <section className="city-zone-rollup" aria-label="선택한 동 단위 롤업">
       <h3>{dong.current_district_name_20260701} {dong.current_admin_dong_names_20260701.join(' · ')}</h3>
-      <p className="city-privacy-note">동 단위 집계까지만 표시합니다. 개별 케이스 정보는 동 행정복지센터 화면에서만 다룹니다.</p>
       <dl className="city-zone-metrics">
         <div><dt>급성도 최대(구역)</dt><dd>{formatScore(operations.acute_color_metric, '점수 없음')}</dd></div>
         <div><dt>취약도 최대(구역)</dt><dd>{formatScore(operations.vulnerability_size_metric, '점수 없음')}</dd></div>
         <div><dt>점수 출처</dt><dd>세션 기록 {operations.session_scored_case_count}건 · 고정 예시 {operations.scenario_scored_case_count}건 · 미기록 {operations.unscored_case_count}건</dd></div>
       </dl>
-      <p className="zone-scenario-note"><strong>고정 운영 예시</strong> 기준일 {operations.scenario_reference_date} · 실제 주민 상태가 아닙니다.</p>
       <div className="city-zone-structure">
         <span className="structural-model-label">{zone.public_structural_context.model_output_label}</span>
         <p>공개 구조 맥락 {zone.public_structural_context.score_0_50.toFixed(1)} / 50</p>
@@ -64,7 +62,6 @@ function PriorityActions({ operations }: { operations: DistrictAggregate['operat
           </li>
         ))}
       </ol>
-      <p className="city-privacy-note">케이스 단위 정보 없이 구·동 집계만 사용합니다.</p>
     </div>
   )
 }
@@ -91,8 +88,6 @@ function DistrictBrief({
         <StatBar label="일인가구 비율" value={structure.one_person_household_share_pct} />
         <StatBar label="기초수급 밀도(참고)" value={structure.basic_livelihood.density_pct} />
       </div>
-      <p className="mixed-snapshot-note">{structure.mixed_snapshot_warning}</p>
-      <p className="mixed-snapshot-note">{structure.basic_livelihood.mixed_snapshot_warning}</p>
 
       <div className="city-fact-chips" aria-label="구 단위 관측 수치">
         <span><UsersRound aria-hidden="true" size={15} /> 65세 이상 일인세대 <strong>{structure.one_person_households_age_65_plus.toLocaleString()}</strong>세대</span>
@@ -108,7 +103,6 @@ function DistrictBrief({
         </button>
         {summary && summary.district === aggregate.district && (
           <article className="city-ai-summary-card" aria-label={`${aggregate.district} AI 요약`}>
-            <p className="city-ai-label">{summary.label}</p>
             <p className="city-ai-text">{summary.summary_text}</p>
             <details>
               <summary>요약에 주입된 집계 수치 보기</summary>
@@ -118,9 +112,6 @@ function DistrictBrief({
                 ))}
               </ul>
             </details>
-            {summary.mixed_snapshot_warnings.map((warning) => (
-              <p key={warning} className="mixed-snapshot-note">{warning}</p>
-            ))}
           </article>
         )}
       </div>
@@ -179,7 +170,6 @@ export function CityPage() {
       <header className="tier-header">
         <div>
           <h1>시·구 배치 브리핑 · 인천</h1>
-          <p className="tier-audience">시·구 담당자용 · 동 단위 롤업까지만 표시(개인정보 최소수집·목적제한)</p>
         </div>
         <nav aria-label="3계층 화면 이동">
           <a href="/center">동 센터</a>
@@ -214,7 +204,6 @@ export function CityPage() {
             <h2 id="city-staffing-heading">증원 검토</h2>
             {aggregates ? (
               <>
-                <p className="center-section-note">{aggregates.staffing_review.method_note}</p>
                 <div className="city-table-scroll">
                   <table className="city-staffing-table">
                     <caption>증원 검토 후보 · 운영 부하 순 정렬(구조 맥락 순위는 별도 열)</caption>
@@ -242,7 +231,6 @@ export function CityPage() {
                     </tbody>
                   </table>
                 </div>
-                <p className="city-privacy-note">구조 맥락 평균은 {aggregates.districts[0]?.structure.structural_context.model_output_label ?? '[MODEL OUTPUT — UNVALIDATED]'} 라벨의 공개 집계 참고값입니다. 두 축은 합산하지 않습니다.</p>
               </>
             ) : <p className="ops-state" role="status">증원 검토 집계를 불러오는 중입니다.</p>}
           </section>

@@ -65,10 +65,6 @@ for (const forbidden of [
   if (normalizedRenderedUiSource.includes(forbidden)) throw new Error(`Rendered UI source contains forbidden ${forbidden}`)
 }
 
-const mixedSnapshotWarning = '분자 2026-07-31 · 분모 2026-06-30 · 서로 다른 기준월의 참고 비율이며 동시점 비율이 아닙니다.'
-if (!renderedUiSource.includes(mixedSnapshotWarning)) {
-  throw new Error('Rendered UI source is missing the exact P2 mixed-snapshot warning')
-}
 if (!renderedUiSource.includes('[MODEL OUTPUT — UNVALIDATED]')) {
   throw new Error('Rendered UI source is missing the unvalidated structural-context label')
 }
@@ -97,7 +93,6 @@ const exactChecks = {
   horizontalOverflowPx: 0,
   syntheticPresentationAbsent: true,
   separateAxes: true,
-  mixedSnapshotWarning: true,
   modelOutputLabel: true,
   compositeScoreAbsent: true,
 }
@@ -152,7 +147,6 @@ process.stdout.write([
   'horizontal-overflow=0',
   'axes=separate',
   'synthetic-presentation=absent',
-  'p2-warning=present',
   'model-label=present',
   'composite-score=absent',
   'frontend-firestore=absent',

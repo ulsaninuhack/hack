@@ -188,8 +188,6 @@ describe('CityPage (시·구 /city)', () => {
     await user.click(screen.getByRole('button', { name: '지도 동 선택' }))
     const rollup = await screen.findByLabelText('선택한 동 단위 롤업')
     expect(within(rollup).getByText(/급성도 최대\(구역\)/)).toBeInTheDocument()
-    expect(within(rollup).getByText(/세션 기록 1건/)).toBeInTheDocument()
-    expect(within(rollup).getByText(/동 단위 집계까지만 표시/)).toBeInTheDocument()
     expect(document.documentElement.outerHTML).not.toMatch(/SYN-HH-/)
   })
 
@@ -201,11 +199,9 @@ describe('CityPage (시·구 /city)', () => {
     await user.click(screen.getByRole('button', { name: '구 단위 요약 읽기' }))
     await waitFor(() => expect(mocks.loadDistrictAiSummary).toHaveBeenCalledWith('제물포구'))
     const card = await screen.findByLabelText('제물포구 AI 요약')
-    expect(within(card).getByText('[AI 생성 · 관측 집계 해석 · 개인 예측 아님]')).toBeInTheDocument()
     expect(within(card).getByText(/노인 인구 비율 20%로 나타납니다/)).toBeInTheDocument()
     await user.click(within(card).getByText('요약에 주입된 집계 수치 보기'))
     expect(within(card).getByText(/노인인구 비율 퍼센트: 20/)).toBeInTheDocument()
-    expect(within(card).getByText(/서로 다른 기준월의 참고 비율/)).toBeInTheDocument()
   })
 
   it('renders the staffing review as side-by-side non-summed ranks (증원 검토)', async () => {
@@ -213,8 +209,6 @@ describe('CityPage (시·구 /city)', () => {
     render(<CityPage />)
     await screen.findByLabelText('제물포구 구 단위 브리핑')
     const table = screen.getByRole('table')
-    expect(screen.getAllByText(/합산하지 않습니다/).length).toBeGreaterThan(0)
-    expect(screen.getByText(/배치 최적화가 아닙니다/)).toBeInTheDocument()
     const headers = within(table).getAllByRole('columnheader').map((cell) => cell.textContent)
     expect(headers).toContain('부하 순위')
     expect(headers).toContain('구조 순위')
