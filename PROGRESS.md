@@ -443,3 +443,10 @@ hostile follow-up, commit, preview, and blockers. Existing entries are never rew
   계열로 정렬. 코드가 아닌 시각 언어(팔레트·라운드·모션 규약)만 가져옴.
 - 레퍼런스의 gray-600(#747a83)은 AA 4.5:1 미달(4.32)이라 #656b75로 보정.
 - 검증: 프런트 53, E2E 5/5(axe 대비 게이트 포함), typecheck·copy 게이트 그린.
+
+## 2026-08-13 — CI 슬림화 (PR 피드백 ~1분)
+
+- PR에서는 Playwright 브라우저 E2E를 건너뛰고 main 푸시에서만 실행(로컬
+  test:e2e:ops 의무는 유지). Markdown·artifacts만 바뀐 커밋은 파이프라인 전체
+  스킵(paths-ignore). 연속 푸시 취소(concurrency)는 기존 구성 확인.
+- AGENTS.md 배포 계약 문단에 동일 내용 기록. agent:check 그린.
