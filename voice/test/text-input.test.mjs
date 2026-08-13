@@ -155,6 +155,36 @@ test('selected-case context tells the model that quoted first-person speech is a
   assert.match(calls[0].input[0].content, /관계망 없음/);
 });
 
+test('selected-case prompt maps explicit emotional distress to the canonical mental-health signal', async () => {
+  const transcript = '요즘 마음이 너무 힘들고 우울하고 불안해요. 사는 게 벅차요.';
+  const routeCaseId = 'SYN-HH-2812551000-0003';
+  const modelOutput = structuredClone(fixtures[2].expected);
+  modelOutput.case_id = routeCaseId;
+  modelOutput.transcript = transcript;
+  modelOutput.contact_result.risk_signals = ['최근 건강·정신 괴로움 있음'];
+  modelOutput.contact_result.evidence = ['마음이 너무 힘들고 우울하고 불안해요'];
+  const calls = [];
+
+  const result = await processVoiceInput(
+    { kind: 'text', text: transcript, surveyorId: '연결단원 001' },
+    {
+      client: mockClient(modelOutput, calls),
+      context: {
+        expectedIntent: 'contact_result',
+        selectedCaseId: routeCaseId,
+        source: 'selected_case_voice_memo',
+      },
+    },
+  );
+
+  assert.ok(result.contact_result.risk_signals.includes('최근 건강·정신 괴로움 있음'));
+  const prompt = calls[0].input[0].content;
+  for (const phrase of ['마음이 힘들다', '우울하다', '불안하다', '살기 벅차다']) {
+    assert.match(prompt, new RegExp(phrase));
+  }
+  assert.match(prompt, /최근 건강·정신 괴로움 있음/);
+});
+
 test('rejects real-looking or malformed surveyor identifiers before an API call', async () => {
   await assert.rejects(
     processVoiceInput(

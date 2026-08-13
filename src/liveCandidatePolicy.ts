@@ -27,16 +27,17 @@ type CandidateScalarField = Exclude<keyof VoiceCandidate['observations'], '관�
 
 /**
  * Keep a populated Planner value visible when Critic wants a second look.
- * Missing values already render as `미확인`, so they do not also get a
- * pending marker.
+ * Transcript-only Critic may call a field missing even when Planner inferred
+ * a value, so either exact review list marks that populated value pending.
+ * Null values already render as `미확인` and do not need a second marker.
  */
 export function isCandidateValuePending(
   candidate: LiveQuestionCandidate,
   field: CandidateScalarField,
 ): boolean {
   return candidate.observations[field] !== null
-    && !candidate.critic.missing_fields.includes(field)
-    && candidate.critic.low_confidence_fields.includes(field)
+    && (candidate.critic.missing_fields.includes(field)
+      || candidate.critic.low_confidence_fields.includes(field))
 }
 
 /**

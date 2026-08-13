@@ -43,13 +43,27 @@ vi.mock('./LiveCallPanel', () => ({
   LiveCallPanel: ({ onFinish, onTranscriptUpdate, liveCandidate, targetDisplayName }: {
     onFinish: (transcript: string) => Promise<void>
     onTranscriptUpdate: (transcript: string) => void
-    liveCandidate?: { critic: { next_question: string | null } } | null
+    liveCandidate?: {
+      observations: {
+        식사상태: string | null
+        공과금_2개월_이상_체납: boolean | null
+      }
+      critic: {
+        missing_fields: string[]
+        low_confidence_fields: string[]
+        next_question: string | null
+      }
+    } | null
     targetDisplayName?: string
   }) => (
     <section aria-label="실시간 통화 테스트">
       <p>통화 상대: {targetDisplayName}</p>
       <button type="button" onClick={() => onTranscriptUpdate('밥을 잘 못 먹어요.')}>실시간 발화 테스트</button>
       <button type="button" onClick={() => onTranscriptUpdate('밥을 잘 못 먹어요. 공과금도 못 냈어요.')}>실시간 발화 2 테스트</button>
+      <p>식사 상태: {liveCandidate?.observations.식사상태 ?? '미확인'}{liveCandidate?.observations.식사상태 !== null
+        && (liveCandidate?.critic.missing_fields.includes('식사상태')
+          || liveCandidate?.critic.low_confidence_fields.includes('식사상태')) ? ' (보류)' : ''}</p>
+      <p>공과금 체납: {liveCandidate?.observations.공과금_2개월_이상_체납 == null ? '미확인' : liveCandidate.observations.공과금_2개월_이상_체납 ? '체납 있음' : '체납 없음'}</p>
       {liveCandidate?.critic.next_question && <p>{liveCandidate.critic.next_question}</p>}
       <button type="button" onClick={() => void onFinish('밥을 잘 못 먹어요.')}>통화 종료 테스트</button>
     </section>
@@ -536,6 +550,135 @@ describe('MobilePage (조사원 /m)', () => {
     await act(async () => rejectSecond(new Error('latest refresh unavailable')))
 
     expect(await screen.findByText(firstQuestion)).toBeInTheDocument()
+  })
+
+  it('does not regress populated live checklist fields to 미확인 when a later response is less complete', async () => {
+    arrange()
+    mocks.createAiObservationCandidate.mockReset()
+    mocks.createLiveCall.mockResolvedValue({
+      provider: 'livekit', call_id: 'call123', room_name: 'care-call-call123',
+      server_url: 'wss://example.livekit.cloud', expires_at: '2030-08-13T12:00:00.000Z',
+      transcription: { provider: 'openai', model: 'gpt-live-transcribe', language: 'ko' },
+      host: { role: 'surveyor', participant_token: 'host.token.signature' },
+      guest: { role: 'resident', invite_code: 'invitecode0123456789abcdef012345' },
+    })
+    mocks.buildGuestInviteUrl.mockReturnValue('https://demo.example/call?invite=invitecode0123456789abcdef012345')
+
+    const response = (transcript: string, meal: '불량' | '심각' | null, utility: boolean | null, nextQuestion: string) => ({
+      revision: 0,
+      candidate: {
+        case_id: 'SYN-HH-2812551000-0001',
+        contact_result: voiceCandidateConcernResult,
+        transcript,
+        observations: {
+          관찰_6징후: { 우편물_고지서_적체: false, 악취_벌레: false, 쓰레기_술병: false, 인기척_없이_TV_불: false, 외출_없음: false, 연락_두절: false },
+          식사상태: meal, 위생상태: null, 공과금_2개월_이상_체납: utility,
+          최근_건강_정신_괴로움: null, 관계망_유무: null, 연락_빈도: null,
+        },
+        free_text: '',
+        critic: {
+          missing_fields: [
+            ...(meal === null ? ['식사상태'] : []),
+            ...(utility === null ? ['공과금_2개월_이상_체납'] : []),
+          ],
+          contradictions: [], low_confidence_fields: [], warnings: [], next_question: nextQuestion,
+        },
+        requires_user_confirmation: true,
+      },
+    })
+
+    mocks.createAiObservationCandidate
+      .mockResolvedValueOnce(response(
+        '밥을 잘 못 먹어요. 공과금도 못 냈어요.',
+        '불량',
+        true,
+        '필요할 때 연락하거나 도움을 청할 분이 계세요?',
+      ))
+      .mockResolvedValueOnce(response(
+        '밥을 잘 못 먹어요. 공과금도 못 냈어요. 그냥 힘드네요.',
+        null,
+        null,
+        '요즘 식사는 잘 드시고 계신가요?',
+      ))
+      .mockResolvedValueOnce(response(
+        '밥을 잘 못 먹어요. 공과금도 못 냈어요. 며칠째 아무것도 못 먹었어요.',
+        '심각',
+        true,
+        '최근 몸이 아프거나 마음이 힘든 일은 없으세요?',
+      ))
+
+    const user = userEvent.setup()
+    render(<MobilePage />)
+    await user.click(await screen.findByText('김영자 어르신'))
+    await user.click(screen.getByRole('button', { name: '실시간 통화 시작' }))
+    await user.click(screen.getByRole('button', { name: '실시간 발화 2 테스트' }))
+    expect(await screen.findByText('식사 상태: 불량')).toBeInTheDocument()
+    expect(screen.getByText('공과금 체납: 체납 있음')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '실시간 발화 2 테스트' }))
+    await waitFor(() => expect(mocks.createAiObservationCandidate).toHaveBeenCalledTimes(2))
+    expect(await screen.findByText('요즘 식사는 잘 드시고 계신가요?')).toBeInTheDocument()
+    expect(screen.getByText('식사 상태: 불량')).toBeInTheDocument()
+    expect(screen.getByText('공과금 체납: 체납 있음')).toBeInTheDocument()
+    expect(screen.queryByText('식사 상태: 미확인')).toBeNull()
+    expect(screen.queryByText('식사 상태: 불량 (보류)')).toBeNull()
+    expect(screen.queryByText('공과금 체납: 미확인')).toBeNull()
+
+    await user.click(screen.getByRole('button', { name: '실시간 발화 2 테스트' }))
+    await waitFor(() => expect(mocks.createAiObservationCandidate).toHaveBeenCalledTimes(3))
+    expect(await screen.findByText('식사 상태: 심각')).toBeInTheDocument()
+    expect(screen.queryByText('식사 상태: 불량')).toBeNull()
+  })
+
+  it('keeps populated values without adding pending when the final refresh returns null', async () => {
+    arrange()
+    mocks.createAiObservationCandidate.mockReset()
+    mocks.createLiveCall.mockResolvedValue({
+      provider: 'livekit', call_id: 'call123', room_name: 'care-call-call123',
+      server_url: 'wss://example.livekit.cloud', expires_at: '2030-08-13T12:00:00.000Z',
+      transcription: { provider: 'openai', model: 'gpt-live-transcribe', language: 'ko' },
+      host: { role: 'surveyor', participant_token: 'host.token.signature' },
+      guest: { role: 'resident', invite_code: 'invitecode0123456789abcdef012345' },
+    })
+    mocks.buildGuestInviteUrl.mockReturnValue('https://demo.example/call?invite=invitecode0123456789abcdef012345')
+
+    const candidate = (transcript: string, meal: '불량' | null, utility: boolean | null) => ({
+      revision: 0,
+      candidate: {
+        case_id: 'SYN-HH-2812551000-0001',
+        contact_result: meal === null ? ['connected', 'ok'].join('_') : voiceCandidateConcernResult,
+        transcript,
+        observations: {
+          관찰_6징후: { 우편물_고지서_적체: false, 악취_벌레: false, 쓰레기_술병: false, 인기척_없이_TV_불: false, 외출_없음: false, 연락_두절: false },
+          식사상태: meal, 위생상태: null, 공과금_2개월_이상_체납: utility,
+          최근_건강_정신_괴로움: null, 관계망_유무: null, 연락_빈도: null,
+        },
+        free_text: '',
+        critic: {
+          missing_fields: meal === null ? ['식사상태', '공과금_2개월_이상_체납'] : [],
+          contradictions: [], low_confidence_fields: [], warnings: [], next_question: null,
+        },
+        requires_user_confirmation: true,
+      },
+    })
+    mocks.createAiObservationCandidate
+      .mockResolvedValueOnce(candidate('밥을 잘 못 먹어요. 공과금도 못 냈어요.', '불량', true))
+      .mockResolvedValueOnce(candidate('밥을 잘 못 먹어요.', null, null))
+
+    const user = userEvent.setup()
+    render(<MobilePage />)
+    await user.click(await screen.findByText('김영자 어르신'))
+    await user.click(screen.getByRole('button', { name: '실시간 통화 시작' }))
+    await user.click(screen.getByRole('button', { name: '실시간 발화 2 테스트' }))
+    expect(await screen.findByText('식사 상태: 불량')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: '통화 종료 테스트' }))
+    expect(await screen.findByLabelText('통화(또는 방문) 결과')).toHaveValue('우려 사항 있음')
+    expect(screen.getByLabelText('식사 상태')).toHaveValue('불량')
+    expect(screen.getByLabelText('공과금 체납')).toHaveValue('true')
+    expect(screen.queryByText('식사 상태 (보류)')).toBeNull()
+    expect(screen.queryByText('공과금 체납 (보류)')).toBeNull()
+    expect(mocks.createAiObservationCandidate).toHaveBeenCalledTimes(2)
   })
 
   it('uses concise labels for health and utility answers', async () => {

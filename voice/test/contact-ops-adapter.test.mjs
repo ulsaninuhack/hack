@@ -562,6 +562,47 @@ test('selected-case memo context maps AI social-isolation signals into the canon
   });
 });
 
+test('maps the Planner emotional-distress signal into the health and mental checklist', async () => {
+  const transcript = '요즘 마음이 너무 힘들고 우울하고 불안해서 사는 게 벅차요.';
+  const result = await planContactOpsObservation(
+    { kind: 'text', text: transcript, surveyorId: SURVEYOR_ID, caseId: ROUTE_CASE_ID },
+    {
+      plannerClient: mockPlanner(plannerOutput({
+        transcript,
+        caseId: null,
+        observation: { meal_status: null, hygiene: null },
+        riskSignals: ['최근 건강·정신 괴로움 있음'],
+        freeText: '',
+      })),
+    },
+  );
+
+  assert.equal(result.observations.최근_건강_정신_괴로움, true);
+  assert.ok(!result.critic.missing_fields.includes('최근_건강_정신_괴로움'));
+  assert.equal(result.contact_result, 'connected_concern');
+  assert.equal(result.requires_user_confirmation, true);
+  assert.equal(result.confirmed, false);
+});
+
+test('does not infer emotional distress when the Planner omits the canonical signal', async () => {
+  const transcript = '요즘 마음이 너무 힘들고 우울하고 불안해서 사는 게 벅차요.';
+  const result = await planContactOpsObservation(
+    { kind: 'text', text: transcript, surveyorId: SURVEYOR_ID, caseId: ROUTE_CASE_ID },
+    {
+      plannerClient: mockPlanner(plannerOutput({
+        transcript,
+        caseId: null,
+        observation: { meal_status: null, hygiene: null },
+        riskSignals: [],
+        freeText: '최근 정서적 어려움을 직접 말함',
+      })),
+    },
+  );
+
+  assert.equal(result.observations.최근_건강_정신_괴로움, null);
+  assert.ok(result.critic.missing_fields.includes('최근_건강_정신_괴로움'));
+});
+
 for (const serverOwnedField of [
   'no_answer_streak',
   'recontact_deadline',
