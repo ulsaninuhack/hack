@@ -105,8 +105,12 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
     await page.goto('/center')
     await expect(page.getByRole('heading', { name: /신포동 행정복지센터/ })).toBeVisible()
     const phoneLane = page.getByLabel('전화 레인 할당 제안')
-    await expect(phoneLane).toContainText(CASE_NAME)
     await expect(phoneLane).toContainText('자동 배정됨')
+    // 전화 레인은 5명 단위 페이지네이션 — 골든 케이스가 보일 때까지 넘긴다.
+    for (let hop = 0; hop < 10 && (await phoneLane.getByText(CASE_NAME).count()) === 0; hop += 1) {
+      await page.getByRole('button', { name: '다음' }).click()
+    }
+    await expect(phoneLane).toContainText(CASE_NAME)
     expect(mutationPaths.filter((path) => path.endsWith('/assignment-confirmations'))).toEqual([])
     await page.getByRole('tab', { name: /^방문 \d+$/ }).click()
     await expect(page.getByLabel('방문 레인 할당 제안')).not.toContainText(CASE_NAME)
