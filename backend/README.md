@@ -37,8 +37,12 @@ Synthetic ContactOps routes:
 - `GET /api/v1/contact-ops/visit-recommendations?referenceDate=&workerId=&district=`
 - `POST /api/v1/contact-ops/cases/:caseId/visit-decisions`
 - `POST /api/v1/contact-ops/cases/:caseId/ai-observations` — returns a Planner/Critic
-  candidate for consented masked text or a validated server-side WAV/MP3 reference;
+  candidate for consented masked text or a validated server-side WAV/MP3/M4A reference;
   a separate request with `confirmed: true` is required before deterministic rules run
+- `POST /api/v1/contact-ops/cases/:caseId/ai-observations/audio` — accepts one multipart
+  M4A/WAV/MP3 file plus `expected_revision`, `contact_date`, `surveyor_id`, and the fixed
+  `consent_basis=verbal_in_recording`; the temporary random-named file is deleted after
+  candidate generation and the response uses the same confirmation-required candidate
 
 `bbox` uses `minLongitude,minLatitude,maxLongitude,maxLatitude` and is limited to a five-degree span. List endpoints cap `limit` at 500 (`zones` at 200) and `offset` at 100,000. Invalid, duplicate, and unknown query parameters return a versioned JSON error.
 
@@ -66,8 +70,9 @@ transfer.
 Live Planner/Critic calls are fail-closed unless `ENABLE_LIVE_CONTACT_OPS_AI=1` and an
 `OPENAI_API_KEY` are configured. CI proves the graph with deterministic injected clients;
 it does not prove live-model quality. Do not enable the live public endpoint in production
-until authentication or an edge quota and a finite rate limit are configured. Audio input
-is a validated server-side file reference, not a public upload endpoint.
+until authentication or an edge quota and a finite rate limit are configured. The mobile
+upload route is implemented and mock-verified, but live production use remains closed by
+the same environment gate and deployment controls.
 
 From the repository root:
 

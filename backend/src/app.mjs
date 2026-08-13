@@ -1,6 +1,8 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { createServer } from 'node:http';
 
+import { VoiceAudioUploadError } from './voice-audio-upload.mjs';
+
 const API_VERSION = 'v1';
 const DEFAULT_LIMIT = 200;
 const MAX_LIST_LIMIT = 500;
@@ -17,7 +19,7 @@ const CASE_ID_PATTERN = /^SYN-HH-\d{10}-\d{4}$/;
 const WORKER_ID_PATTERN = /^SYN-W-\d{10}-01$/;
 const SESSION_ID_PATTERN = /^[A-Za-z0-9_-]{16,128}$/;
 const SURVEYOR_DISPLAY_ID_PATTERN = /^연결단원 [0-9]{3}$/;
-const AUDIO_FILE_REFERENCE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,119}\.(?:wav|mp3)$/i;
+const AUDIO_FILE_REFERENCE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,119}\.(?:wav|mp3|m4a)$/i;
 
 class ApiError extends Error {
   constructor(status, code, message, details) {
@@ -504,7 +506,10 @@ function caseIdFrom(pathname, suffix = '') {
   if (!CASE_ID_PATTERN.test(id)) throw new ApiError(400, 'INVALID_PATH', 'caseId must be a synthetic case ID');
   return id;
 }
-async function routeContactOps(request, url, service, { enableDemoSessionReset = false } = {}) {
+async function routeContactOps(request, url, service, {
+  enableDemoSessionReset = false,
+  voiceAudioUploader = null,
+} = {}) {
   if (!service) throw new ApiError(503, 'CONTACT_OPS_UNAVAILABLE', 'ContactOps state is unavailable');
   const readSession = () => sessionFor(request);
   if (request.method === 'GET' && url.pathname === '/api/v1/contact-ops/today') {
@@ -529,6 +534,28 @@ async function routeContactOps(request, url, service, { enableDemoSessionReset =
   }
   if (request.method === 'GET' && url.pathname.startsWith('/api/v1/contact-ops/cases/')) return service.getCase({ sessionId: readSession(), caseId: caseIdFrom(url.pathname) });
   if (request.method !== 'POST') throw new ApiError(405, 'METHOD_NOT_ALLOWED', 'ContactOps supports GET, POST, and OPTIONS');
+  if (url.pathname.endsWith('/ai-observations/audio')) {
+    if (typeof voiceAudioUploader !== 'function') {
+      throw new ApiError(503, 'CONTACT_OPS_UNAVAILABLE', 'Voice upload is unavailable');
+    }
+    assertKnownQuery(url.searchParams, new Set());
+    const sessionId = sessionFor(request, { required: true });
+    const caseId = caseIdFrom(url.pathname, '/ai-observations/audio');
+    const staged = await voiceAudioUploader(request);
+    try {
+      return await service.createAiObservation({
+        mode: 'candidate',
+        sessionId,
+        caseId,
+        expectedRevision: staged.expectedRevision,
+        contactDate: staged.contactDate,
+        surveyorId: staged.surveyorId,
+        source: { kind: 'audio', fileReference: staged.fileReference },
+      });
+    } finally {
+      await staged.cleanup();
+    }
+  }
   if (!/^application\/json(?:;|$)/i.test(String(request.headers['content-type'] || ''))) throw new ApiError(415, 'UNSUPPORTED_MEDIA_TYPE', 'Content-Type must be application/json');
   const sessionId = sessionFor(request, { required: true }); const body = await readBody(request);
   if (url.pathname === '/api/v1/contact-ops/session-reset') {
@@ -625,6 +652,7 @@ export function createApiHandler({
   rateLimitPerMinute = Number(process.env.RATE_LIMIT_PER_MINUTE || 600),
   logger = null,
   contactOpsService = null,
+  voiceAudioUploader = null,
   enableDemoSessionReset = false,
 }) {
   if (!store) throw new Error('store is required');
@@ -682,11 +710,13 @@ export function createApiHandler({
       }
 
       const result = isOps
-        ? { body: { apiVersion: API_VERSION, data: await routeContactOps(request, url, contactOpsService, { enableDemoSessionReset }) }, cacheable: false }
+        ? { body: { apiVersion: API_VERSION, data: await routeContactOps(request, url, contactOpsService, { enableDemoSessionReset, voiceAudioUploader }) }, cacheable: false }
         : routeRequest(store, url);
       sendJson(request, response, 200, result.body, context, result.cacheable);
     } catch (error) {
-      if (!(error instanceof ApiError) && error?.code === 'STATE_CONFLICT') {
+      if (!(error instanceof ApiError) && error instanceof VoiceAudioUploadError) {
+        error = new ApiError(error.status, error.code, error.message);
+      } else if (!(error instanceof ApiError) && error?.code === 'STATE_CONFLICT') {
         error = new ApiError(409, 'STATE_CONFLICT', error.message);
       } else if (!(error instanceof ApiError) && error?.code === 'CASE_NOT_FOUND') {
         error = new ApiError(404, 'CASE_NOT_FOUND', error.message);
@@ -712,7 +742,7 @@ export function createApiHandler({
 export function createApiServer(options) {
   const server = createServer(createApiHandler(options));
   server.headersTimeout = 5_000;
-  server.requestTimeout = 10_000;
+  server.requestTimeout = 60_000;
   server.keepAliveTimeout = 5_000;
   server.maxRequestsPerSocket = 1_000;
   return server;

@@ -18,9 +18,13 @@ describe('P3 production AI adapter wiring', () => {
     await runtime.planContactOpsObservation({
       kind: 'audio', fileReference: 'case-0001.wav', surveyorId: '연결단원 001', caseId: 'SYN-HH-2812551000-0001',
     });
+    await runtime.planContactOpsObservation({
+      kind: 'audio', fileReference: 'mobile-0001.m4a', surveyorId: '연결단원 001', caseId: 'SYN-HH-2812551000-0001',
+    });
 
     assert.equal(calls[0].text, 'masked');
     assert.equal(calls[1].audioPath, '/srv/contact-ops-audio/case-0001.wav');
+    assert.equal(calls[2].audioPath, '/srv/contact-ops-audio/mobile-0001.m4a');
     assert.equal(Object.hasOwn(calls[1], 'fileReference'), false);
     assert.deepEqual(runtime.assertContactOpsObservationCandidate({ confirmed: false }), { confirmed: false });
   });

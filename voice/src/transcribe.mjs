@@ -6,7 +6,7 @@ import OpenAI from 'openai';
 
 const DEFAULT_TRANSCRIPTION_MODEL = 'gpt-4o-mini-transcribe';
 const DEFAULT_LANGUAGE = 'ko';
-const SUPPORTED_AUDIO_EXTENSIONS = new Set(['.mp3', '.wav']);
+const SUPPORTED_AUDIO_EXTENSIONS = new Set(['.m4a', '.mp3', '.wav']);
 
 export const MAX_AUDIO_BYTES = 25 * 1024 * 1024;
 
@@ -42,6 +42,11 @@ function hasMp3Signature(header) {
   return hasId3Tag || hasFrameSync;
 }
 
+function hasM4aSignature(header) {
+  return header.length >= 12
+    && header.subarray(4, 8).toString('ascii') === 'ftyp';
+}
+
 export async function assertSupportedAudioFile(audioPath) {
   if (typeof audioPath !== 'string' || audioPath.trim() === '') {
     throw new TranscriptionError('Audio file is unavailable.');
@@ -49,7 +54,7 @@ export async function assertSupportedAudioFile(audioPath) {
 
   const extension = extname(audioPath).toLowerCase();
   if (!SUPPORTED_AUDIO_EXTENSIONS.has(extension)) {
-    throw new TranscriptionError('Audio file type must be WAV or MP3.');
+    throw new TranscriptionError('Audio file type must be WAV, MP3, or M4A.');
   }
 
   let metadata;
@@ -77,7 +82,9 @@ export async function assertSupportedAudioFile(audioPath) {
     const receivedHeader = header.subarray(0, bytesRead);
     const validSignature = extension === '.wav'
       ? hasWavSignature(receivedHeader)
-      : hasMp3Signature(receivedHeader);
+      : extension === '.mp3'
+        ? hasMp3Signature(receivedHeader)
+        : hasM4aSignature(receivedHeader);
     if (!validSignature) {
       throw new TranscriptionError('Audio file content does not match its extension.');
     }

@@ -177,7 +177,7 @@ function assertAdapterInput(input) {
     throw new ContactOpsAdapterError('Consented masked text must be non-empty.');
   }
   if (input.kind === 'audio' && (typeof input.audioPath !== 'string' || input.audioPath.trim() === '')) {
-    throw new ContactOpsAdapterError('audioPath must reference a validated WAV or MP3 file.');
+    throw new ContactOpsAdapterError('audioPath must reference a validated WAV, MP3, or M4A file.');
   }
 }
 
@@ -192,8 +192,8 @@ function assertLiveGate(options) {
 async function prepareTranscript(input, options) {
   if (input.kind === 'text') return maskPii(input.text);
   const extension = extname(input.audioPath).toLowerCase();
-  if (!['.wav', '.mp3'].includes(extension)) {
-    throw new ContactOpsAdapterError('Audio file type must be WAV or MP3.');
+  if (!['.wav', '.mp3', '.m4a'].includes(extension)) {
+    throw new ContactOpsAdapterError('Audio file type must be WAV, MP3, or M4A.');
   }
   try {
     await assertSupportedAudioFile(input.audioPath);

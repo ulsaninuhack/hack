@@ -1,6 +1,6 @@
 import { resolve } from 'node:path';
 
-const AUDIO_REFERENCE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,119}\.(?:wav|mp3)$/i;
+const AUDIO_REFERENCE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,119}\.(?:wav|mp3|m4a)$/i;
 
 export function createContactOpsAiRuntime({ voiceAdapter, audioDirectory }) {
   if (!voiceAdapter
