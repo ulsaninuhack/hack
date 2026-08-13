@@ -280,9 +280,8 @@ export function CityPage() {
               showTransit={false}
               facilityCategory="전체"
               selectedZoneId={selectedDong?.geometry_zone_id ?? null}
-              mapMode="operations"
-              operationsByZone={operationsMap ? Object.fromEntries(operationsMap.zones.map((zone) => [zone.geometry_zone_id, zone.operations])) : undefined}
-              ariaLabel="인천 전체 운영 오버레이 지도 · 동 단위 롤업 전용"
+              mapMode="public"
+              ariaLabel="인천 전체 지도 · 관측 65세 이상 1인가구 비율 채색 · 동 단위 롤업 전용"
               onSelectDong={(dong) => {
                 setSelectedDong(dong)
                 setSelectedDongCode('')
