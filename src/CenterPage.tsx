@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { AlertTriangle, CalendarDays, CheckCircle2, History, RefreshCw } from 'lucide-react'
 import {
@@ -11,6 +11,7 @@ import type { CaseDetail } from './contactOpsClient'
 import {
   ATTENTION_CONTACT_LABELS,
   DEMO_CENTER_DONG_CODE,
+  VULNERABILITY_ATTENTION_THRESHOLD,
   DEMO_WORKER_ID,
   acknowledgeReport,
   confirmAssignment,
@@ -282,6 +283,7 @@ function ReportCardView({
   const heading = (
     <>
         <GradeChip grade={card.등급} />
+        {card.취약도_점수 >= VULNERABILITY_ATTENTION_THRESHOLD && <span className="vuln-chip">취약도 높음</span>}
         <span className="case-id">{card.display_name} 어르신</span>
         <span className="report-meta">{card.evidence.마지막_연락_결과_라벨} · {card.evidence.마지막_연락_일자 ?? '기록 없음'}</span>
     </>
@@ -357,6 +359,8 @@ export function CenterPage({ reviewCaseId = null }: { reviewCaseId?: string | nu
   const [lanePage, setLanePage] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState('')
+  const [reportToast, setReportToast] = useState<string | null>(null)
+  const seenReportIdsRef = useRef<Set<string> | null>(null)
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
   const [decision, setDecision] = useState<'approved' | 'rejected' | null>(null)
@@ -391,6 +395,19 @@ export function CenterPage({ reviewCaseId = null }: { reviewCaseId?: string | nu
   }, [reviewCaseId])
 
   useEffect(() => { void refresh() }, [refresh])
+  // 폴링·새로고침으로 새 보고 카드가 도착하면 짧은 토스트로 알린다.
+  useEffect(() => {
+    if (inbox === null) return
+    const ids = new Set(inbox.report_cards.map((card) => card.card_id))
+    const seen = seenReportIdsRef.current
+    seenReportIdsRef.current = ids
+    if (seen === null) return
+    const fresh = [...ids].filter((id) => !seen.has(id)).length
+    if (fresh === 0) return
+    setReportToast(`새 보고 ${fresh}건 도착`)
+    const timer = window.setTimeout(() => setReportToast(null), 4000)
+    return () => window.clearTimeout(timer)
+  }, [inbox])
   useEffect(() => {
     let syncing = false
     const syncWhenVisible = () => {
@@ -503,6 +520,9 @@ export function CenterPage({ reviewCaseId = null }: { reviewCaseId?: string | nu
     <main className="tier-page center-page">
       <header className="center-header">
         <h1>{inbox?.dong_name ?? '신포동'} 행정복지센터</h1>
+        <button className="center-refresh" disabled={loading} onClick={() => void refresh()}>
+          <RefreshCw aria-hidden="true" size={16} /> 새로고침
+        </button>
         <nav aria-label="3계층 화면 이동">
           <a href="/m">조사원</a>
           <a href="/city">시·구</a>
@@ -518,6 +538,7 @@ export function CenterPage({ reviewCaseId = null }: { reviewCaseId?: string | nu
         </div>
       )}
       {feedback && <p className="ops-feedback" role="status" aria-live="polite">{feedback}</p>}
+      {reportToast && <p className="center-toast" role="status" aria-live="polite">{reportToast}</p>}
       {loading && !inbox && <p className="ops-state" role="status">불러오는 중입니다.</p>}
 
       {inbox && reviewCaseId !== null && (

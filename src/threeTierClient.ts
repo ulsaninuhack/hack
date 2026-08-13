@@ -166,6 +166,14 @@ export interface LaneItem {
   }
 }
 
+export interface CompletedContact {
+  case_id: string
+  display_name: string
+  결과_라벨: string
+  급성도_등급: string | null
+  완료_시각: string
+}
+
 export interface TodayLanes {
   synthetic: true
   displayMarker: string
@@ -178,7 +186,12 @@ export interface TodayLanes {
   assignment_rule: string
   pending_confirmation: { phone: number; visit: number }
   lanes: { phone: LaneItem[]; visit: LaneItem[] }
+  completed: CompletedContact[]
 }
+
+// 취약도는 점수 그대로 표시하되, 이 값 이상이면 목록·보고에서 '취약도 높음'
+// 뱃지를 함께 보여준다. 표시 전용 기준값이며 종합 점수가 아니다.
+export const VULNERABILITY_ATTENTION_THRESHOLD = 70
 
 export interface AgencyRecommendation {
   기관: string

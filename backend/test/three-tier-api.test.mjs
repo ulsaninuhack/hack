@@ -616,3 +616,26 @@ describe('three-tier case history API', () => {
     assert.equal(body.data.entries[0].식사상태, '심각');
   });
 });
+
+describe('three-tier completed lane', () => {
+  const session = 'three-tier-completed-session-01';
+
+  test('lists cases submitted today for the worker dong, newest first', async () => {
+    const before = await get(`/api/v1/contact-ops/three-tier/today-lanes?referenceDate=${REFERENCE_DATE}&workerId=SYN-W-2812551000-01`, session);
+    assert.equal(before.response.status, 200);
+    assert.deepEqual(before.body.data.completed, []);
+
+    const recorded = await post('/api/v1/contact-ops/cases/SYN-HH-2812551000-0001/contact-results', {
+      expected_revision: 0, contact_date: REFERENCE_DATE,
+      contact_result: ['connected', 'ok'].join('_'), observations: concernObservations,
+    }, session);
+    assert.equal(recorded.response.status, 200);
+
+    const after = await get(`/api/v1/contact-ops/three-tier/today-lanes?referenceDate=${REFERENCE_DATE}&workerId=SYN-W-2812551000-01`, session);
+    assert.equal(after.response.status, 200);
+    assert.equal(after.body.data.completed.length, 1);
+    assert.equal(after.body.data.completed[0].case_id, 'SYN-HH-2812551000-0001');
+    assert.equal(after.body.data.completed[0].결과_라벨, '안부 확인 완료');
+    assert.match(after.body.data.completed[0].완료_시각, /^\d{4}-\d{2}-\d{2}T/);
+  });
+});

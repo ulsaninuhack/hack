@@ -12,6 +12,7 @@ import {
 import type { CanonicalObservations, ContactResultLabel } from './contactOpsClient'
 import {
   ATTENTION_CONTACT_LABELS,
+  VULNERABILITY_ATTENTION_THRESHOLD,
   contactResultLabelFromCode,
   loadReportCard,
   loadTodayLanes,
@@ -130,7 +131,7 @@ function AcuteContributionList({ item }: { item: LaneItem }) {
 
 export function MobilePage() {
   const [step, setStep] = useState<Step>('list')
-  const [lane, setLane] = useState<'phone' | 'visit'>('phone')
+  const [lane, setLane] = useState<'phone' | 'visit' | 'completed'>('phone')
   const [lanesData, setLanesData] = useState<TodayLanes | null>(null)
   const [selected, setSelected] = useState<LaneItem | null>(null)
   const [inputPath, setInputPath] = useState<InputPath | null>(null)
@@ -223,7 +224,7 @@ export function MobilePage() {
     }, 700)
   }, [selected])
 
-  const items = useMemo(() => lanesData?.lanes[lane] ?? [], [lanesData, lane])
+  const items = useMemo(() => (lane === 'completed' ? [] : lanesData?.lanes[lane] ?? []), [lanesData, lane])
 
   const openCase = (item: LaneItem) => {
     setSelected(item)
@@ -413,24 +414,51 @@ export function MobilePage() {
 
       {step === 'list' && (
         <section aria-labelledby="mobile-today-heading" className="mobile-list">
-          <h2 id="mobile-today-heading">{lane === 'phone' ? '오늘 할당된 연락 대상' : '오늘 방문 대상'}</h2>
-          <div className="lane-tabs" role="tablist" aria-label="전화 목록과 방문 목록">
+          <h2 id="mobile-today-heading">{lane === 'phone' ? '오늘 할당된 연락 대상' : lane === 'visit' ? '오늘 방문 대상' : '오늘 완료한 업무'}</h2>
+          <div className="lane-tabs" role="tablist" aria-label="전화·방문·완료 목록">
             <button role="tab" aria-selected={lane === 'phone'} onClick={() => setLane('phone')}>
               <Phone aria-hidden="true" size={18} /> 전화 {lanesData?.lanes.phone.length ?? 0}건
             </button>
             <button role="tab" aria-selected={lane === 'visit'} onClick={() => setLane('visit')}>
               방문 {lanesData?.lanes.visit.length ?? 0}건
             </button>
+            <button role="tab" aria-selected={lane === 'completed'} onClick={() => setLane('completed')}>
+              <CheckCircle2 aria-hidden="true" size={18} /> 완료 {lanesData?.completed.length ?? 0}건
+            </button>
           </div>
-          <p className="lane-rule">{lane === 'phone'
+          {lane !== 'completed' && <p className="lane-rule">{lane === 'phone'
             ? '정기 연락 일정과 재연락 기한에 따라 오늘 배정된 연락업무입니다.'
-            : '담당자가 승인하고 동 센터가 배치를 확인한 오늘 방문 업무만 표시합니다.'}</p>
-          {loading && !lanesData ? <p className="ops-state" role="status">오늘 목록을 불러오는 중입니다.</p> : (
+            : '담당자가 승인하고 동 센터가 배치를 확인한 오늘 방문 업무만 표시합니다.'}</p>}
+          {loading && !lanesData ? <p className="ops-state" role="status">오늘 목록을 불러오는 중입니다.</p> : lane === 'completed' ? (
+            <ul className="mobile-task-list" aria-label="오늘 완료 목록">
+              {(lanesData?.completed ?? []).length === 0
+                ? <li className="ops-empty">오늘 완료한 업무가 없습니다.</li>
+                : (lanesData?.completed ?? []).map((entry) => (
+                  <li key={entry.case_id} className="mobile-completed">
+                    <span className="mobile-task-top">
+                      <span className="case-id">{entry.display_name} 어르신</span>
+                      <span className="grade-chip" data-grade={entry.급성도_등급 ?? '미기록'}>{entry.급성도_등급 ?? '미기록'}</span>
+                    </span>
+                    <span className="mobile-task-facts">
+                      <span
+                        className="fact-status"
+                        data-attention={ATTENTION_CONTACT_LABELS.has(entry.결과_라벨) || undefined}
+                      >
+                        {entry.결과_라벨}
+                      </span>
+                      <span className="mobile-task-meta">
+                        {new Date(entry.완료_시각).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })} 제출
+                      </span>
+                    </span>
+                  </li>
+                ))}
+            </ul>
+          ) : (
             <ul className="mobile-task-list" aria-label={lane === 'phone' ? '오늘 전화 목록' : '오늘 방문 목록'}>
               {items.length === 0 ? (
                 <li className="ops-empty">
-                  {(lanesData?.pending_confirmation?.[lane] ?? 0) > 0
-                    ? `동 센터가 배치를 배정하면 여기에 나타납니다. (배정 대기 ${lanesData?.pending_confirmation[lane]}건)`
+                  {(lanesData?.pending_confirmation?.[lane as 'phone' | 'visit'] ?? 0) > 0
+                    ? `동 센터가 배치를 배정하면 여기에 나타납니다. (배정 대기 ${lanesData?.pending_confirmation[lane as 'phone' | 'visit']}건)`
                     : '오늘 이 목록에는 예정된 업무가 없습니다.'}
                 </li>
               )
@@ -743,7 +771,10 @@ export function MobilePage() {
           <h2>동 행정복지센터에 보고됨</h2>
           <p className="case-id">{reportCard.display_name} 어르신</p>
           <dl className="mobile-done-summary">
-            <div><dt>등급</dt><dd><span className="grade-chip" data-grade={reportCard.등급}>{reportCard.등급}</span></dd></div>
+            <div><dt>등급</dt><dd>
+              <span className="grade-chip" data-grade={reportCard.등급}>{reportCard.등급}</span>
+              {reportCard.취약도_점수 >= VULNERABILITY_ATTENTION_THRESHOLD && <span className="vuln-chip">취약도 높음</span>}
+            </dd></div>
             <div><dt>급성도</dt><dd>{formatScore(reportCard.급성도_점수)}</dd></div>
             <div><dt>취약도</dt><dd>{formatScore(reportCard.취약도_점수)}</dd></div>
           </dl>
