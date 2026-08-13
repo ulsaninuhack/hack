@@ -271,23 +271,28 @@ jobs:
           asset_file="$(mktemp)"
           trap 'rm -f "$app_html_file" "$asset_file"' EXIT
 
-          curl --fail --location --silent --show-error \
-            --retry 12 --retry-all-errors --retry-delay 5 \
-            --output "$app_html_file" "${production_origin}/"
-          app_html="$(cat "$app_html_file")"
-          asset_path="$(printf '%s' "$app_html" | grep -oE '/assets/index-[A-Za-z0-9_-]+\.js' | head -1)"
-          if [[ -z "$asset_path" ]]; then
-            echo "::error::Could not identify the production frontend entry asset"
-            exit 1
-          fi
-          curl --fail --location --silent --show-error \
-            --retry 12 --retry-all-errors --retry-delay 5 \
-            --output "$asset_file" "${production_origin}${asset_path}"
-          if ! grep --fixed-strings --quiet \
-            'https://incheon-care-api-vy3v2ludma-du.a.run.app' "$asset_file"; then
-            echo "::error::Public production entry asset does not reference the Cloud Run API"
-            exit 1
-          fi
+          # 알리아스 전환 직후에는 HTML과 에셋이 서로 다른 배포본에서 내려올 수
+          # 있다(교체된 에셋 경로는 SPA 리라이트로 HTML을 돌려준다). HTML을 매
+          # 시도마다 다시 받아 짝이 맞을 때까지 전체 검증을 재시도한다.
+          for attempt in $(seq 1 12); do
+            curl --fail --location --silent --show-error \
+              --retry 12 --retry-all-errors --retry-delay 5 \
+              --output "$app_html_file" "${production_origin}/"
+            app_html="$(cat "$app_html_file")"
+            asset_path="$(printf '%s' "$app_html" | grep -oE '/assets/index-[A-Za-z0-9_-]+\.js' | head -1)"
+            if [[ -n "$asset_path" ]] \
+              && curl --fail --location --silent --show-error \
+                --output "$asset_file" "${production_origin}${asset_path}" \
+              && grep --fixed-strings --quiet \
+                'https://incheon-care-api-vy3v2ludma-du.a.run.app' "$asset_file"; then
+              echo "Verified production alias on attempt ${attempt}"
+              exit 0
+            fi
+            echo "Alias/asset pair not consistent yet (attempt ${attempt}); retrying in 5s"
+            sleep 5
+          done
+          echo "::error::Public production entry asset does not reference the Cloud Run API"
+          exit 1
 
   deploy-backend-production:
     name: Deploy backend production
