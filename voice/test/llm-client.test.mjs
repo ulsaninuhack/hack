@@ -35,6 +35,7 @@ test('Codex bridge client sends one authenticated bounded Responses request', as
       CONTACT_OPS_CODEX_BRIDGE_URL: 'https://macmini.example.test/base/',
       CONTACT_OPS_CODEX_BRIDGE_TOKEN: 'test-token-with-at-least-thirty-two-characters',
       CONTACT_OPS_CODEX_BRIDGE_TIMEOUT_MS: '1234',
+      OPENAI_API_KEY: 'unused-while-bridge-is-healthy',
     },
     fetchImpl: async (url, init) => {
       calls.push({ url, init });
@@ -47,6 +48,7 @@ test('Codex bridge client sends one authenticated bounded Responses request', as
         headers: { 'content-type': 'application/json' },
       });
     },
+    openAiFactory: () => assert.fail('healthy bridge requests must not use OpenAI'),
   });
 
   const response = await client.responses.create(REQUEST);
@@ -94,6 +96,122 @@ test('Codex bridge failures stay generic and never echo remote response bodies',
     () => client.responses.create(REQUEST),
     (error) => /temporarily unavailable/i.test(error.message)
       && !/remote internal secret/i.test(error.message),
+  );
+});
+
+test('OpenAI retries the same text request when the Codex bridge is unavailable', async () => {
+  const openAiCalls = [];
+  let factoryCalls = 0;
+  const client = createTextLlmClient({
+    env: {
+      CONTACT_OPS_CODEX_BRIDGE_URL: 'https://macmini.example.test',
+      CONTACT_OPS_CODEX_BRIDGE_TOKEN: 'test-token-with-at-least-thirty-two-characters',
+      OPENAI_API_KEY: 'existing-transcription-key',
+    },
+    fetchImpl: async () => {
+      throw new TypeError('fetch failed');
+    },
+    openAiFactory: (apiKey) => {
+      factoryCalls += 1;
+      assert.equal(apiKey, 'existing-transcription-key');
+      return {
+        responses: {
+          async create(request) {
+            openAiCalls.push(request);
+            return {
+              status: 'completed',
+              output_text: '{"ok":true}',
+              model: 'gpt-4o-mini',
+            };
+          },
+        },
+      };
+    },
+  });
+
+  assert.equal(factoryCalls, 0, 'OpenAI client must stay lazy while the bridge is healthy');
+  const response = await client.responses.create(REQUEST);
+
+  assert.equal(response.output_text, '{"ok":true}');
+  assert.equal(factoryCalls, 1);
+  assert.deepEqual(openAiCalls, [REQUEST]);
+});
+
+test('OpenAI retries on bridge HTTP 503/504 and reuses one lazy client', async () => {
+  let factoryCalls = 0;
+  let openAiCalls = 0;
+  let bridgeStatus = 503;
+  const client = createTextLlmClient({
+    env: {
+      CONTACT_OPS_CODEX_BRIDGE_URL: 'https://macmini.example.test',
+      CONTACT_OPS_CODEX_BRIDGE_TOKEN: 'test-token-with-at-least-thirty-two-characters',
+      OPENAI_API_KEY: 'existing-transcription-key',
+    },
+    fetchImpl: async () => new Response('unavailable', { status: bridgeStatus }),
+    openAiFactory: () => {
+      factoryCalls += 1;
+      return {
+        responses: {
+          async create() {
+            openAiCalls += 1;
+            return { status: 'completed', output_text: '{"ok":true}', model: 'gpt-4o-mini' };
+          },
+        },
+      };
+    },
+  });
+
+  await client.responses.create(REQUEST);
+  bridgeStatus = 504;
+  await client.responses.create(REQUEST);
+
+  assert.equal(factoryCalls, 1);
+  assert.equal(openAiCalls, 2);
+});
+
+test('OpenAI never masks bridge authentication, rate, model, or response-contract failures', async () => {
+  const env = {
+    CONTACT_OPS_CODEX_BRIDGE_URL: 'https://macmini.example.test',
+    CONTACT_OPS_CODEX_BRIDGE_TOKEN: 'test-token-with-at-least-thirty-two-characters',
+    OPENAI_API_KEY: 'existing-transcription-key',
+  };
+  const responses = [
+    new Response('unauthorized', { status: 401 }),
+    new Response('busy', { status: 429 }),
+    new Response('invalid model output', { status: 502 }),
+    new Response('not json', { status: 200, headers: { 'content-type': 'text/plain' } }),
+  ];
+
+  for (const bridgeResponse of responses) {
+    let fallbackCalls = 0;
+    const client = createTextLlmClient({
+      env,
+      fetchImpl: async () => bridgeResponse,
+      openAiFactory: () => {
+        fallbackCalls += 1;
+        return { responses: { create: async () => ({}) } };
+      },
+    });
+
+    await assert.rejects(() => client.responses.create(REQUEST));
+    assert.equal(fallbackCalls, 0);
+  }
+});
+
+test('Bridge availability failures remain closed when no OpenAI key is configured', async () => {
+  const client = createTextLlmClient({
+    env: {
+      CONTACT_OPS_CODEX_BRIDGE_URL: 'https://macmini.example.test',
+      CONTACT_OPS_CODEX_BRIDGE_TOKEN: 'test-token-with-at-least-thirty-two-characters',
+    },
+    fetchImpl: async () => {
+      throw new TypeError('fetch failed');
+    },
+  });
+
+  await assert.rejects(
+    () => client.responses.create(REQUEST),
+    (error) => /temporarily unavailable/i.test(error.message),
   );
 });
 
