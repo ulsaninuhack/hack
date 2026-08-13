@@ -506,10 +506,74 @@ function caseIdFrom(pathname, suffix = '') {
   if (!CASE_ID_PATTERN.test(id)) throw new ApiError(400, 'INVALID_PATH', 'caseId must be a synthetic case ID');
   return id;
 }
+const THREE_TIER_PREFIX = '/api/v1/contact-ops/three-tier/';
+const DONG_CODE_QUERY_PATTERN = /^\d{10}$/;
+
+async function routeThreeTier(request, url, threeTierService) {
+  if (!threeTierService) throw new ApiError(503, 'CONTACT_OPS_UNAVAILABLE', 'Three-tier adapter is unavailable');
+  const readSession = () => sessionFor(request);
+  const readIsoDate = (name) => {
+    const value = url.searchParams.get(name);
+    try { assertIsoDateValue(value, name); } catch { throw new ApiError(400, 'INVALID_QUERY', `${name} must be a valid ISO date`); }
+    return value;
+  };
+  if (request.method === 'GET') {
+    if (url.pathname === `${THREE_TIER_PREFIX}today-lanes`) {
+      assertKnownQuery(url.searchParams, new Set(['referenceDate', 'workerId']));
+      const workerId = url.searchParams.get('workerId');
+      if (workerId === null || !WORKER_ID_PATTERN.test(workerId)) throw new ApiError(400, 'INVALID_QUERY', 'workerId must be synthetic');
+      return threeTierService.getTodayLanes({ sessionId: readSession(), referenceDate: readIsoDate('referenceDate'), workerId });
+    }
+    if (url.pathname === `${THREE_TIER_PREFIX}center-inbox`) {
+      assertKnownQuery(url.searchParams, new Set(['referenceDate', 'dongCode']));
+      const dongCode = url.searchParams.get('dongCode');
+      if (dongCode === null || !DONG_CODE_QUERY_PATTERN.test(dongCode)) throw new ApiError(400, 'INVALID_QUERY', 'dongCode must be a 10-digit current admin dong code');
+      return threeTierService.getCenterInbox({ sessionId: readSession(), dongCode, referenceDate: readIsoDate('referenceDate') });
+    }
+    if (url.pathname.startsWith(`${THREE_TIER_PREFIX}report-cards/`)) {
+      assertKnownQuery(url.searchParams, new Set());
+      const caseId = url.pathname.slice(`${THREE_TIER_PREFIX}report-cards/`.length);
+      if (!CASE_ID_PATTERN.test(caseId)) throw new ApiError(400, 'INVALID_PATH', 'caseId must be a synthetic case ID');
+      return threeTierService.getReportCard({ sessionId: readSession(), caseId });
+    }
+    if (url.pathname === `${THREE_TIER_PREFIX}district-aggregates`) {
+      assertKnownQuery(url.searchParams, new Set(['referenceDate']));
+      return threeTierService.getDistrictAggregates({ sessionId: readSession(), referenceDate: readIsoDate('referenceDate') });
+    }
+    if (url.pathname === `${THREE_TIER_PREFIX}district-ai-summary`) {
+      assertKnownQuery(url.searchParams, new Set(['referenceDate', 'district']));
+      const district = url.searchParams.get('district');
+      if (typeof district !== 'string' || district.length === 0 || district.length > 40) throw new ApiError(400, 'INVALID_QUERY', 'district is required');
+      return threeTierService.getDistrictAiSummary({ sessionId: readSession(), district, referenceDate: readIsoDate('referenceDate') });
+    }
+    throw new ApiError(404, 'NOT_FOUND', 'Route not found');
+  }
+  if (request.method !== 'POST') throw new ApiError(405, 'METHOD_NOT_ALLOWED', 'Three-tier routes support GET, POST, and OPTIONS');
+  if (!/^application\/json(?:;|$)/i.test(String(request.headers['content-type'] || ''))) throw new ApiError(415, 'UNSUPPORTED_MEDIA_TYPE', 'Content-Type must be application/json');
+  const sessionId = sessionFor(request, { required: true });
+  const body = await readBody(request);
+  if (url.pathname === `${THREE_TIER_PREFIX}report-acknowledgements`) {
+    exactBody(body, ['case_id', 'expected_revision', 'acknowledged_by']);
+    if (!CASE_ID_PATTERN.test(body.case_id || '')) throw new ApiError(400, 'INVALID_BODY', 'case_id must be a synthetic case ID');
+    if (!Number.isSafeInteger(body.expected_revision) || body.expected_revision < 0) throw new ApiError(400, 'INVALID_BODY', 'expected_revision must be a non-negative integer');
+    return threeTierService.acknowledgeReport({ sessionId, caseId: body.case_id, expectedRevision: body.expected_revision, acknowledgedBy: body.acknowledged_by });
+  }
+  if (url.pathname === `${THREE_TIER_PREFIX}assignment-confirmations`) {
+    exactBody(body, ['dong_code', 'reference_date', 'confirmed_by', 'case_ids']);
+    assertIsoDateValue(body.reference_date, 'reference_date');
+    return threeTierService.confirmAssignment({ sessionId, dongCode: body.dong_code, referenceDate: body.reference_date, confirmedBy: body.confirmed_by, caseIds: body.case_ids });
+  }
+  throw new ApiError(404, 'NOT_FOUND', 'Route not found');
+}
+
 async function routeContactOps(request, url, service, {
   enableDemoSessionReset = false,
   voiceAudioUploader = null,
+  threeTierService = null,
 } = {}) {
+  if (url.pathname.startsWith(THREE_TIER_PREFIX)) {
+    return routeThreeTier(request, url, threeTierService);
+  }
   if (!service) throw new ApiError(503, 'CONTACT_OPS_UNAVAILABLE', 'ContactOps state is unavailable');
   const readSession = () => sessionFor(request);
   if (request.method === 'GET' && url.pathname === '/api/v1/contact-ops/today') {
@@ -654,6 +718,7 @@ export function createApiHandler({
   contactOpsService = null,
   voiceAudioUploader = null,
   enableDemoSessionReset = false,
+  threeTierService = null,
 }) {
   if (!store) throw new Error('store is required');
   if (!Number.isSafeInteger(rateLimitPerMinute) || rateLimitPerMinute < 0 || rateLimitPerMinute > 100_000) {
@@ -710,7 +775,7 @@ export function createApiHandler({
       }
 
       const result = isOps
-        ? { body: { apiVersion: API_VERSION, data: await routeContactOps(request, url, contactOpsService, { enableDemoSessionReset, voiceAudioUploader }) }, cacheable: false }
+        ? { body: { apiVersion: API_VERSION, data: await routeContactOps(request, url, contactOpsService, { enableDemoSessionReset, voiceAudioUploader, threeTierService }) }, cacheable: false }
         : routeRequest(store, url);
       sendJson(request, response, 200, result.body, context, result.cacheable);
     } catch (error) {
