@@ -270,7 +270,10 @@ export function buildAssignmentProposals({ records, workers, referenceDate, dong
   for (const batch of batches.values()) {
     batch.lanes.phone.sort((left, right) => sortKey(left) - sortKey(right)
       || left.case_id.localeCompare(right.case_id));
+    // 방문 레인은 승인된 방문 → 급성도 점수 내림차순 → due 순서. 급성도
+    // 등급이 실제 배치 순서와 용량 판단에 참여한다.
     batch.lanes.visit.sort((left, right) => Number(right.approved_visit) - Number(left.approved_visit)
+      || (right.급성도_점수 ?? -1) - (left.급성도_점수 ?? -1)
       || sortKey(left) - sortKey(right)
       || left.case_id.localeCompare(right.case_id));
     const capacity = batch.max_daily_approved_visits;

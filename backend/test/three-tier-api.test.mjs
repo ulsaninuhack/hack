@@ -48,6 +48,7 @@ function household(id, overrides = {}) {
 const households = [
   household('SYN-HH-2812551000-0001'),
   household('SYN-HH-2812551000-0002', { contact: { preferred_contact_method: 'visit' } }),
+  household('SYN-HH-2812551000-0003', { contact: { next_contact_date: '2026-08-20' } }),
   household('SYN-HH-2826051000-0001'),
 ];
 
@@ -276,6 +277,61 @@ describe('three-tier center inbox and explicit confirmations (INV14)', () => {
       dong_code: '12', reference_date: REFERENCE_DATE, confirmed_by: '동센터 담당자', case_ids: null,
     }, partialSession);
     assert.equal(badDong.response.status, 400);
+  });
+
+  test('proposals appearing after a confirm-all still require explicit confirmation (INV14)', async () => {
+    const late = 'three-tier-center-session-05';
+    const confirmAll = await post('/api/v1/contact-ops/three-tier/assignment-confirmations', {
+      dong_code: '2812551000', reference_date: REFERENCE_DATE, confirmed_by: '동센터 담당자', case_ids: null,
+    }, late);
+    assert.equal(confirmAll.body.data.assignment_proposal.status, 'confirmed');
+
+    const recorded = await post('/api/v1/contact-ops/cases/SYN-HH-2812551000-0003/contact-results', {
+      expected_revision: 0, contact_date: REFERENCE_DATE, contact_result: 'no_answer', observations: concernObservations,
+    }, late);
+    assert.equal(recorded.response.status, 200);
+    assert.equal(recorded.body.data.household.workflow.visit_approval_status, 'recommended');
+    const approved = await post('/api/v1/contact-ops/cases/SYN-HH-2812551000-0003/visit-decisions', {
+      expected_revision: 1, decision: 'approved', decided_by: 'synthetic-manager',
+      decided_at: `${REFERENCE_DATE}T09:00:00Z`, note: '합성 검증',
+      assigned_worker_ids: ['SYN-W-2812551000-01'], max_route_distance_km: 2,
+    }, late);
+    assert.equal(approved.response.status, 200);
+
+    const inbox = await get(`/api/v1/contact-ops/three-tier/center-inbox?dongCode=2812551000&referenceDate=${REFERENCE_DATE}`, late);
+    const proposal = inbox.body.data.assignment_proposal;
+    assert.equal(proposal.status, 'partially_confirmed',
+      'a proposal that entered the batch after confirm-all must not be auto-confirmed');
+    const lateVisit = proposal.lanes.visit.find((item) => item.case_id === 'SYN-HH-2812551000-0003');
+    assert.equal(lateVisit.approved_visit, true);
+    assert.equal(lateVisit.status, 'proposed');
+    for (const item of [...proposal.lanes.phone, ...proposal.lanes.visit]) {
+      if (item.case_id !== 'SYN-HH-2812551000-0003') assert.equal(item.status, 'confirmed');
+    }
+  });
+
+  test('a new report revision resets the acknowledgement to 미확인 (INV14)', async () => {
+    const session = 'three-tier-center-session-06';
+    await post('/api/v1/contact-ops/cases/SYN-HH-2812551000-0001/contact-results', {
+      expected_revision: 0, contact_date: REFERENCE_DATE, contact_result: 'no_answer', observations: concernObservations,
+    }, session);
+    const acknowledged = await post('/api/v1/contact-ops/three-tier/report-acknowledgements', {
+      case_id: 'SYN-HH-2812551000-0001', expected_revision: 1, acknowledged_by: '동센터 담당자',
+    }, session);
+    assert.equal(acknowledged.response.status, 200);
+    const before = await get('/api/v1/contact-ops/three-tier/report-cards/SYN-HH-2812551000-0001', session);
+    assert.equal(before.body.data.report_card.acknowledgement.status, '확인');
+
+    const again = await post('/api/v1/contact-ops/cases/SYN-HH-2812551000-0001/contact-results', {
+      expected_revision: 1, contact_date: REFERENCE_DATE, contact_result: 'connected_concern', observations: concernObservations,
+    }, session);
+    assert.equal(again.response.status, 200);
+    const after = await get('/api/v1/contact-ops/three-tier/report-cards/SYN-HH-2812551000-0001', session);
+    assert.equal(after.body.data.report_card.revision, 2);
+    assert.equal(after.body.data.report_card.acknowledgement.status, '미확인',
+      'an unreviewed new report must not inherit an old acknowledgement');
+    const inbox = await get(`/api/v1/contact-ops/three-tier/center-inbox?dongCode=2812551000&referenceDate=${REFERENCE_DATE}`, session);
+    assert.equal(inbox.body.data.summary.보고_확인_수, 0);
   });
 
   test('fresh sessions always restart from proposal state (INV14)', async () => {

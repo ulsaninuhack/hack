@@ -131,10 +131,11 @@ describe('three-tier virtual phone (INV15)', () => {
     ];
     const realPhone = /01[16789][-.\s]?\d{3,4}[-.\s]?\d{4}|010[-.\s]?(?!0000)\d{4}[-.\s]?\d{4}/;
     for (const root of roots) {
-      for (const file of readdirSync(root)) {
-        if (!/\.(mjs|ts|tsx|css)$/.test(file)) continue;
-        const content = readFileSync(join(root, file), 'utf8');
-        assert.equal(realPhone.test(content), false, `${file} must not contain a real-looking phone number`);
+      for (const entry of readdirSync(root, { recursive: true, withFileTypes: true })) {
+        if (!entry.isFile() || !/\.(mjs|ts|tsx|css|html|json)$/.test(entry.name)) continue;
+        const path = join(entry.parentPath, entry.name);
+        const content = readFileSync(path, 'utf8');
+        assert.equal(realPhone.test(content), false, `${path} must not contain a real-looking phone number`);
       }
     }
   });
@@ -235,7 +236,14 @@ describe('three-tier assignment proposal engine', () => {
       workflow: { visit_approval_status: 'approved' },
       approved_visit_constraints: { max_route_distance_km: 2, assigned_worker_ids: ['SYN-W-2826051000-01'], routing_interpretation: 'approved_visit_only_not_person_risk' },
     })),
-    record(household('SYN-HH-2826051000-0003', { contact: { preferred_contact_method: 'visit' } })),
+    record(household('SYN-HH-2826051000-0003', { contact: { preferred_contact_method: 'visit' } }), {
+      revision: 1,
+      triage: {
+        급성도_점수: 80, 급성도_등급: '방문권고-우선', 취약도_점수: 10, 권고_액션: '방문권고_우선',
+        방문_승인_상태: '권고',
+        점수_기여내역: [{ 축: '급성도', 코드: '연속_미응답', 근거: '연속 미응답 3회', 가산점: 45 }],
+      },
+    }),
   ];
 
   test('separates phone and visit lanes with proposal status only (INV14/INV16)', () => {
@@ -246,7 +254,8 @@ describe('three-tier assignment proposal engine', () => {
     assert.deepEqual(first.lanes.phone.map((item) => item.case_id), ['SYN-HH-2812551000-0001', 'SYN-HH-2812551000-0004']);
     assert.deepEqual(first.lanes.visit.map((item) => item.case_id), ['SYN-HH-2812551000-0002']);
     assert.deepEqual(second.lanes.visit.map((item) => item.case_id),
-      ['SYN-HH-2826051000-0002', 'SYN-HH-2826051000-0001', 'SYN-HH-2826051000-0003']);
+      ['SYN-HH-2826051000-0002', 'SYN-HH-2826051000-0003', 'SYN-HH-2826051000-0001'],
+      'visit lane orders approved first, then higher acute grade before ungraded due tasks');
     for (const batch of batches) {
       assert.equal(batch.status, 'proposed');
       for (const proposal of [...batch.lanes.phone, ...batch.lanes.visit]) {
@@ -269,7 +278,10 @@ describe('three-tier assignment proposal engine', () => {
     const visitJemulpo = batches[0].lanes.visit[0];
     assert.ok(visitJemulpo.adjustment_flags.includes('time_window_mismatch'));
     const bupyeongVisits = batches[1].lanes.visit;
-    assert.deepEqual(bupyeongVisits.map((item) => item.adjustment_flags.includes('capacity_exceeded')), [false, false, true]);
+    assert.deepEqual(bupyeongVisits.map((item) => item.adjustment_flags.includes('capacity_exceeded')), [false, false, true],
+      'capacity keeps the approved visit and the 방문권고-우선 case; the ungraded case overflows');
+    assert.equal(bupyeongVisits[2].급성도_등급, null,
+      'grade participates in capacity: the overflow slot goes to the unscored case, not the graded one');
     const orphan = buildAssignmentProposals({
       records: [record(household('SYN-HH-2812551000-0001'))], workers: [], referenceDate: '2026-08-12',
     });

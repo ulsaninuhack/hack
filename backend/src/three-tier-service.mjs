@@ -48,6 +48,15 @@ function createSessionMemory() {
   return { forSession };
 }
 
+// 확인은 확인한 그 리비전의 보고 카드에만 유효하다. 같은 케이스라도 새
+// 제출로 카드 리비전이 올라가면 다시 미확인으로 돌아온다(INV14).
+function currentAcknowledgement(memory, card) {
+  const acknowledgement = memory.reportAcknowledgements.get(card.case_id) ?? null;
+  return acknowledgement !== null && acknowledgement.revision === card.revision
+    ? acknowledgement
+    : { status: '미확인' };
+}
+
 function laneItem(record, proposal, referenceDate) {
   const { household, triage } = record;
   const item = {
@@ -91,11 +100,17 @@ function laneItem(record, proposal, referenceDate) {
   return item;
 }
 
+// 확인은 확인 시점에 존재했던 (레인, 케이스) 제안에만 붙는다. 확인 이후에
+// 배치에 새로 나타나는 제안(예: 새로 승인된 방문)은 다시 사람 확인이
+// 필요하다(INV14 — 침묵 자동확정 금지).
+function proposalKey(proposal) {
+  return `${proposal.lane}:${proposal.case_id}`;
+}
+
 function applyConfirmation(batch, memory) {
   const confirmation = memory.assignmentConfirmations.get(batch.batch_id) ?? null;
   const decorate = (proposal) => {
-    const confirmed = confirmation !== null
-      && (confirmation.case_ids === null || confirmation.case_ids.has(proposal.case_id));
+    const confirmed = confirmation !== null && confirmation.confirmed_keys.has(proposalKey(proposal));
     return confirmed
       ? {
         ...proposal,
@@ -186,13 +201,12 @@ export function createThreeTierService({
         throw new TypeError('report card requires a recorded contact result for this session');
       }
       const memory = memoryStore.forSession(sessionId);
-      const acknowledgement = memory.reportAcknowledgements.get(caseId) ?? null;
       return {
         synthetic: true,
         displayMarker: '[합성]',
         report_card: {
           ...card,
-          acknowledgement: acknowledgement ?? { status: '미확인' },
+          acknowledgement: currentAcknowledgement(memory, card),
         },
         destination: '동 행정복지센터 인박스',
       };
@@ -216,7 +230,7 @@ export function createThreeTierService({
           || left.case_id.localeCompare(right.case_id))
         .map((card) => ({
           ...card,
-          acknowledgement: memory.reportAcknowledgements.get(card.case_id) ?? { status: '미확인' },
+          acknowledgement: currentAcknowledgement(memory, card),
         }));
       const acknowledgedCount = cards.filter((card) => card.acknowledgement.status === '확인').length;
       const batches = buildAssignmentProposals({ records: dongRecords, workers, referenceDate, dongCode });
@@ -288,25 +302,25 @@ export function createThreeTierService({
       const batches = buildAssignmentProposals({ records, workers, referenceDate, dongCode });
       const batch = batches[0] ?? null;
       if (!batch) throw new TypeError('no assignment proposal exists for this dong and date');
-      const proposalIds = new Set(
-        [...batch.lanes.phone, ...batch.lanes.visit].map((proposal) => proposal.case_id),
-      );
+      const proposals = [...batch.lanes.phone, ...batch.lanes.visit];
+      const keyByCaseId = new Map(proposals.map((proposal) => [proposal.case_id, proposalKey(proposal)]));
       if (caseIds !== null) {
         for (const caseId of caseIds) {
-          if (!proposalIds.has(caseId)) {
+          if (!keyByCaseId.has(caseId)) {
             throw new TypeError(`case ${caseId} is not part of the proposal batch`);
           }
         }
       }
+      // 일괄 확인도 '지금 배치에 존재하는 제안'의 스냅샷으로만 저장한다.
+      const confirmedKeys = caseIds === null
+        ? [...keyByCaseId.values()]
+        : caseIds.map((caseId) => keyByCaseId.get(caseId));
       const memory = memoryStore.forSession(sessionId);
       const existing = memory.assignmentConfirmations.get(batch.batch_id) ?? null;
-      const merged = caseIds === null
-        ? null
-        : new Set([...(existing?.case_ids ?? []), ...caseIds]);
       memory.assignmentConfirmations.set(batch.batch_id, {
         confirmed_by: confirmedBy,
         confirmed_at: now(),
-        case_ids: existing?.case_ids === null ? null : merged,
+        confirmed_keys: new Set([...(existing?.confirmed_keys ?? []), ...confirmedKeys]),
       });
       return {
         synthetic: true,
