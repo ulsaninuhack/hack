@@ -104,6 +104,7 @@ export function MobilePage() {
   const [resultLabel, setResultLabel] = useState<ContactResultLabel | ''>('')
   const [observations, setObservations] = useState<CanonicalObservations>(emptyObservations)
   const [candidateNote, setCandidateNote] = useState<string | null>(null)
+  const [candidateFreeText, setCandidateFreeText] = useState<string | null>(null)
   const [criticWarnings, setCriticWarnings] = useState<string[]>([])
   const [chatIndex, setChatIndex] = useState(0)
   const [chatLog, setChatLog] = useState<Array<{ prompt: string; answer: string }>>([])
@@ -148,6 +149,7 @@ export function MobilePage() {
     setResultLabel('')
     setObservations(emptyObservations())
     setCandidateNote(null)
+    setCandidateFreeText(null)
     setCriticWarnings([])
     setChatIndex(0)
     setChatLog([])
@@ -158,6 +160,7 @@ export function MobilePage() {
     setObservations(candidate.observations)
     setResultLabel(contactResultLabelFromCode(candidate.contact_result))
     setCandidateNote('음성에서 만든 후보입니다. 아래 체크리스트를 확인하고 고친 뒤 제출해 주세요.')
+    setCandidateFreeText(candidate.free_text.trim() || null)
     setCriticWarnings([
       ...candidate.critic.contradictions,
       ...candidate.critic.warnings,
@@ -201,6 +204,7 @@ export function MobilePage() {
     setChatIndex(index)
     setChatLog((log) => log.slice(0, index))
     setCandidateNote(null)
+    setCandidateFreeText(null)
     setInputPath('chat')
   }
 
@@ -329,7 +333,7 @@ export function MobilePage() {
           <h2>대상 정보</h2>
           <p className="case-id">{selected.display_name} 어르신</p>
           <dl className="mobile-case-facts">
-            <div><dt>등급</dt><dd><LaneBadge item={selected} /> <small>({selected.grade_source})</small></dd></div>
+            <div><dt>등급</dt><dd><LaneBadge item={selected} />{selected.grade_source === '세션 기록' && <small>(세션 기록)</small>}</dd></div>
             <div><dt>위치</dt><dd>{selected.location.district} {selected.location.dong_name}</dd></div>
             {selected.location.road_address && (
               <div><dt>주소</dt><dd>
@@ -395,7 +399,6 @@ export function MobilePage() {
             <div className="mobile-input-paths" role="group" aria-label="입력 방법 선택">
               <button onClick={() => setInputPath('voice')}><Mic aria-hidden="true" /> 음성 파일로 채우기</button>
               <button onClick={() => setInputPath('chat')}>문답 또는 직접 체크하기</button>
-              <p className="mobile-path-note">두 방법 모두 같은 체크리스트로 모입니다. 제출 전 조사원 확인이 항상 필요합니다.</p>
             </div>
           )}
 
@@ -432,6 +435,13 @@ export function MobilePage() {
           {(inputPath === 'manual' || candidateNote !== null) && (
             <form className="mobile-checklist" onSubmit={(event) => { event.preventDefault(); void submit() }}>
               {candidateNote && <p className="mobile-candidate-note" role="note">{candidateNote}</p>}
+              {candidateFreeText && (
+                <section className="mobile-extra-note" aria-label="기타 특이사항 확인">
+                  <h3>기타 특이사항 확인</h3>
+                  <p>{candidateFreeText}</p>
+                  <p>해당하는 체크리스트를 확인하면 제출 후 점수에 반영됩니다.</p>
+                </section>
+              )}
               {criticWarnings.length > 0 && (
                 <ul className="mobile-critic" aria-label="후보 검토 주의사항">
                   {criticWarnings.map((warning) => <li key={warning}>{warning}</li>)}

@@ -217,6 +217,7 @@ function addUnique(target, values) {
 
 function deterministicCritic(planner, routeCaseId) {
   const observation = planner.contact_result.observation;
+  const canonical = canonicalObservations(planner.contact_result);
   const critic = {
     missing_fields: [],
     contradictions: [],
@@ -243,8 +244,10 @@ function deterministicCritic(planner, routeCaseId) {
     '관계망_유무',
     '연락_빈도',
   ]) {
-    critic.missing_fields.push(field);
-    critic.low_confidence_fields.push(field);
+    if (canonical[field] === null) {
+      critic.missing_fields.push(field);
+      critic.low_confidence_fields.push(field);
+    }
   }
   if (planner.case_id !== routeCaseId) {
     critic.contradictions.push(
@@ -264,17 +267,49 @@ function deterministicCritic(planner, routeCaseId) {
   return critic;
 }
 
-function canonicalObservations(observation) {
+function canonicalRelationship(riskSignals) {
+  const hasNone = riskSignals.includes('관계망 없음');
+  const hasPresent = riskSignals.includes('관계망 있음');
+  if (hasNone === hasPresent) return null;
+  return hasNone ? '없음' : '있음';
+}
+
+function canonicalBooleanSignal(riskSignals, presentLabel, absentLabel) {
+  const hasPresent = riskSignals.includes(presentLabel);
+  const hasAbsent = riskSignals.includes(absentLabel);
+  if (hasPresent === hasAbsent) return null;
+  return hasPresent;
+}
+
+function canonicalContactFrequency(riskSignals) {
+  const matches = [
+    ['연락 빈도 주 1회 이상', '주_1회_이상'],
+    ['연락 빈도 주 1회 미만', '주_1회_미만'],
+    ['연락 빈도 없음', '없음'],
+  ].filter(([label]) => riskSignals.includes(label));
+  return matches.length === 1 ? matches[0][1] : null;
+}
+
+function canonicalObservations(contactResult) {
+  const { observation, risk_signals: riskSignals } = contactResult;
   return {
     '관찰_6징후': Object.fromEntries(
       Object.entries(SIGN_MAP).map(([source, target]) => [target, observation[source] === true]),
     ),
     '식사상태': observation.meal_status,
     '위생상태': observation.hygiene === '심각' ? '불량' : observation.hygiene,
-    '공과금_2개월_이상_체납': null,
-    '최근_건강_정신_괴로움': null,
-    '관계망_유무': null,
-    '연락_빈도': null,
+    '공과금_2개월_이상_체납': canonicalBooleanSignal(
+      riskSignals,
+      '공과금 2개월 이상 체납 있음',
+      '공과금 2개월 이상 체납 없음',
+    ),
+    '최근_건강_정신_괴로움': canonicalBooleanSignal(
+      riskSignals,
+      '최근 건강·정신 괴로움 있음',
+      '최근 건강·정신 괴로움 없음',
+    ),
+    '관계망_유무': canonicalRelationship(riskSignals),
+    '연락_빈도': canonicalContactFrequency(riskSignals),
   };
 }
 
@@ -355,6 +390,11 @@ export async function planContactOpsObservation(input, options = {}) {
     {
       client: options.plannerClient,
       model: options.plannerModel,
+      context: {
+        expectedIntent: 'contact_result',
+        selectedCaseId: input.caseId,
+        source: 'selected_case_voice_memo',
+      },
     },
   );
   if (planner.intent !== 'contact_result' || !planner.contact_result) {
@@ -371,7 +411,7 @@ export async function planContactOpsObservation(input, options = {}) {
     source_kind: input.kind,
     transcript: planner.transcript,
     contact_result: canonicalContactResult(planner.contact_result),
-    observations: canonicalObservations(planner.contact_result.observation),
+    observations: canonicalObservations(planner.contact_result),
     free_text: planner.contact_result.free_text,
   };
   let additionalCritic;

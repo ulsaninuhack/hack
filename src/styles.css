@@ -482,7 +482,7 @@ select:focus-visible,
 .mobile-map-frame .map { height: 100%; }
 .mobile-input-paths { display: grid; gap: 10px; }
 .mobile-input-paths button { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 56px; border: 1.5px solid var(--line-strong); border-radius: var(--radius-lg); background: var(--surface); font-weight: 800; cursor: pointer; }
-.mobile-path-note, .mobile-confirm-note { color: var(--muted); font-size: 16px; margin: 4px 0; }
+.mobile-confirm-note { color: var(--muted); font-size: 16px; margin: 4px 0; }
 .mobile-voice, .mobile-chat { display: grid; gap: 10px; }
 .mobile-voice-label input { border: 1.5px dashed var(--line-strong); border-radius: var(--radius); padding: 12px; }
 .mobile-secondary { border: 1.5px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); font-weight: 700; cursor: pointer; }
@@ -492,6 +492,10 @@ select:focus-visible,
 .mobile-chat-options button { border: 1.5px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); font-weight: 700; cursor: pointer; min-height: 52px; }
 .mobile-checklist { display: grid; gap: 12px; margin-top: 8px; }
 .mobile-candidate-note { background: #eaf2ec; color: var(--green-strong); font-weight: 700; border-radius: var(--radius-sm); padding: 10px 12px; margin: 0; }
+.mobile-extra-note { display: grid; gap: 6px; padding: 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-muted); }
+.mobile-extra-note h3, .mobile-extra-note p { margin: 0; }
+.mobile-extra-note h3 { font-size: 18px; }
+.mobile-extra-note p { font-size: 18px; line-height: 1.5; }
 .mobile-critic { margin: 0; padding-left: 20px; color: #8a4d12; font-size: 16px; display: grid; gap: 4px; }
 .mobile-signs { border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 10px 12px; display: grid; gap: 8px; }
 .mobile-signs legend { font-weight: 800; padding: 0 4px; }
@@ -513,13 +517,27 @@ select:focus-visible,
 .city-map { position: sticky; top: 10px; height: calc(100dvh - 170px); border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--line); }
 .city-map .map { height: 100%; }
 .city-district-select { margin-bottom: 12px; }
-.city-brief-grid { display: grid; gap: 12px; }
-.city-brief-grid article { border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 12px; }
-.city-brief-grid ul { margin: 0; padding-left: 20px; display: grid; gap: 5px; font-size: 17px; }
+.city-stat-bars { display: grid; gap: 12px; margin-bottom: 4px; }
+.city-stat-bar-head { display: flex; align-items: baseline; justify-content: space-between; font-size: 15px; font-weight: 700; margin-bottom: 5px; }
+.city-stat-bar-head strong { font-size: 17px; font-weight: 800; }
+.city-stat-bar-track { height: 8px; background: #e7ece6; border-radius: 99px; overflow: hidden; }
+.city-stat-bar-fill { height: 100%; background: var(--green-strong); border-radius: 99px; }
+.city-fact-chips { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 10px 0 4px; font-size: 15px; }
+.city-fact-chips span { display: inline-flex; align-items: center; gap: 5px; padding: 6px 10px; background: #f2f4f0; border-radius: 99px; }
+.city-fact-chips strong { font-weight: 800; }
 .city-privacy-note { color: var(--muted); font-size: 15px; margin: 8px 0 0; }
-.city-ai-summary { margin-top: 12px; display: grid; gap: 10px; }
-.city-ai-summary > button { display: flex; align-items: center; justify-content: center; gap: 8px; border: none; border-radius: var(--radius); background: var(--green-strong); color: #ffffff; font-weight: 800; cursor: pointer; }
+.city-ai-summary { margin-top: 14px; display: grid; gap: 10px; }
+.city-ai-summary h4 { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 15px; }
+.city-ai-summary > button { display: flex; align-items: center; justify-content: center; gap: 8px; border: none; border-radius: var(--radius); background: var(--green-strong); color: #ffffff; font-weight: 800; cursor: pointer; padding: 10px; }
 .city-ai-summary-card { border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 12px; display: grid; gap: 8px; }
+.city-priority-actions { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+.city-priority-actions h4 { margin: 0 0 10px; font-size: 15px; }
+.city-priority-actions ol { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.city-priority-actions li { display: flex; align-items: center; gap: 10px; padding: 10px; background: #f2f4f0; border-radius: var(--radius); }
+.city-priority-index { display: grid; place-items: center; flex: 0 0 auto; width: 24px; height: 24px; border-radius: 50%; background: var(--dark); color: #fff; font-size: 13px; font-weight: 800; }
+.city-priority-body { display: flex; flex-direction: column; gap: 2px; }
+.city-priority-body strong { font-size: 15px; }
+.city-priority-body small { color: var(--muted); font-size: 14px; }
 .city-ai-label { margin: 0; font-weight: 800; font-size: 15px; color: #6b5312; background: #f6f1e2; border-radius: var(--radius-sm); padding: 6px 10px; }
 .city-ai-text { margin: 0; line-height: 1.6; }
 .city-ai-summary-card ul { margin: 0; padding-left: 20px; font-size: 16px; display: grid; gap: 4px; }
@@ -797,7 +815,7 @@ select:focus-visible,
 .mobile-page .mobile-input-paths button, .mobile-page .mobile-chat-options button, .mobile-page .mobile-secondary { border: 1px solid var(--t-line); border-radius: var(--t-radius-sm); background: var(--t-card); font-weight: 700; color: var(--t-sub); transition: border-color .15s var(--ease), background .15s var(--ease), transform .2s var(--ease); }
 .mobile-page .mobile-input-paths button:hover, .mobile-page .mobile-chat-options button:hover, .mobile-page .mobile-secondary:hover { border-color: #c1b7ff; background: var(--t-blue-soft); color: var(--t-blue); }
 .mobile-page .mobile-input-paths button:active, .mobile-page .mobile-chat-options button:active { transform: scale(0.97); }
-.mobile-page .mobile-path-note, .mobile-page .mobile-confirm-note, .mobile-page .mobile-chat-log { color: var(--t-faint); font-size: 14px; }
+.mobile-page .mobile-confirm-note, .mobile-page .mobile-chat-log { color: var(--t-faint); font-size: 14px; }
 .mobile-page .mobile-voice-label input { border: 1.5px dashed var(--t-line); border-radius: 12px; }
 .mobile-page .mobile-candidate-note { background: var(--t-blue-soft); color: var(--t-blue-dark); font-weight: 600; border-radius: var(--t-radius-sm); }
 
