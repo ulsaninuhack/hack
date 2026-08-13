@@ -94,7 +94,7 @@ describe('MobilePage (조사원 /m)', () => {
     expect(within(phoneList).getByText('연락 기한 2026-08-12')).toBeInTheDocument()
     expect(within(phoneList).getByText('담당 연결단원 001')).toBeInTheDocument()
     expect(within(phoneList).getByText('등록 근거 · 가족 신청')).toBeInTheDocument()
-    expect(within(phoneList).getByText('연락 동의 기록 · 기존 정기 안부확인 중복 없음')).toBeInTheDocument()
+    expect(within(phoneList).queryByText('연락 동의 기록 · 기존 정기 안부확인 중복 없음')).toBeNull()
     expect(within(phoneList).queryByText('미기록')).toBeNull()
     expect(within(phoneList).queryByText('이순자 어르신')).toBeNull()
     await user.click(screen.getByRole('tab', { name: /방문 1건/ }))

@@ -107,7 +107,10 @@ function bridgeClient({ baseUrl, token, timeoutMs, fetchImpl }) {
           throw new CodexBridgeAvailabilityError('The Codex bridge is temporarily unavailable.');
         }
         if (!response.ok) {
-          const availabilityFailure = response.status === 503 || response.status === 504;
+          const contentType = String(response.headers.get('content-type') || '').toLowerCase();
+          const availabilityFailure = response.status === 503
+            || response.status === 504
+            || (response.status === 502 && !contentType.startsWith('application/json'));
           await response.body?.cancel().catch(() => {});
           if (availabilityFailure) {
             throw new CodexBridgeAvailabilityError('The Codex bridge is temporarily unavailable.');

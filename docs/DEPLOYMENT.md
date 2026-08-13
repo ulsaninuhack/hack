@@ -297,8 +297,8 @@ Provisioning, Secret Manager wiring, live smoke, rotation, and rollback are docu
 [`MAC_MINI_CODEX_BRIDGE.md`](MAC_MINI_CODEX_BRIDGE.md). Do not add its Cloud Run environment
 variables to the production workflow until the Funnel and end-to-end synthetic smoke both pass;
 the configured bridge keeps authentication and response-contract failures closed. With the existing
-`OPENAI_API_KEY` secret present, only network errors, timeouts, and HTTP 503/504 use OpenAI as the
-text Planner/Critic availability fallback.
+`OPENAI_API_KEY` secret present, only network errors, timeouts, HTTP 503/504, and a non-JSON gateway
+502 use OpenAI as the text Planner/Critic availability fallback.
 
 The `backend-production` environment requires
 `CONTACT_OPS_CODEX_BRIDGE_URL=https://macmini.taild33a67.ts.net/incheon-care-codex-bridge`.

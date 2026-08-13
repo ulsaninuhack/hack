@@ -106,10 +106,9 @@ function assignmentStatusLabel(item: LaneItem) {
 }
 
 function ManagementEntrySummary({ item }: { item: LaneItem }) {
-  return <>
-    <span className="mobile-task-meta">등록 근거 · {item.management_entry ? managementIntakeLabel(item.management_entry.intake_channel) : '기록 확인 필요'}</span>
-    <span className="mobile-task-meta">연락 동의 기록 · 기존 정기 안부확인 중복 없음</span>
-  </>
+  // 연락 동의·중복 확인 문구는 모든 대상에 동일하므로 목록에서 반복하지
+  // 않는다. 상세 화면의 관리 확인 항목에만 남긴다.
+  return <span className="mobile-task-meta">등록 근거 · {item.management_entry ? managementIntakeLabel(item.management_entry.intake_channel) : '기록 확인 필요'}</span>
 }
 
 function AcuteContributionList({ item }: { item: LaneItem }) {
@@ -565,7 +564,7 @@ export function MobilePage() {
                   disabled={busy}
                 />
               </label>
-              <p className="mobile-path-note">쓴 내용으로 체크리스트 후보를 채웁니다. 자동 제출되지 않습니다. 이름·연락처 같은 개인정보는 적지 마세요.</p>
+              <p className="mobile-path-note">이름·연락처 같은 개인정보는 적지 마세요.</p>
               {busy && <p role="status">메모에서 후보를 만드는 중입니다.</p>}
               <button className="mobile-memo-run" onClick={() => void submitMemo()} disabled={busy || !memoText.trim()}>
                 <Sparkles aria-hidden="true" size={17} /> AI 후보 만들기
@@ -579,7 +578,6 @@ export function MobilePage() {
               <label className="mobile-voice-label">통화 녹음 파일 (WAV·MP3·M4A)
                 <input type="file" accept=".wav,.mp3,.m4a,audio/wav,audio/mpeg,audio/mp4" onChange={onVoiceFile} disabled={busy} />
               </label>
-              <p className="mobile-path-note">파일에서 전사·후보를 만든 뒤 체크리스트 후보를 채웁니다. 자동 제출되지 않습니다.</p>
               {busy && <p role="status">음성에서 후보를 만드는 중입니다.</p>}
               <button className="mobile-secondary" onClick={() => setInputPath(null)}>다른 방법 선택</button>
             </div>
@@ -598,7 +596,6 @@ export function MobilePage() {
                   <button key={option} onClick={() => answerChat(option)}>{option}</button>
                 ))}
               </div>
-              <p className="mobile-path-note">답한 내용은 후보로만 채워집니다. 마지막에 체크리스트에서 확인하고 고칠 수 있습니다.</p>
               <button className="mobile-secondary" onClick={() => setInputPath('manual')}>직접 체크하기</button>
               <button className="mobile-secondary" onClick={() => setInputPath(null)}>다른 방법 선택</button>
             </div>

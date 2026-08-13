@@ -322,7 +322,7 @@ describe('CenterPage (동 행정복지센터)', () => {
     expect(within(phoneLane).getByText('2026-08-12')).toBeInTheDocument()
     expect(within(phoneLane).getByText('등록 근거')).toBeInTheDocument()
     expect(within(phoneLane).getByText('가족 신청')).toBeInTheDocument()
-    expect(within(phoneLane).getByText('연락 동의 기록 · 기존 정기 안부확인 중복 없음')).toBeInTheDocument()
+    expect(within(phoneLane).queryByText('연락 동의 기록 · 기존 정기 안부확인 중복 없음')).toBeNull()
     expect(within(phoneLane).queryByText('이순자 어르신')).toBeNull()
     await user.click(screen.getByRole('tab', { name: /방문 \d/ }))
     const visitLane = await screen.findByLabelText('방문 레인 할당 제안')
@@ -457,6 +457,32 @@ describe('CenterPage (동 행정복지센터)', () => {
     expect(within(entries).getByText('2026-08-04')).toBeInTheDocument()
     expect(within(entries).getByText('식사 심각')).toBeInTheDocument()
     expect(within(entries).getAllByText('합성 과거 기록').length).toBeGreaterThan(0)
+  })
+
+  it('paginates long lanes five rows at a time', async () => {
+    arrange()
+    const user = userEvent.setup()
+    const longInbox = structuredClone(inbox)
+    const base = longInbox.assignment_proposal!.lanes.phone[0]
+    longInbox.assignment_proposal!.lanes.phone = Array.from({ length: 7 }, (_, index) => ({
+      ...structuredClone(base),
+      case_id: `SYN-HH-2812551000-000${index + 1}`,
+      display_name: `가명${index + 1}`,
+    }))
+    mocks.loadCenterInbox.mockResolvedValue(longInbox)
+    render(<CenterPage />)
+    const phoneLane = await screen.findByLabelText('전화 레인 할당 제안')
+    expect(within(phoneLane).getByText('가명1 어르신')).toBeInTheDocument()
+    expect(within(phoneLane).getByText('가명5 어르신')).toBeInTheDocument()
+    expect(within(phoneLane).queryByText('가명6 어르신')).toBeNull()
+    expect(screen.getByText('1 / 2 페이지')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '다음' }))
+    expect(within(phoneLane).getByText('가명6 어르신')).toBeInTheDocument()
+    expect(within(phoneLane).getByText('가명7 어르신')).toBeInTheDocument()
+    expect(within(phoneLane).queryByText('가명1 어르신')).toBeNull()
+    expect(screen.getByRole('button', { name: '다음' })).toBeDisabled()
+    await user.click(screen.getByRole('button', { name: '이전' }))
+    expect(within(phoneLane).getByText('가명1 어르신')).toBeInTheDocument()
   })
 
   it('renders the month calendar and reveals a day of records on click', async () => {

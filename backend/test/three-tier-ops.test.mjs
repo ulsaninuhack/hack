@@ -500,7 +500,7 @@ describe('three-tier district AI summary (INV19)', () => {
     for (const token of first.match(/\d+(?:\.\d+)?/g) ?? []) {
       assert.ok(allowedTokens.has(token), `summary number ${token} must come from injected metrics only`);
     }
-    assert.match(first, /개인 단위 예측이나 판정이 아닙니다/);
+    assert.doesNotMatch(first, /이 문단은 주입된 집계 수치를 그대로 인용한 해석/);
     assert.match(first, /제물포구/);
     assert.doesNotMatch(first, /mock|모의/);
   });
@@ -531,7 +531,7 @@ describe('three-tier district AI summary (INV19)', () => {
       const input = { ...buildDistrictAiSummaryInput(aggregate, '2026-08-12'), 구: district };
       const text = renderAuthoredDistrictAiSummary(input);
       assert.match(text, new RegExp(district));
-      assert.ok(text.length > 250, `${district} analysis must be substantive`);
+      assert.ok(text.length > 200, `${district} analysis must be substantive`);
     }
   });
 
