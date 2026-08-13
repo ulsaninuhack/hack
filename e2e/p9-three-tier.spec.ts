@@ -141,6 +141,7 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
     await expect(page.getByText(/인천광역시 제물포구/)).toBeVisible()
     expect(await page.locator('body').innerText()).not.toMatch(/SYN-HH-|합성/)
 
+    await page.getByRole('button', { name: '문답 또는 직접 체크하기' }).click()
     await page.getByRole('button', { name: '직접 체크하기' }).click()
     await expectTierMobileMeasurements(page)
     await expectNoSeriousAxeViolations(page)

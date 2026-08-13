@@ -722,3 +722,92 @@ select:focus-visible,
 .center-page .assignment-worker { margin-left: auto; }
 .center-page .report-address { margin: 0; font-size: 14px; color: var(--t-faint); }
 .center-page .visit-review-address { display: block; font-size: 13px; color: var(--t-faint); }
+
+/* /m — Gamegoo 디자인 언어 적용 (center와 동일 토큰) */
+.mobile-page {
+  --t-bg: #f1f5fa; --t-card: #ffffff; --t-ink: #191b1e; --t-sub: #41454a;
+  --t-faint: #656b75; --t-line: #d7dfea; --t-track: #edf2f8;
+  --t-blue: #5a42ee; --t-blue-dark: #452aea; --t-blue-soft: #f0f0fc;
+  --t-radius: 16px; --t-radius-sm: 10px;
+  background: var(--t-bg); color: var(--t-ink);
+  font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, 'Noto Sans KR', sans-serif;
+  line-height: 1.5;
+}
+.mobile-page :focus-visible { outline: 3px solid rgba(90, 66, 238, 0.6); outline-offset: 2px; }
+.mobile-page button { font-family: inherit; }
+
+.mobile-page.tier-page h1 { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+.mobile-page .tier-header { background: none; border: none; box-shadow: none; padding: 6px 2px 14px; margin-bottom: 0; display: flex; align-items: flex-start; gap: 10px; }
+.mobile-page .tier-audience { color: var(--t-faint); font-size: 15px; margin: 2px 0 0; }
+.mobile-page .mobile-header nav { margin-left: auto; display: flex; gap: 6px; }
+.mobile-page .mobile-header nav a { min-height: 48px; padding: 0 14px; border-radius: 12px; background: transparent; border: none; color: var(--t-sub); font-weight: 600; font-size: 15px; text-decoration: none; display: inline-flex; align-items: center; transition: background .15s var(--ease); }
+.mobile-page .mobile-header nav a:hover { background: var(--t-track); color: var(--t-blue); }
+
+.mobile-page .mobile-list, .mobile-page .mobile-case, .mobile-page .mobile-done { background: var(--t-card); border: 1px solid var(--t-line); border-radius: var(--t-radius); box-shadow: none; padding: 20px; }
+.mobile-page h2 { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; display: flex; align-items: center; gap: 9px; }
+.mobile-page h2::before { content: ''; width: 6px; height: 18px; border-radius: 3px; background: var(--t-blue); }
+
+.mobile-page .lane-tabs { display: inline-flex; gap: 0; background: var(--t-track); border-radius: 10px; padding: 3px; margin: 0 0 10px; }
+.mobile-page .lane-tabs button { flex: none; min-width: 132px; min-height: 48px; border: none; border-radius: 8px; background: transparent; color: var(--t-faint); font-weight: 600; font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: background .15s var(--ease), color .15s var(--ease), box-shadow .15s var(--ease); }
+.mobile-page .lane-tabs button[aria-selected="true"] { background: var(--t-card); color: var(--t-blue); font-weight: 700; box-shadow: 0 1px 4px rgba(25, 27, 30, 0.1); }
+.mobile-page .lane-rule { color: var(--t-faint); font-size: 14px; margin: 0 0 12px; }
+
+.mobile-page .mobile-task { border: 1px solid var(--t-line); border-radius: 12px; background: var(--t-card); box-shadow: none; padding: 14px 16px; transition: border-color .15s var(--ease), box-shadow .15s var(--ease), transform .2s var(--ease); }
+.mobile-page .mobile-task:hover { border-color: #c1b7ff; box-shadow: 0 4px 14px rgba(90, 66, 238, 0.08); }
+.mobile-page .mobile-task:active { transform: scale(0.98); }
+.mobile-page .case-id { font-weight: 700; color: var(--t-ink); letter-spacing: -0.01em; }
+.mobile-page .mobile-task-meta { color: var(--t-faint); font-size: 15px; }
+
+.mobile-page .grade-chip { font-size: 13px; font-weight: 700; padding: 4px 10px; }
+.mobile-page .grade-chip[data-grade="정상"] { background: var(--t-track); color: #4e5968; }
+.mobile-page .grade-chip[data-grade="주시"] { background: var(--t-blue-soft); color: #452aea; }
+.mobile-page .grade-chip[data-grade="방문권고"] { background: #fef2f2; color: #d31530; }
+.mobile-page .grade-chip[data-grade="방문권고-우선"] { background: #ee173c; color: #ffffff; }
+.mobile-page .grade-chip[data-grade="미기록"] { background: var(--t-track); color: var(--t-sub); }
+
+.mobile-page .mobile-back { color: var(--t-blue); font-weight: 700; }
+.mobile-page .mobile-case-facts dt { color: var(--t-faint); }
+.mobile-page .mobile-address-note { color: var(--t-sub); background: var(--t-track); border-radius: var(--t-radius-sm); font-size: 14px; }
+
+.mobile-page .mobile-dial { background: var(--t-blue); border-radius: var(--t-radius-sm); font-weight: 700; font-size: 18px; transition: background .25s var(--ease), transform .2s var(--ease); }
+.mobile-page .mobile-dial:hover { background: var(--t-blue-dark); }
+.mobile-page .mobile-dial:active { transform: scale(0.97); }
+.mobile-page .mobile-dial-note { color: var(--t-faint); font-size: 14px; }
+.mobile-page .mobile-dial-overlay { background: rgba(24, 18, 54, 0.95); }
+.mobile-page .mobile-dial-overlay-number { font-family: inherit; letter-spacing: -0.02em; }
+.mobile-page .mobile-dial-overlay button { border-radius: var(--t-radius-sm); font-weight: 700; }
+
+.mobile-page .mobile-map-widget { border: 1px solid var(--t-line); border-radius: 12px; }
+.mobile-page .mobile-input-paths button, .mobile-page .mobile-chat-options button, .mobile-page .mobile-secondary { border: 1px solid var(--t-line); border-radius: var(--t-radius-sm); background: var(--t-card); font-weight: 700; color: var(--t-sub); transition: border-color .15s var(--ease), background .15s var(--ease), transform .2s var(--ease); }
+.mobile-page .mobile-input-paths button:hover, .mobile-page .mobile-chat-options button:hover, .mobile-page .mobile-secondary:hover { border-color: #c1b7ff; background: var(--t-blue-soft); color: var(--t-blue); }
+.mobile-page .mobile-input-paths button:active, .mobile-page .mobile-chat-options button:active { transform: scale(0.97); }
+.mobile-page .mobile-path-note, .mobile-page .mobile-confirm-note, .mobile-page .mobile-chat-log { color: var(--t-faint); font-size: 14px; }
+.mobile-page .mobile-voice-label input { border: 1.5px dashed var(--t-line); border-radius: 12px; }
+.mobile-page .mobile-candidate-note { background: var(--t-blue-soft); color: var(--t-blue-dark); font-weight: 600; border-radius: var(--t-radius-sm); }
+
+.mobile-page select, .mobile-page input, .mobile-page textarea { border: 1px solid var(--t-line); border-radius: var(--t-radius-sm); background: var(--t-card); color: var(--t-ink); }
+.mobile-page select:focus, .mobile-page input:focus, .mobile-page textarea:focus { border-color: var(--t-blue); }
+.mobile-page .ops-choice { border: 1px solid var(--t-line); border-radius: var(--t-radius-sm); padding: 0 14px; }
+.mobile-page .ops-choice:has(input:checked) { border-color: var(--t-blue); background: var(--t-blue-soft); }
+.mobile-page .ops-choice input { accent-color: var(--t-blue); }
+.mobile-page .mobile-signs { border: 1px solid var(--t-line); border-radius: 12px; }
+
+.mobile-page .mobile-submit { background: var(--t-blue); border-radius: var(--t-radius-sm); font-weight: 700; font-size: 17px; transition: background .25s var(--ease), transform .2s var(--ease); }
+.mobile-page .mobile-submit:hover { background: var(--t-blue-dark); }
+.mobile-page .mobile-submit:active { transform: scale(0.97); }
+.mobile-page .mobile-submit:disabled { opacity: 0.5; }
+
+.mobile-page .mobile-done > svg { color: var(--t-blue); }
+.mobile-page .mobile-done-summary dt { color: var(--t-faint); font-size: 14px; }
+.mobile-page .mobile-done-summary dd { font: 800 24px/1.2 inherit; letter-spacing: -0.02em; font-family: inherit; }
+
+.mobile-page .ops-state { background: var(--t-card); border-radius: var(--t-radius); }
+.mobile-page .ops-empty { color: var(--t-faint); }
+
+/* /m — 문답 재답변·지도 닫기 (사용자 피드백 반영) */
+.mobile-page .mobile-chat-log-edit { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; text-align: left; border: 1px solid var(--t-line); border-radius: var(--t-radius-sm); background: var(--t-card); color: var(--t-sub); font-size: 15px; padding: 10px 14px; min-height: 48px; cursor: pointer; transition: border-color .15s var(--ease), background .15s var(--ease); }
+.mobile-page .mobile-chat-log-edit:hover { border-color: #c1b7ff; background: var(--t-blue-soft); }
+.mobile-page .mobile-chat-log-edit span { margin-left: auto; color: var(--t-blue); font-weight: 700; font-size: 14px; }
+.mobile-page .mobile-map-close { position: absolute; top: 8px; right: 8px; z-index: 5; display: grid; place-content: center; width: 48px; height: 48px; min-height: 48px; border: 1px solid var(--t-line); border-radius: 50%; background: var(--t-card); color: var(--t-sub); cursor: pointer; box-shadow: 0 2px 8px rgba(25, 27, 30, 0.15); transition: background .15s var(--ease), transform .2s var(--ease); }
+.mobile-page .mobile-map-close:hover { background: var(--t-track); }
+.mobile-page .mobile-map-close:active { transform: scale(0.94); }
