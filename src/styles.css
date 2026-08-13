@@ -589,15 +589,11 @@ select:focus-visible,
 .city-ai-points { display: grid; gap: 0; margin: 4px 0 0; padding: 0; list-style: none; }
 .city-ai-points li { position: relative; padding: 10px 12px 10px 28px; line-height: 1.55; border-top: 1px solid var(--line); }
 .city-ai-points li::before { position: absolute; top: 17px; left: 12px; width: 6px; height: 6px; border-radius: 50%; background: var(--gg-violet-500); content: ''; }
+.city-ai-points .city-ai-review-point { background: rgba(123,101,255,.06); font-weight: 700; }
+.city-ai-points .city-ai-review-point::before { background: var(--gg-magenta); }
 .city-ai-metrics { border-top: 1px solid var(--line); padding-top: 6px; }
 .city-ai-summary-card ul { margin: 0; padding-left: 20px; font-size: 16px; display: grid; gap: 4px; }
 .city-ai-summary-card .city-ai-points { margin: 4px 0 0; padding: 0; font-size: 14px; gap: 0; }
-.city-table-scroll { overflow-x: auto; }
-.city-staffing-table { border-collapse: collapse; width: 100%; font-size: 16px; }
-.city-staffing-table caption { text-align: left; color: var(--muted); font-size: 15px; margin-bottom: 6px; }
-.city-staffing-table th, .city-staffing-table td { border: 1px solid var(--line-strong); padding: 8px 10px; text-align: left; }
-.city-staffing-table thead th { background: #eef2ec; }
-.city-staffing-table tr[data-selected="true"] { background: #eaf2ec; }
 .city-zone-metrics { display: grid; gap: 8px; margin: 0; }
 .city-zone-metrics div { display: grid; grid-template-columns: 150px 1fr; gap: 8px; }
 .city-zone-metrics dt { color: var(--muted); }
@@ -654,8 +650,6 @@ select:focus-visible,
 .city-page .city-ai-summary-card { border: 1px solid var(--gg-violet-200); background: var(--gg-violet-100); animation: gg-fade-in-y .35s var(--ease) both; }
 .city-page .city-priority-index { background: var(--gg-magenta); }
 .city-page .city-fact-chips span { background: var(--gg-violet-100); color: var(--gg-violet-800); }
-.city-page .city-staffing-table thead th { background: var(--gg-violet-100); color: var(--gg-violet-800); }
-.city-page .city-staffing-table tr[data-selected="true"] { background: var(--gg-violet-100); }
 .city-page .city-district-select select:focus { outline: 2px solid var(--gg-violet-500); outline-offset: 1px; }
 
 @keyframes gg-bubble-float {
