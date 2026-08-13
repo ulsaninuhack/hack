@@ -139,6 +139,7 @@ export interface ReportCard {
   card_id: string
   case_id: string
   display_name: string
+  road_address: string | null
   revision: number
   dong_code: string
   dong_name: string
@@ -169,6 +170,11 @@ export interface AssignmentProposalItem {
   status: 'proposed' | 'confirmed'
   case_id: string
   display_name: string
+  road_address: string | null
+  last_contact: {
+    date: string | null
+    result_label: string
+  }
   lane: 'phone' | 'visit'
   dong_code: string
   dong_name: string

@@ -125,6 +125,7 @@ describe('three-tier virtual phone (INV15)', () => {
     assert.throws(() => deriveVirtualPhone(null), TypeError);
   });
 
+
   test('no real-looking phone pattern exists in served source (grep gate)', () => {
     const roots = [
       new URL('../src/', import.meta.url).pathname,

@@ -463,3 +463,15 @@ hostile follow-up, commit, preview, and blockers. Existing entries are never rew
   `codex_authored_v1` 어댑터로 고정.
 - 검증: `agent:check` 전체 그린(프런트 55, 백엔드 218·라인 97.29%·브랜치
   90.99%·함수 100%, 음성 50 통과·라이브 1 skip), P9 실브라우저 골든 2/2 통과.
+
+## 2026-08-13 — /center v5: 지도 오버레이·스크롤 픽스 + 주소·연락 이력 표기
+
+- 지도 위젯 오버레이 사고 수정: 전역 `.map`(position:absolute)이 포지셔닝 안 된
+  프레임에서 뷰포트 전체를 덮던 문제 → `.center-map-frame`/`.mobile-map-frame`에
+  position:relative + contain 부여.
+- 페이지 스크롤 수정: 전역 body overflow:hidden 아래에서 .tier-page 높이 미고정
+  으로 스크롤 불가 → height:100dvh + overflow-y:auto.
+- 배치 행·보고 카드에 도로명 주소(#25 `road_address`)·마지막 연락 결과·예정일
+  표기를 추가. 대상 표시는 main의 `display_name` 자연어 이름 체계로 통일(merge).
+- `[합성] 데모` 배지 제거(제품 오너 명시 지시). 합성 고지는 API displayMarker·
+  문서에 유지.

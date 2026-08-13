@@ -27,15 +27,15 @@
       "violations": []
     },
     {
-      "surface": "empty-mobile",
-      "violations": []
-    },
-    {
       "surface": "loading-mobile",
       "violations": []
     },
     {
       "surface": "error-mobile",
+      "violations": []
+    },
+    {
+      "surface": "empty-mobile",
       "violations": []
     }
   ]

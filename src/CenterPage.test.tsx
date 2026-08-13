@@ -59,6 +59,7 @@ const reportCard: ReportCard = {
   card_id: 'RPT-SYN-HH-2812551000-0001-r1',
   case_id: 'SYN-HH-2812551000-0001',
   display_name: '김영자',
+  road_address: '인천광역시 제물포구 답동로 7-2',
   revision: 1,
   dong_code: '2812551000',
   dong_name: '신포동',
@@ -105,7 +106,9 @@ const proposal: AssignmentProposal = {
   max_daily_approved_visits: 2,
   lanes: {
     phone: [{
-      status: 'proposed', case_id: 'SYN-HH-2812551000-0001', display_name: '김영자', lane: 'phone',
+      status: 'proposed', case_id: 'SYN-HH-2812551000-0001', display_name: '김영자',
+      road_address: '인천광역시 제물포구 답동로 7-2',
+      last_contact: { date: '2026-08-11', result_label: '연락 안 됨' }, lane: 'phone',
       dong_code: '2812551000', dong_name: '신포동', district: '제물포구',
       worker_id: 'SYN-W-2812551000-01', worker_display_name: '연결단원 001',
       급성도_등급: '방문권고', 급성도_점수: 62, grade_source: '세션 기록',
@@ -114,7 +117,9 @@ const proposal: AssignmentProposal = {
       adjustment_flags: [], 제안_근거: ['담당 동 일치 (신포동)'],
     }],
     visit: [{
-      status: 'proposed', case_id: 'SYN-HH-2812551000-0002', display_name: '이순자', lane: 'visit',
+      status: 'proposed', case_id: 'SYN-HH-2812551000-0002', display_name: '이순자',
+      road_address: '인천광역시 제물포구 답동로 9',
+      last_contact: { date: '2026-08-10', result_label: '안부 확인 완료' }, lane: 'visit',
       dong_code: '2812551000', dong_name: '신포동', district: '제물포구',
       worker_id: 'SYN-W-2812551000-01', worker_display_name: '연결단원 001',
       급성도_등급: null, 급성도_점수: null, grade_source: '미기록',
@@ -192,6 +197,7 @@ describe('CenterPage (동 행정복지센터)', () => {
     expect(within(summary).getByText('보고 확인 대기')).toBeInTheDocument()
     expect(within(summary).getByText('방문 검토 대기')).toBeInTheDocument()
     const card = await screen.findByLabelText('김영자 어르신 보고 카드')
+    expect(within(card).getByText('인천광역시 제물포구 답동로 7-2')).toBeInTheDocument()
     expect(within(card).getByText('방문권고')).toBeInTheDocument()
     expect(within(card).getByText('보건소·의료 연계')).toBeInTheDocument()
     expect(within(card).getByText('행정복지센터 이관 권고')).toBeInTheDocument()
@@ -204,6 +210,8 @@ describe('CenterPage (동 행정복지센터)', () => {
     render(<CenterPage />)
     const phoneLane = await screen.findByLabelText('전화 레인 할당 제안')
     expect(within(phoneLane).getByText('김영자 어르신')).toBeInTheDocument()
+    expect(within(phoneLane).getByText(/인천광역시 제물포구 답동로 7-2/)).toBeInTheDocument()
+    expect(within(phoneLane).getByText(/마지막 연락 2026-08-11 \(연락 안 됨\)/)).toBeInTheDocument()
     expect(within(phoneLane).queryByText('이순자 어르신')).toBeNull()
     await user.click(screen.getByRole('tab', { name: /방문 \d/ }))
     const visitLane = await screen.findByLabelText('방문 레인 할당 제안')

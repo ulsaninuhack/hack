@@ -51,6 +51,12 @@ function ProposalRow({
         <GradeChip grade={item.급성도_등급} />
         <span className="assignment-worker">{item.worker_display_name ?? '담당 미배정'}</span>
       </div>
+      <p className="assignment-meta">
+        {item.road_address ?? '주소 정보 없음'}
+        {' · 마지막 연락 '}
+        {item.last_contact.date === null ? '기록 없음' : `${item.last_contact.date} (${item.last_contact.result_label})`}
+        {item.earliest_due_date !== null && ` · 예정 ${item.earliest_due_date}`}
+      </p>
       {item.adjustment_flags.length > 0 && (
         <p className="assignment-flags" role="note">조정 필요: {item.adjustment_flags.map((flag) => ({
           no_worker_for_dong: '담당 연결단원 없음',
@@ -82,6 +88,7 @@ function ReportCardView({
         <span className="case-id">{card.display_name} 어르신</span>
         <span className="report-meta">{card.evidence.마지막_연락_결과_라벨} · {card.evidence.마지막_연락_일자 ?? '기록 없음'}</span>
       </header>
+      {card.road_address !== null && <p className="report-address">{card.road_address}</p>}
       <dl className="report-scores">
         <div><dt>급성도</dt><dd>{card.급성도_점수}</dd></div>
         <div><dt>취약도</dt><dd>{card.취약도_점수}</dd></div>
