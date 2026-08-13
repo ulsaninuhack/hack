@@ -212,7 +212,8 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
     await page.getByRole('tab', { name: /^방문 \d+$/ }).click()
     const approvedVisit = page.getByLabel('방문 레인 할당 제안').locator('li').filter({ hasText: CASE_NAME })
     await expect(approvedVisit).toContainText('급성도 62점 · 방문권고')
-    await expect(approvedVisit).toContainText('연속 미응답 2회 · +25점')
+    await expect(approvedVisit).toContainText('연속 미응답 2회')
+    await expect(approvedVisit).toContainText('+25점')
     await approvedVisit.getByRole('button', { name: '확인' }).click()
     await expect(page.getByText('방문 1건을 확인했습니다. 조사원 방문 목록에 반영됩니다.')).toBeVisible()
     expect(mutationPaths.filter((path) => path.endsWith('/assignment-confirmations'))).toEqual([

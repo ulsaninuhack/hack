@@ -116,7 +116,12 @@ function AcuteContributionList({ item }: { item: LaneItem }) {
   if (contributions.length === 0) return null
   return <section className="mobile-acute-contributions" aria-label="급성도 주요 기여내역">
     <h3>급성도 주요 기여내역</h3>
-    <ul>{contributions.map((entry) => <li key={entry.코드}>{entry.근거} · +{formatScore(entry.가산점)}점</li>)}</ul>
+    <ul>{contributions.map((entry) => (
+      <li key={entry.코드}>
+        <span className="acute-reason">{entry.근거}</span>
+        <strong className="acute-points">+{formatScore(entry.가산점)}점</strong>
+      </li>
+    ))}</ul>
   </section>
 }
 
