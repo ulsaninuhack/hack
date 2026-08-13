@@ -603,7 +603,6 @@ export function renderAuthoredDistrictAiSummary(input) {
     `복지시설은 ${input.복지시설_수}곳, 연결단원은 ${input.연결단원_수}명이 배치되어 있습니다.`,
     `연락업무는 오늘 예정 ${input.오늘_예정_건수}건, 기한 경과 ${input.기한_경과_건수}건, 방문승인 대기 ${input.방문승인_대기_건수}건이며 연결단원 한 명당 오늘 예정은 ${input.연결단원당_오늘_예정}건입니다.`,
     guidance,
-    '이 문단은 주입된 집계 수치를 그대로 인용한 해석이며, 개인 단위 예측이나 판정이 아닙니다.',
   ];
   return sentences.join(' ');
 }

@@ -120,7 +120,7 @@ const summary: DistrictAiSummary = {
   district: '제물포구',
   reference_date: '2026-08-12',
   input_metrics: { 구: '제물포구', 기준일: '2026-08-12', 노인인구_비율_퍼센트: '20' },
-  summary_text: '제물포구는 기준일 2026-08-12 관측 집계에서 노인 인구 비율 20%로 나타납니다.',
+  summary_text: '제물포구는 기준일 2026-08-12 관측 집계에서 노인 인구 비율 20%로 나타납니다. 복지시설과 운영 현황을 함께 확인합니다.',
   mixed_snapshot_warnings: ['분자 2026-07-31 · 분모 2026-06-30 · 서로 다른 기준월의 참고 비율이며 동시점 비율이 아닙니다.'],
 }
 
@@ -199,7 +199,10 @@ describe('CityPage (시·구 /city)', () => {
     await user.click(screen.getByRole('button', { name: '구 단위 요약 읽기' }))
     await waitFor(() => expect(mocks.loadDistrictAiSummary).toHaveBeenCalledWith('제물포구'))
     const card = await screen.findByLabelText('제물포구 AI 요약')
+    expect(within(card).getByText('핵심 요약')).toBeInTheDocument()
+    expect(within(within(card).getByRole('list', { name: '핵심 요약 문장' })).getAllByRole('listitem')).toHaveLength(2)
     expect(within(card).getByText(/노인 인구 비율 20%로 나타납니다/)).toBeInTheDocument()
+    expect(card).not.toHaveTextContent('이 문단은 주입된 집계 수치를 그대로 인용한 해석')
     await user.click(within(card).getByText('요약에 주입된 집계 수치 보기'))
     expect(within(card).getByText(/노인인구 비율 퍼센트: 20/)).toBeInTheDocument()
   })
