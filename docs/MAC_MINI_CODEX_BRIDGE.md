@@ -88,9 +88,10 @@ the existing Cloud Run runtime service account Secret Manager accessor only for 
 `OPENAI_API_KEY` while file transcription is enabled; it is no longer used for text Planner/Critic
 when `CONTACT_OPS_CODEX_BRIDGE_URL` is present.
 
-Before the next merge, add `CONTACT_OPS_CODEX_BRIDGE_URL` to the backend-production GitHub
-environment/repository variables and add the secret mapping to the deploy workflow. Do that only
-after the Funnel request smoke test passes, because bridge configuration is deliberately fail-closed.
+Production reads `CONTACT_OPS_CODEX_BRIDGE_URL` from the repository variable and maps
+`CONTACT_OPS_CODEX_BRIDGE_TOKEN` directly from `codex-bridge-token` in Secret Manager. When
+reprovisioning, verify both mappings only after the Funnel request smoke passes, because bridge
+configuration is deliberately fail-closed.
 
 ## 5. End-to-end smoke
 
