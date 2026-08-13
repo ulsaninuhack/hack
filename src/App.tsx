@@ -19,6 +19,7 @@ import type { DataBundle, DongProperties, MetricKey } from './types'
 import { ManagerPage, SurveyorPage, ZoneOperationsPanel } from './Operations'
 import { CenterPage } from './CenterPage'
 import { MobilePage } from './MobilePage'
+import { CityPage } from './CityPage'
 import { loadStructuralContext } from './structuralContext'
 import type { StructuralContext } from './structuralContext'
 import { loadOperationsMap } from './contactOpsClient'
@@ -54,6 +55,7 @@ export default function App() {
   if (window.location.pathname === '/ops/manager') return <ManagerPage />
   if (window.location.pathname === '/center') return <CenterPage />
   if (window.location.pathname === '/m') return <MobilePage />
+  if (window.location.pathname === '/city') return <CityPage />
   return <PublicMapApp />
 }
 
