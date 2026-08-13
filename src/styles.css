@@ -1113,6 +1113,18 @@ ul.mobile-acute-contributions { list-style: none; display: grid; gap: 6px; }
 .live-call-invite h3 { margin: 0 0 6px; font-size: 19px; }
 .live-call-invite p { margin: 0 0 12px; color: #41454a; }
 .live-call-invite img { display: block; width: 280px; max-width: 100%; height: auto; aspect-ratio: 1; border: 0; border-radius: 0; background: #ffffff; }
+.live-call-fixed-invite {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid #bdb4f7;
+  border-radius: 16px;
+  background: #faf9ff;
+}
+.live-call-fixed-invite h3, .live-call-fixed-invite p { margin: 0; }
+.live-call-fixed-invite p { color: #41454a; }
+.live-call-fixed-invite code { padding: 11px 12px; overflow-wrap: anywhere; border: 1px solid #d7dfea; border-radius: 10px; background: #ffffff; color: #3d27b8; font: 700 16px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.live-call-fixed-invite .live-call-share { justify-self: start; }
 .live-call-qr-error { max-width: 280px; margin: 0 !important; padding: 12px; border: 1px solid #f4b7bd; border-radius: 12px; background: #fef2f2; color: #a91429 !important; font-weight: 700; }
 .live-call-share, .live-call-primary {
   border: 1px solid #5a42ee;

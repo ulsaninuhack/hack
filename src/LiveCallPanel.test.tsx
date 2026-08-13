@@ -76,6 +76,20 @@ describe('LiveCallPanel', () => {
     expect(screen.getByRole('button', { name: /참여 링크 (보내기|복사)/ })).toBeInTheDocument()
   })
 
+  it('shows the fixed demo address without rendering a QR code', async () => {
+    render(<LiveCallPanel
+      join={hostJoin}
+      inviteUrl="https://demo.example/call/demo"
+      inviteMode="fixed-demo"
+    />)
+
+    expect(screen.getByRole('heading', { name: '시연 고정 입장 주소' })).toBeInTheDocument()
+    expect(screen.getByText('https://demo.example/call/demo')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /고정 링크 (보내기|복사)/ })).toBeInTheDocument()
+    expect(screen.queryByRole('img', { name: /QR 코드/ })).toBeNull()
+    expect(mocks.toDataUrl).not.toHaveBeenCalled()
+  })
+
   it('labels both speakers but sends only final resident speech after explicit finish', async () => {
     let onCaption: ((value: LiveCaption) => void) | undefined
     mocks.toDataUrl.mockResolvedValue('data:image/png;base64,qr')

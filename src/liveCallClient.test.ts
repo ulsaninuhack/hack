@@ -1,9 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  buildDemoCallUrl,
   buildGuestInviteUrl,
   createLiveCall,
   exchangeRealtimeSdp,
+  joinDemoCall,
   parseGuestInviteCode,
   redeemGuestInvite,
 } from './liveCallClient'
@@ -54,6 +56,19 @@ describe('live call HTTP client', () => {
     expect(String(init?.body)).not.toContain('confirm')
   })
 
+  it('explicitly creates the surveyor side of the fixed demo room', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse(credentials))
+
+    await createLiveCall({
+      caseId: 'SYN-HH-2812551000-0001',
+      revision: 7,
+      demoEntry: true,
+    })
+
+    const [, init] = fetchMock.mock.calls[0]
+    expect(JSON.parse(String(init?.body))).toEqual({ expected_revision: 7, demo_entry: true })
+  })
+
   it('builds a short share-safe invite URL without participant credentials', () => {
     const url = buildGuestInviteUrl(
       credentials,
@@ -69,6 +84,13 @@ describe('live call HTTP client', () => {
     expect(url).not.toContain('host-token')
     expect(url).not.toContain('participant')
     expect(parseGuestInviteCode(parsed.search)).toBe('invitecode0123456789abcdef012345')
+  })
+
+  it('builds a permanent demo entrance on the existing service origin', () => {
+    const url = buildDemoCallUrl('https://care.example/m?case=one#live-call')
+    expect(url).toBe('https://care.example/call/demo')
+    expect(url).not.toContain('token')
+    expect(url).not.toContain('invite')
   })
 
   it('accepts share-provider metadata without weakening invite validation', () => {
@@ -97,6 +119,23 @@ describe('live call HTTP client', () => {
       expect.stringContaining('/api/v1/contact-ops/live-calls/invites/invitecode0123456789abcdef012345'),
       { method: 'POST', headers: { Accept: 'application/json' } },
     )
+  })
+
+  it('gets a short-lived resident token through the fixed bodyless demo entrance', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({
+      provider: 'livekit', call_id: 'demo-stage', server_url: 'wss://care-test.livekit.cloud',
+      expires_at: '2026-08-13T01:30:00.000Z',
+      participant: { role: 'resident', participant_token: 'guest-token' },
+    }))
+
+    const join = await joinDemoCall()
+
+    expect(join).toMatchObject({ callId: 'demo-stage', role: 'resident', participantToken: 'guest-token' })
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/api/v1/contact-ops/live-calls/demo'),
+      { method: 'POST', headers: { Accept: 'application/json' } },
+    )
+    expect(String(fetchMock.mock.calls[0][0])).not.toContain('guest-token')
   })
 
   it('keeps a temporary gateway failure distinct from an invalid invite', async () => {

@@ -159,12 +159,15 @@ enter the browser bundle. The backend issues short-lived participant tokens inst
 | `livekit-api-key` | `LIVEKIT_API_KEY` |
 | `livekit-api-secret` | `LIVEKIT_API_SECRET` |
 
-The post-deploy smoke test creates a short-lived host token plus an opaque guest invite code,
-then exchanges that code for the guest token without printing either token. In production the
+The post-deploy smoke test creates the host side of fixed synthetic room `demo-stage` plus an opaque
+guest invite code, then tests both the one-time invite exchange and the bodyless fixed `/live-calls/demo`
+exchange without printing any token. In production the one-time
 code hash and non-personal room metadata use the Firestore collection configured by
 `LIVE_CALL_INVITE_COLLECTION=synthetic_live_call_invites`; the raw code is not stored. This proves
-Cloud Run secret injection, cross-instance short-link exchange, and token issuance; it does not
-prove two-device audio or OpenAI SDP exchange.
+Cloud Run secret injection, cross-instance short-link exchange, fixed-room token issuance, and the
+resident-before-surveyor API contract; it does not prove two-device audio or OpenAI SDP exchange.
+The fixed endpoint is intentionally public and issues a fresh 30-minute resident token on each
+request for the demo. Do not reuse that exception as an operational access-control design.
 
 The deployment uses the Cloud Run action's `overwrite` environment-variable
 strategy. Each revision therefore receives exactly the application variables

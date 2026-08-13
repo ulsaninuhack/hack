@@ -44,9 +44,13 @@ Synthetic ContactOps routes:
   `consent_basis=verbal_in_recording`; the temporary random-named file is deleted after
   candidate generation and the response uses the same confirmation-required candidate
 - `POST /api/v1/contact-ops/cases/:caseId/live-calls` — creates the surveyor room token and
-  a 32-character guest invite code; the guest LiveKit token is never returned in this response
+  a 32-character guest invite code; `{ "demo_entry": true }` selects the fixed synthetic
+  `demo-stage` room, and the guest LiveKit token is never returned in this response
 - `POST /api/v1/contact-ops/live-calls/invites/:inviteCode` — bodyless exchange of an active
   invite code for a short-lived resident participant token; responses are always `no-store`
+- `POST /api/v1/contact-ops/live-calls/demo` — intentionally public, bodyless fixed-demo entry;
+  every request issues a fresh 30-minute resident token for `care-call-demo-stage`, including
+  before the surveyor joins, and responses are always `no-store`
 - `POST /api/v1/contact-ops/live-calls/realtime-sdp` — exchanges authenticated participant
   SDP for the OpenAI Realtime transcription peer
 
@@ -70,6 +74,9 @@ and non-personal room metadata in `LIVE_CALL_INVITE_COLLECTION` (default
 `synthetic_live_call_invites`), while local tests use memory. The public `/call?invite=...` URL
 therefore stays short and works across the two configured Cloud Run instances without putting a
 LiveKit participant token in browser history, share previews, or Vercel request logs.
+The judge-demo page `/call/demo` does not use that one-time invite store: it repeatedly exchanges
+the fixed public path for a short-lived token to the synthetic `demo-stage` room. This is an
+explicit demo-only availability tradeoff; the token remains in the response body, never the URL.
 
 Operations mutations require `X-Demo-Session-ID` (16–128 opaque alphanumeric, `_`, or
 `-` characters) and optimistic `expected_revision`. The AI endpoint first produces a

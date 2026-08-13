@@ -50,7 +50,11 @@ function validServerUrl(value: unknown): value is string {
 export async function createLiveCall(input: {
   caseId: string
   revision: number
+  demoEntry?: boolean
 }): Promise<LiveCallCredentials> {
+  const body = input.demoEntry === undefined
+    ? { expected_revision: input.revision }
+    : { expected_revision: input.revision, demo_entry: input.demoEntry }
   const response = await fetch(`${API_BASE_URL}/api/v1/contact-ops/cases/${encodeURIComponent(input.caseId)}/live-calls`, {
     method: 'POST',
     headers: {
@@ -58,7 +62,7 @@ export async function createLiveCall(input: {
       'Content-Type': 'application/json',
       'X-Demo-Session-ID': demoSessionId(),
     },
-    body: JSON.stringify({ expected_revision: input.revision }),
+    body: JSON.stringify(body),
   })
   const envelope = await response.json().catch(() => ({})) as {
     data?: LiveCallCredentials
@@ -79,6 +83,10 @@ export function buildGuestInviteUrl(credentials: LiveCallCredentials, currentUrl
   return url.toString()
 }
 
+export function buildDemoCallUrl(currentUrl: string = window.location.href): string {
+  return new URL('/call/demo', currentUrl).toString()
+}
+
 export function parseGuestInviteCode(search: string): string | null {
   if (typeof search !== 'string' || search.length === 0 || search.length > 512) return null
   const params = new URLSearchParams(search.replace(/^\?/, ''))
@@ -88,14 +96,11 @@ export function parseGuestInviteCode(search: string): string | null {
   return INVITE_CODE_PATTERN.test(inviteCode || '') ? inviteCode : null
 }
 
-export async function redeemGuestInvite(inviteCode: string): Promise<LiveCallJoin> {
-  if (!INVITE_CODE_PATTERN.test(inviteCode)) {
-    throw new ContactOpsClientError('INVALID_INVITE', '통화 참여 링크가 올바르지 않습니다.')
-  }
-  const response = await fetch(`${API_BASE_URL}/api/v1/contact-ops/live-calls/invites/${encodeURIComponent(inviteCode)}`, {
-    method: 'POST',
-    headers: { Accept: 'application/json' },
-  })
+async function residentJoinFromResponse(
+  response: Response,
+  fallbackCode: string,
+  fallbackMessage: string,
+): Promise<LiveCallJoin> {
   const envelope = await response.json().catch(() => ({})) as {
     data?: {
       provider?: string
@@ -109,8 +114,8 @@ export async function redeemGuestInvite(inviteCode: string): Promise<LiveCallJoi
   const data = envelope.data
   if (!response.ok) {
     throw new ContactOpsClientError(
-      envelope.error?.code ?? 'INVITE_REDEMPTION_FAILED',
-      '통화 참여 정보를 불러오지 못했습니다.',
+      envelope.error?.code ?? fallbackCode,
+      fallbackMessage,
     )
   }
   if (!data || data.provider !== 'livekit'
@@ -134,6 +139,33 @@ export async function redeemGuestInvite(inviteCode: string): Promise<LiveCallJoi
     expiresAt: data.expires_at,
     role: 'resident',
   }
+}
+
+export async function redeemGuestInvite(inviteCode: string): Promise<LiveCallJoin> {
+  if (!INVITE_CODE_PATTERN.test(inviteCode)) {
+    throw new ContactOpsClientError('INVALID_INVITE', '통화 참여 링크가 올바르지 않습니다.')
+  }
+  const response = await fetch(`${API_BASE_URL}/api/v1/contact-ops/live-calls/invites/${encodeURIComponent(inviteCode)}`, {
+    method: 'POST',
+    headers: { Accept: 'application/json' },
+  })
+  return residentJoinFromResponse(
+    response,
+    'INVITE_REDEMPTION_FAILED',
+    '통화 참여 정보를 불러오지 못했습니다.',
+  )
+}
+
+export async function joinDemoCall(): Promise<LiveCallJoin> {
+  const response = await fetch(`${API_BASE_URL}/api/v1/contact-ops/live-calls/demo`, {
+    method: 'POST',
+    headers: { Accept: 'application/json' },
+  })
+  return residentJoinFromResponse(
+    response,
+    'DEMO_CALL_UNAVAILABLE',
+    '시연 통화방을 준비하지 못했습니다.',
+  )
 }
 
 export async function exchangeRealtimeSdp(input: {

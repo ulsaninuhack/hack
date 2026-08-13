@@ -167,6 +167,13 @@ npm run validate:data
 - `POST /api/v1/contact-ops/cases/:caseId/ai-observations`
 - `POST /api/v1/contact-ops/cases/:caseId/live-calls` — 조사원 토큰과 짧은 참여 코드 생성
 - `POST /api/v1/contact-ops/live-calls/invites/:inviteCode` — 참여 코드를 대상자 토큰으로 교환
+- `POST /api/v1/contact-ops/live-calls/demo` — 고정 시연방의 30분 대상자 토큰을 매 요청 새로 발급
+
+시연용 고정 입장 주소는 `https://incheon-care-map.vercel.app/call/demo`이다. 별도 도메인을
+구매할 필요가 없으며, 배포된 기존 Vercel 주소를 그대로 사용한다. 이 페이지는 조사원보다
+먼저 열어 `통화 연결`까지 준비할 수 있고 QR이나 URL 토큰을 사용하지 않는다. 공개 시연
+편의를 위해 누구나 반복해서 짧은 토큰을 발급받을 수 있으므로 운영 서비스 인증 경계로
+재사용하지 않는다.
 
 API 테스트와 생산 이미지를 로컬에서 같은 계약으로 검증할 수 있다.
 
