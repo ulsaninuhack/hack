@@ -39,14 +39,18 @@ const persisted = [
   { synthetic: true, revision: 3, household: cases[1], triage: { 급성도_점수: 75, 취약도_점수: 80, 급성도_등급: '방문권고-우선', 마지막_연결_후_경과일: 4, 점수_기여내역: [{ 축: '급성도', 코드: 'b', 가산점: 75 }, { 축: '취약도', 코드: 'w', 가산점: 80 }] } },
   { synthetic: true, revision: 0, household: cases[2], triage: null },
 ];
-const service = createContactOpsService({ state: { ...state, async list() { return structuredClone(persisted); } }, structuralContext });
+const service = createContactOpsService({
+  state: { ...state, async list() { return structuredClone(persisted); } },
+  structuralContext,
+  scenarioReferenceDate: '2026-08-12',
+});
 const store = createDataStore({ summary: { schemaVersion: 1 }, zones: { type: 'FeatureCollection', features: [] }, facilities: { type: 'FeatureCollection', features: [] }, transit: { type: 'FeatureCollection', features: [] }, validation: { status: 'pass' } });
 let server; let origin;
 before(async () => { server = createApiServer({ store, contactOpsService: service, rateLimitPerMinute: 0 }); await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); }); origin = `http://127.0.0.1:${server.address().port}`; });
 after(async () => new Promise((resolve) => server.close(resolve)));
 
 describe('P7 operations-map API', () => {
-  test('returns every public zone with synthetic max-axis overlay and no unscored imputation', async () => {
+  test('returns every public zone with session scores over a labeled deterministic scenario fallback', async () => {
     const response = await fetch(`${origin}/api/v1/contact-ops/operations-map`, { headers: { 'X-Demo-Session-ID': sessionId } });
     const body = await response.json(); const zones = body.data.zones;
     assert.equal(response.status, 200); assert.equal(body.data.synthetic, true); assert.equal(body.data.displayMarker, '[합성]');
@@ -56,9 +60,15 @@ describe('P7 operations-map API', () => {
     assert.equal(one.operations.acute_color_metric, 75); assert.equal(one.operations.vulnerability_size_metric, 80);
     assert.equal(one.operations.acute_max_case_id, 'SYN-HH-2812551000-0001'); assert.equal(one.operations.vulnerability_max_case_id, 'SYN-HH-2812551000-0002');
     assert.equal(one.operations.scored_case_count, 2); assert.equal(one.operations.unscored_case_count, 0);
+    assert.equal(one.operations.session_scored_case_count, 2); assert.equal(one.operations.scenario_scored_case_count, 0);
+    assert.equal(one.operations.acute_metric_source, 'session_recorded'); assert.equal(one.operations.vulnerability_metric_source, 'session_recorded');
     const two = zones.find(({ geometry_zone_id }) => geometry_zone_id === 'zone:two');
-    assert.equal(two.operations.acute_color_metric, null); assert.equal(two.operations.vulnerability_size_metric, null); assert.equal(two.operations.unscored_case_count, 1);
+    assert.equal(Number.isInteger(two.operations.acute_color_metric), true); assert.equal(Number.isInteger(two.operations.vulnerability_size_metric), true);
+    assert.equal(two.operations.scenario_label, '[합성 시나리오]'); assert.equal(two.operations.scenario_reference_date, '2026-08-12');
+    assert.equal(two.operations.scenario_scored_case_count, 1); assert.equal(two.operations.session_scored_case_count, 0); assert.equal(two.operations.unscored_case_count, 0);
+    assert.equal(two.operations.acute_metric_source, 'synthetic_scenario'); assert.equal(two.operations.vulnerability_metric_source, 'synthetic_scenario');
     assert.equal(two.public_structural_context.model_output_label, '[MODEL OUTPUT — UNVALIDATED]');
+    assert.equal(body.data.scenario_reference_date, '2026-08-12');
     assert.equal(JSON.stringify(body.data).includes('composite'), false);
   });
   test('accepts no query parameters', async () => {

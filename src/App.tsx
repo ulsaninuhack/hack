@@ -147,6 +147,7 @@ function PublicMapApp() {
 
   const selectSearchResult = (dong: DongProperties) => {
     setSelectedDong(dong)
+    setSelectedOperationsZoneId(dong.geometry_zone_id)
     setSearch('')
     setMobilePanel(true)
   }
@@ -269,7 +270,7 @@ function PublicMapApp() {
             <DetailPanel dong={selectedDong} openMobile={mobilePanel} onClose={() => { setSelectedDong(null); setMobilePanel(false) }} />
           )}
           {mapMode === 'operations' && selectedOperationsZoneId && (
-            <div className="public-zone-operations">
+            <div className="public-zone-operations" tabIndex={0} role="region" aria-label="선택한 구역의 합성 시나리오 상세">
               <ZoneOperationsPanel zone={operationsMap?.zones.find((zone) => zone.geometry_zone_id === selectedOperationsZoneId) ?? null} />
             </div>
           )}

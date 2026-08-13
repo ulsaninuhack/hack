@@ -205,7 +205,7 @@ describe('P2 manager flow', () => {
         },
       }],
     })
-    mocks.loadOperationsMap.mockResolvedValue({ synthetic: true, displayMarker: '[합성]', geometry_zone_count: 156, current_admin_dong_count: 162, public_context_label: '[MODEL OUTPUT — UNVALIDATED]', zones: [] })
+    mocks.loadOperationsMap.mockResolvedValue({ synthetic: true, displayMarker: '[합성]', geometry_zone_count: 156, current_admin_dong_count: 162, public_context_label: '[MODEL OUTPUT — UNVALIDATED]', scenario_label: '[합성 시나리오]', scenario_reference_date: '2026-08-12', scenario_method: 'one_deterministic_example_per_current_admin_dong', zones: [] })
     render(<ManagerPage />)
     expect(await screen.findByText('[MODEL OUTPUT — UNVALIDATED]')).toBeInTheDocument()
     expect(screen.getByText('공개 인구 맥락')).toBeInTheDocument()
@@ -226,11 +226,13 @@ describe('P2 manager flow', () => {
     mocks.loadData.mockResolvedValue({})
     mocks.loadStructuralContext.mockResolvedValue({ model_output_label: '[MODEL OUTPUT — UNVALIDATED]', score_range: { minimum: 0, maximum: 50 }, zone_count: 156, zones: [] })
     mocks.loadOperationsMap.mockResolvedValue({
-      synthetic: true, displayMarker: '[합성]', geometry_zone_count: 156, current_admin_dong_count: 162, public_context_label: '[MODEL OUTPUT — UNVALIDATED]',
+      synthetic: true, displayMarker: '[합성]', geometry_zone_count: 156, current_admin_dong_count: 162, public_context_label: '[MODEL OUTPUT — UNVALIDATED]', scenario_label: '[합성 시나리오]', scenario_reference_date: '2026-08-12', scenario_method: 'one_deterministic_example_per_current_admin_dong',
       zones: [{ geometry_zone_id: 'zone:other', public_structural_context: {}, operations: {
         synthetic: true, displayMarker: '[합성]', aggregation: 'zone_max_priority_context', tie_rule: 'highest axis score then synthetic case ID ascending',
         acute_color_metric: 75, acute_max_case_id: 'SYN-HH-A', vulnerability_size_metric: 80, vulnerability_max_case_id: 'SYN-HH-B', scored_case_count: 2, unscored_case_count: 1,
-        contribution_summaries: { acute: [{ code: '연속_미응답', total_points: 50, case_count: 2 }], vulnerability: [{ code: '관계망_없음', total_points: 80, case_count: 2 }] },
+        session_scored_case_count: 1, scenario_scored_case_count: 1, scenario_label: '[합성 시나리오]', scenario_reference_date: '2026-08-12', scenario_method: 'one_deterministic_example_per_current_admin_dong',
+        acute_metric_source: 'session_recorded', vulnerability_metric_source: 'synthetic_scenario',
+        contribution_summaries: { acute: [{ code: '연속_미응답', total_points: 50, case_count: 2 }], vulnerability: [{ code: '관계망_없음', total_points: 80, case_count: 2 }, { code: '동단위_고령비율', total_points: 0, case_count: 1 }] },
       } }],
     })
     render(<ManagerPage />)
@@ -242,6 +244,14 @@ describe('P2 manager flow', () => {
     expect(screen.getByText('취약도 기여')).toBeInTheDocument()
     expect(screen.getByText(/SYN-HH-A/)).toBeInTheDocument()
     expect(screen.getByText(/채색은 구역 내 급성도 최댓값/)).toBeInTheDocument()
+    expect(screen.getByText('[합성 시나리오]')).toBeInTheDocument()
+    expect(screen.getByText('세션 기록 1건 · 합성 예시 1건 · 미기록 1건')).toBeInTheDocument()
+    expect(screen.getByText(/현행 행정동마다 1건의 고정 합성 예시/)).toBeInTheDocument()
+    expect(screen.getByText('연속 미응답')).toBeInTheDocument()
+    expect(screen.queryByText('연속_미응답')).not.toBeInTheDocument()
+    expect(screen.getByText(/0점 항목은 평가되었으나 가산되지 않은 지표/)).toBeInTheDocument()
+    expect(screen.getByText('0–24점')).toBeInTheDocument()
+    expect(screen.queryByText('0_24')).not.toBeInTheDocument()
   })
 
   it('requires a decision and reason, and exposes distance only for approval', async () => {

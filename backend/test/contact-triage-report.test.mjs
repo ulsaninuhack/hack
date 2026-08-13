@@ -71,6 +71,10 @@ describe('deterministic synthetic triage distribution report', () => {
         new URL('../src/contact-triage-scoring.mjs', import.meta.url),
         join(isolatedSource, 'contact-triage-scoring.mjs'),
       );
+      await copyFile(
+        new URL('../src/contact-triage-synthetic-scenario.mjs', import.meta.url),
+        join(isolatedSource, 'contact-triage-synthetic-scenario.mjs'),
+      );
       const result = spawnSync(process.execPath, ['scripts/report-contact-triage.mjs'], {
         cwd: isolatedBackend,
         encoding: 'utf8',

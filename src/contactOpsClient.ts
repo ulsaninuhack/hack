@@ -106,12 +106,19 @@ export interface OperationsMapZone {
     displayMarker: '[합성]'
     aggregation: 'zone_max_priority_context'
     tie_rule: string
+    scenario_label: '[합성 시나리오]'
+    scenario_reference_date: string
+    scenario_method: 'one_deterministic_example_per_current_admin_dong'
     acute_color_metric: number | null
     vulnerability_size_metric: number | null
     acute_max_case_id: string | null
     vulnerability_max_case_id: string | null
+    acute_metric_source: 'session_recorded' | 'synthetic_scenario' | null
+    vulnerability_metric_source: 'session_recorded' | 'synthetic_scenario' | null
     scored_case_count: number
     unscored_case_count: number
+    session_scored_case_count: number
+    scenario_scored_case_count: number
     contribution_summaries: {
       acute: Array<{ code: string; total_points: number; case_count: number }>
       vulnerability: Array<{ code: string; total_points: number; case_count: number }>
@@ -125,6 +132,9 @@ export interface OperationsMap {
   geometry_zone_count: 156
   current_admin_dong_count: 162
   public_context_label: '[MODEL OUTPUT — UNVALIDATED]'
+  scenario_label: '[합성 시나리오]'
+  scenario_reference_date: string
+  scenario_method: 'one_deterministic_example_per_current_admin_dong'
   zones: OperationsMapZone[]
 }
 

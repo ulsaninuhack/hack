@@ -4,6 +4,7 @@ import { basename } from 'node:path'
 
 const frozenScreenshots = [
   ['artifacts/screenshots/public-map-desktop.png', 1440, 900],
+  ['artifacts/screenshots/public-operations-scenario-desktop.png', 1440, 900],
   ['artifacts/screenshots/surveyor-queue-mobile.png', 390, 844],
   ['artifacts/screenshots/surveyor-detail-mobile.png', 390, 844],
   ['artifacts/screenshots/surveyor-form-mobile.png', 390, 844],
@@ -16,6 +17,7 @@ const frozenScreenshots = [
 // P8 additionally requires each state to remain independently inspectable. The
 // combined image above is the frozen rubric row; these are supplemental proof.
 const supplementalScreenshots = [
+  ['artifacts/screenshots/operations-scenario-desktop.png', 1440, 900],
   ['artifacts/screenshots/empty-mobile.png', 390, 844],
   ['artifacts/screenshots/loading-mobile.png', 390, 844],
   ['artifacts/screenshots/error-mobile.png', 390, 844],
