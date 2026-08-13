@@ -218,6 +218,21 @@ export function createThreeTierService({
         .map((proposal) => laneItem(recordById.get(proposal.case_id), proposal, referenceDate));
       const pendingVisit = (batch?.lanes.visit ?? [])
         .filter((proposal) => proposal.status !== 'confirmed' && !memory.escalations.has(proposal.case_id)).length;
+      // 오늘 이 세션에서 결과가 제출된 케이스는 배치 레인에서 빠지므로,
+      // 조사원이 처리 내역을 확인할 수 있게 완료 목록으로 따로 돌려준다.
+      const completed = records
+        .filter((record) => record.household.location.current_admin_dong_code_20260701 === dongCode
+          && record.triage != null && record.triage.기록_출처 !== 'demo_precontact_record'
+          && record.household.contact.last_contact_date === referenceDate)
+        .map((record) => ({
+          case_id: record.household.id,
+          display_name: deriveCaseDisplayName(record.household.id),
+          결과_라벨: contactResultLabel(record.household.contact.last_contact_result),
+          급성도_등급: record.triage.급성도_등급 ?? null,
+          완료_시각: record.updated_at,
+        }))
+        .toSorted((left, right) => right.완료_시각.localeCompare(left.완료_시각)
+          || left.case_id.localeCompare(right.case_id));
       return {
         synthetic: true,
         displayMarker: '[합성]',
@@ -230,6 +245,7 @@ export function createThreeTierService({
         assignment_rule: '전화는 자동 배정 · 방문은 동 행정복지센터 확인 또는 상급기관 신고',
         pending_confirmation: { phone: 0, visit: pendingVisit },
         lanes: { phone: toItems('phone'), visit: toItems('visit') },
+        completed,
       };
     },
 

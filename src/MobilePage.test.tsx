@@ -89,6 +89,18 @@ afterEach(() => {
 })
 
 describe('MobilePage (조사원 /m)', () => {
+  it('lists the contacts submitted today in the 완료 tab', async () => {
+    arrange()
+    const user = userEvent.setup()
+    render(<MobilePage />)
+    await screen.findByLabelText('오늘 전화 목록')
+    await user.click(screen.getByRole('tab', { name: /완료 1건/ }))
+    const doneList = await screen.findByLabelText('오늘 완료 목록')
+    expect(within(doneList).getByText('한금순 어르신')).toBeInTheDocument()
+    expect(within(doneList).getByText('안부 확인 완료')).toBeInTheDocument()
+    expect(within(doneList).getByText(/제출/)).toBeInTheDocument()
+  })
+
   it('separates phone and visit tabs, visit tab carries time window and companion needs (INV16)', async () => {
     arrange()
     const user = userEvent.setup()
@@ -110,7 +122,7 @@ describe('MobilePage (조사원 /m)', () => {
     expect(screen.getByRole('heading', { name: '오늘 방문 대상' })).toBeInTheDocument()
     expect(within(visitList).getByText('이순자 어르신')).toBeInTheDocument()
     expect(within(visitList).getByText('담당자 승인·배치 확인 완료')).toBeInTheDocument()
-    expect(within(visitList).getByText('급성도 62점 · 방문권고')).toBeInTheDocument()
+    expect(within(visitList).getByText('심각도 68점 · 방문권고')).toBeInTheDocument()
     expect(within(visitList).getByText('주요 근거 · 연속 미응답 2회 (+25점)')).toBeInTheDocument()
     expect(within(visitList).queryByText('김영자 어르신')).toBeNull()
     expect(within(visitList).getByText('선호 시간')).toBeInTheDocument()

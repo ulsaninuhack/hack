@@ -85,6 +85,13 @@ export const todayLanesFixture: TodayLanes = {
   pending_confirmation: { phone: 0, visit: 0 },
   lane_rule: '방문 레인에는 담당자가 승인하고 배치를 확인한 방문만 포함',
   lanes: { phone: [phoneLaneItem], visit: [visitLaneItem] },
+  completed: [{
+    case_id: 'SYN-HH-2812551000-0009',
+    display_name: '한금순',
+    결과_라벨: '안부 확인 완료',
+    급성도_등급: '정상',
+    완료_시각: '2026-08-12T01:20:00.000Z',
+  }],
 }
 
 export const voiceCandidateConcernResult = ['connected', 'concern'].join('_')

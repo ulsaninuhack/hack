@@ -13,6 +13,8 @@ import type { CanonicalObservations, ContactResultLabel } from './contactOpsClie
 import {
   ATTENTION_CONTACT_LABELS,
   contactResultLabelFromCode,
+  displaySeverity,
+  laneItemDisplaySeverity,
   loadReportCard,
   loadTodayLanes,
   managementIntakeLabel,
@@ -99,8 +101,24 @@ function errorText(cause: unknown, fallback: string) {
   return cause instanceof Error && cause.message ? cause.message : fallback
 }
 
+const itemSeverity = laneItemDisplaySeverity
+
+function reportSeverity(card: ReportCard) {
+  return displaySeverity({
+    급성도_점수: card.급성도_점수,
+    취약도_점수: card.취약도_점수,
+    결과_라벨: card.evidence.마지막_연락_결과_라벨,
+    연속_미응답: card.evidence.연속_미응답_횟수,
+  })
+}
+
+function reportSeverityGrade(card: ReportCard) {
+  return reportSeverity(card).등급 ?? card.등급
+}
+
 function LaneBadge({ item }: { item: LaneItem }) {
-  return <span className="grade-chip" data-grade={item.급성도_등급 ?? '미기록'}>{item.급성도_등급 ?? '미기록'}</span>
+  const grade = itemSeverity(item).등급 ?? item.급성도_등급 ?? '미기록'
+  return <span className="grade-chip" data-grade={grade}>{grade}</span>
 }
 
 function assignmentStatusLabel(item: LaneItem) {
@@ -115,10 +133,14 @@ function ManagementEntrySummary({ item }: { item: LaneItem }) {
 }
 
 function AcuteContributionList({ item }: { item: LaneItem }) {
-  const contributions = item.급성도_기여내역.slice(0, 3)
+  const severity = itemSeverity(item)
+  const contributions = [
+    ...item.급성도_기여내역.slice(0, 3),
+    ...severity.상승_근거.map((entry) => ({ 코드: entry.근거, 근거: entry.근거, 가산점: entry.가산점 })),
+  ]
   if (contributions.length === 0) return null
-  return <section className="mobile-acute-contributions" aria-label="급성도 주요 기여내역">
-    <h3>급성도 주요 기여내역</h3>
+  return <section className="mobile-acute-contributions" aria-label="심각도 근거">
+    <h3>심각도 근거</h3>
     <ul>{contributions.map((entry) => (
       <li key={entry.코드}>
         <span className="acute-reason">{entry.근거}</span>
@@ -130,7 +152,7 @@ function AcuteContributionList({ item }: { item: LaneItem }) {
 
 export function MobilePage() {
   const [step, setStep] = useState<Step>('list')
-  const [lane, setLane] = useState<'phone' | 'visit'>('phone')
+  const [lane, setLane] = useState<'phone' | 'visit' | 'completed'>('phone')
   const [lanesData, setLanesData] = useState<TodayLanes | null>(null)
   const [selected, setSelected] = useState<LaneItem | null>(null)
   const [inputPath, setInputPath] = useState<InputPath | null>(null)
@@ -223,7 +245,7 @@ export function MobilePage() {
     }, 700)
   }, [selected])
 
-  const items = useMemo(() => lanesData?.lanes[lane] ?? [], [lanesData, lane])
+  const items = useMemo(() => (lane === 'completed' ? [] : lanesData?.lanes[lane] ?? []), [lanesData, lane])
 
   const openCase = (item: LaneItem) => {
     setSelected(item)
@@ -413,24 +435,51 @@ export function MobilePage() {
 
       {step === 'list' && (
         <section aria-labelledby="mobile-today-heading" className="mobile-list">
-          <h2 id="mobile-today-heading">{lane === 'phone' ? '오늘 할당된 연락 대상' : '오늘 방문 대상'}</h2>
-          <div className="lane-tabs" role="tablist" aria-label="전화 목록과 방문 목록">
+          <h2 id="mobile-today-heading">{lane === 'phone' ? '오늘 할당된 연락 대상' : lane === 'visit' ? '오늘 방문 대상' : '오늘 완료한 업무'}</h2>
+          <div className="lane-tabs" role="tablist" aria-label="전화·방문·완료 목록">
             <button role="tab" aria-selected={lane === 'phone'} onClick={() => setLane('phone')}>
               <Phone aria-hidden="true" size={18} /> 전화 {lanesData?.lanes.phone.length ?? 0}건
             </button>
             <button role="tab" aria-selected={lane === 'visit'} onClick={() => setLane('visit')}>
               방문 {lanesData?.lanes.visit.length ?? 0}건
             </button>
+            <button role="tab" aria-selected={lane === 'completed'} onClick={() => setLane('completed')}>
+              <CheckCircle2 aria-hidden="true" size={18} /> 완료 {lanesData?.completed.length ?? 0}건
+            </button>
           </div>
-          <p className="lane-rule">{lane === 'phone'
+          {lane !== 'completed' && <p className="lane-rule">{lane === 'phone'
             ? '정기 연락 일정과 재연락 기한에 따라 오늘 배정된 연락업무입니다.'
-            : '담당자가 승인하고 동 센터가 배치를 확인한 오늘 방문 업무만 표시합니다.'}</p>
-          {loading && !lanesData ? <p className="ops-state" role="status">오늘 목록을 불러오는 중입니다.</p> : (
+            : '담당자가 승인하고 동 센터가 배치를 확인한 오늘 방문 업무만 표시합니다.'}</p>}
+          {loading && !lanesData ? <p className="ops-state" role="status">오늘 목록을 불러오는 중입니다.</p> : lane === 'completed' ? (
+            <ul className="mobile-task-list" aria-label="오늘 완료 목록">
+              {(lanesData?.completed ?? []).length === 0
+                ? <li className="ops-empty">오늘 완료한 업무가 없습니다.</li>
+                : (lanesData?.completed ?? []).map((entry) => (
+                  <li key={entry.case_id} className="mobile-completed">
+                    <span className="mobile-task-top">
+                      <span className="case-id">{entry.display_name} 어르신</span>
+                      <span className="grade-chip" data-grade={entry.급성도_등급 ?? '미기록'}>{entry.급성도_등급 ?? '미기록'}</span>
+                    </span>
+                    <span className="mobile-task-facts">
+                      <span
+                        className="fact-status"
+                        data-attention={ATTENTION_CONTACT_LABELS.has(entry.결과_라벨) || undefined}
+                      >
+                        {entry.결과_라벨}
+                      </span>
+                      <span className="mobile-task-meta">
+                        {new Date(entry.완료_시각).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })} 제출
+                      </span>
+                    </span>
+                  </li>
+                ))}
+            </ul>
+          ) : (
             <ul className="mobile-task-list" aria-label={lane === 'phone' ? '오늘 전화 목록' : '오늘 방문 목록'}>
               {items.length === 0 ? (
                 <li className="ops-empty">
-                  {(lanesData?.pending_confirmation?.[lane] ?? 0) > 0
-                    ? `동 센터가 배치를 배정하면 여기에 나타납니다. (배정 대기 ${lanesData?.pending_confirmation[lane]}건)`
+                  {(lanesData?.pending_confirmation?.[lane as 'phone' | 'visit'] ?? 0) > 0
+                    ? `동 센터가 배치를 배정하면 여기에 나타납니다. (배정 대기 ${lanesData?.pending_confirmation[lane as 'phone' | 'visit']}건)`
                     : '오늘 이 목록에는 예정된 업무가 없습니다.'}
                 </li>
               )
@@ -456,7 +505,7 @@ export function MobilePage() {
                         <span className="mobile-task-meta">담당 {item.worker_display_name ?? '미배정'}</span>
                       </> : <>
                         <span className="visit-approved"><CheckCircle2 aria-hidden="true" size={17} /> 담당자 승인·배치 확인 완료</span>
-                        <span className="mobile-acute-summary">급성도 {formatScore(item.급성도_점수, '기록 없음')}{item.급성도_점수 === null ? '' : '점'} · {item.급성도_등급 ?? '등급 기록 없음'}</span>
+                        <span className="mobile-acute-summary">심각도 {formatScore(itemSeverity(item).점수, '기록 없음')}{itemSeverity(item).점수 === null ? '' : '점'} · {itemSeverity(item).등급 ?? '등급 기록 없음'}</span>
                         {item.급성도_기여내역.slice(0, 2).map((entry) => <span className="mobile-task-meta" key={entry.코드}>주요 근거 · {entry.근거} (+{formatScore(entry.가산점)}점)</span>)}
                       </>}
                       <span className="mobile-task-facts">
@@ -505,7 +554,7 @@ export function MobilePage() {
               : assignmentStatusLabel(selected)}
           </p>
           <dl className="mobile-case-facts">
-            {selected.lane === 'visit' ? <div><dt>급성도</dt><dd>{formatScore(selected.급성도_점수, '기록 없음')}{selected.급성도_점수 === null ? '' : '점'} · <LaneBadge item={selected} /></dd></div> : <>
+            {selected.lane === 'visit' ? <div><dt>심각도</dt><dd>{formatScore(itemSeverity(selected).점수, '기록 없음')}{itemSeverity(selected).점수 === null ? '' : '점'} · <LaneBadge item={selected} /></dd></div> : <>
               <div><dt>선정 사유</dt><dd>{selected.selection_reason_labels.join(' · ') || '선정 사유 확인 중'}</dd></div>
               <div><dt>연락 기한</dt><dd>{selected.earliest_due_date ?? '기한 없음'}</dd></div>
               <div><dt>담당</dt><dd>{selected.worker_display_name ?? '미배정'}</dd></div>
@@ -744,9 +793,10 @@ export function MobilePage() {
           <h2>동 행정복지센터에 보고됨</h2>
           <p className="case-id">{reportCard.display_name} 어르신</p>
           <dl className="mobile-done-summary">
-            <div><dt>등급</dt><dd><span className="grade-chip" data-grade={reportCard.등급}>{reportCard.등급}</span></dd></div>
-            <div><dt>급성도</dt><dd>{formatScore(reportCard.급성도_점수)}</dd></div>
-            <div><dt>취약도</dt><dd>{formatScore(reportCard.취약도_점수)}</dd></div>
+            <div><dt>등급</dt><dd>
+              <span className="grade-chip" data-grade={reportSeverityGrade(reportCard)}>{reportSeverityGrade(reportCard)}</span>
+            </dd></div>
+            <div><dt>심각도</dt><dd>{formatScore(reportSeverity(reportCard).점수)}</dd></div>
           </dl>
           <section className="mobile-done-agencies" aria-label="권고 기관 미리보기">
             <h3>권고 기관 미리보기</h3>
