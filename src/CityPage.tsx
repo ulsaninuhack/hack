@@ -7,6 +7,7 @@ import { loadCityOperationsMap } from './threeTierClient'
 import type { CityOperationsMap, CityOperationsMapZone } from './threeTierClient'
 import { loadDistrictAggregates, loadDistrictAiSummary } from './threeTierClient'
 import type { DistrictAggregate, DistrictAggregates, DistrictAiSummary } from './threeTierClient'
+import { formatScore } from './scoreFormat'
 
 function formatPct(value: number | null) {
   return value === null ? '자료 없음' : `${value}%`
@@ -24,8 +25,8 @@ function CityZoneRollup({ zone, dong }: { zone: CityOperationsMapZone | null; do
       <h3>{dong.current_district_name_20260701} {dong.current_admin_dong_names_20260701.join(' · ')}</h3>
       <p className="city-privacy-note">동 단위 집계까지만 표시합니다. 개별 케이스 정보는 동 행정복지센터 화면에서만 다룹니다.</p>
       <dl className="city-zone-metrics">
-        <div><dt>급성도 최대(구역)</dt><dd>{operations.acute_color_metric ?? '점수 없음'}</dd></div>
-        <div><dt>취약도 최대(구역)</dt><dd>{operations.vulnerability_size_metric ?? '점수 없음'}</dd></div>
+        <div><dt>급성도 최대(구역)</dt><dd>{formatScore(operations.acute_color_metric, '점수 없음')}</dd></div>
+        <div><dt>취약도 최대(구역)</dt><dd>{formatScore(operations.vulnerability_size_metric, '점수 없음')}</dd></div>
         <div><dt>점수 출처</dt><dd>세션 기록 {operations.session_scored_case_count}건 · 고정 예시 {operations.scenario_scored_case_count}건 · 미기록 {operations.unscored_case_count}건</dd></div>
       </dl>
       <p className="zone-scenario-note"><strong>고정 운영 예시</strong> 기준일 {operations.scenario_reference_date} · 실제 주민 상태가 아닙니다.</p>
@@ -235,7 +236,7 @@ export function CityPage() {
                           <td>{candidate.per_worker_due ?? '자료 없음'}</td>
                           <td>{candidate.worker_count}명</td>
                           <td>{candidate.structure_rank}</td>
-                          <td>{candidate.structural_mean_score_0_50 ?? '자료 없음'}</td>
+                          <td>{formatScore(candidate.structural_mean_score_0_50, '자료 없음')}</td>
                         </tr>
                       ))}
                     </tbody>

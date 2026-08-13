@@ -6,6 +6,7 @@ const CASE_NAME = '김영자 어르신'
 const API_ORIGIN = process.env.PLAYWRIGHT_API_URL ?? 'http://127.0.0.1:18082'
 const SESSION_STORAGE_KEY = 'care-ops-demo-session-id'
 const PUBLIC_STRUCTURAL_VULNERABILITY = 37.602737968418836
+const PUBLIC_STRUCTURAL_VULNERABILITY_DISPLAY = '37.6'
 
 type ContactMutation = {
   path: string
@@ -50,7 +51,7 @@ async function selectGoldenCase(page: Page) {
 function managerGoldenCase(page: Page) {
   return page.getByRole('listbox', { name: '방문 권고 목록' }).getByRole('option')
     .filter({ hasText: CASE_NAME }).filter({ hasText: '급성도 57' })
-    .filter({ hasText: `취약도 ${PUBLIC_STRUCTURAL_VULNERABILITY}` })
+    .filter({ hasText: `취약도 ${PUBLIC_STRUCTURAL_VULNERABILITY_DISPLAY}` })
 }
 
 async function expectSeparatedAxes(page: Page, acute: string) {
@@ -59,7 +60,7 @@ async function expectSeparatedAxes(page: Page, acute: string) {
   await expect(axes.nth(0)).toContainText('급성도')
   await expect(axes.nth(0).locator('strong')).toHaveText(acute)
   await expect(axes.nth(1)).toContainText('취약도')
-  await expect(axes.nth(1).locator('strong')).toHaveText(String(PUBLIC_STRUCTURAL_VULNERABILITY))
+  await expect(axes.nth(1).locator('strong')).toHaveText(PUBLIC_STRUCTURAL_VULNERABILITY_DISPLAY)
 }
 
 test('P4 golden: two real contact mutations raise acute score before manager-only approval', async ({ browser }) => {

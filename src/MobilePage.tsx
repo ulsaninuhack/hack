@@ -19,6 +19,7 @@ import {
   uploadVoiceObservationAudio,
 } from './threeTierClient'
 import type { LaneItem, ReportCard, TodayLanes, VoiceCandidate } from './threeTierClient'
+import { formatScore } from './scoreFormat'
 
 const CONTACT_LABELS: ContactResultLabel[] = [
   '안부 확인 완료', '우려 사항 있음', '미응답', '연락(또는 방문) 거부', '연락처 확인 필요',
@@ -113,7 +114,7 @@ function AcuteContributionList({ item }: { item: LaneItem }) {
   if (contributions.length === 0) return null
   return <section className="mobile-acute-contributions" aria-label="급성도 주요 기여내역">
     <h3>급성도 주요 기여내역</h3>
-    <ul>{contributions.map((entry) => <li key={entry.코드}>{entry.근거} · +{entry.가산점}점</li>)}</ul>
+    <ul>{contributions.map((entry) => <li key={entry.코드}>{entry.근거} · +{formatScore(entry.가산점)}점</li>)}</ul>
   </section>
 }
 
@@ -328,8 +329,8 @@ export function MobilePage() {
                         <span className="mobile-task-meta">담당 {item.worker_display_name ?? '미배정'}</span>
                       </> : <>
                         <span className="visit-approved"><CheckCircle2 aria-hidden="true" size={17} /> 담당자 승인·배치 확인 완료</span>
-                        <span className="mobile-acute-summary">급성도 {item.급성도_점수 ?? '기록 없음'}{item.급성도_점수 === null ? '' : '점'} · {item.급성도_등급 ?? '등급 기록 없음'}</span>
-                        {item.급성도_기여내역.slice(0, 2).map((entry) => <span className="mobile-task-meta" key={entry.코드}>주요 근거 · {entry.근거} (+{entry.가산점}점)</span>)}
+                        <span className="mobile-acute-summary">급성도 {formatScore(item.급성도_점수, '기록 없음')}{item.급성도_점수 === null ? '' : '점'} · {item.급성도_등급 ?? '등급 기록 없음'}</span>
+                        {item.급성도_기여내역.slice(0, 2).map((entry) => <span className="mobile-task-meta" key={entry.코드}>주요 근거 · {entry.근거} (+{formatScore(entry.가산점)}점)</span>)}
                       </>}
                       <span className="mobile-task-facts">
                         <span className="mobile-task-fact">
@@ -377,7 +378,7 @@ export function MobilePage() {
               : assignmentStatusLabel(selected)}
           </p>
           <dl className="mobile-case-facts">
-            {selected.lane === 'visit' ? <div><dt>급성도</dt><dd>{selected.급성도_점수 ?? '기록 없음'}{selected.급성도_점수 === null ? '' : '점'} · <LaneBadge item={selected} /></dd></div> : <>
+            {selected.lane === 'visit' ? <div><dt>급성도</dt><dd>{formatScore(selected.급성도_점수, '기록 없음')}{selected.급성도_점수 === null ? '' : '점'} · <LaneBadge item={selected} /></dd></div> : <>
               <div><dt>선정 사유</dt><dd>{selected.selection_reason_labels.join(' · ') || '선정 사유 확인 중'}</dd></div>
               <div><dt>연락 기한</dt><dd>{selected.earliest_due_date ?? '기한 없음'}</dd></div>
               <div><dt>담당</dt><dd>{selected.worker_display_name ?? '미배정'}</dd></div>
@@ -575,8 +576,8 @@ export function MobilePage() {
           <p className="case-id">{reportCard.display_name} 어르신</p>
           <dl className="mobile-done-summary">
             <div><dt>등급</dt><dd><span className="grade-chip" data-grade={reportCard.등급}>{reportCard.등급}</span></dd></div>
-            <div><dt>급성도</dt><dd>{reportCard.급성도_점수}</dd></div>
-            <div><dt>취약도</dt><dd>{reportCard.취약도_점수}</dd></div>
+            <div><dt>급성도</dt><dd>{formatScore(reportCard.급성도_점수)}</dd></div>
+            <div><dt>취약도</dt><dd>{formatScore(reportCard.취약도_점수)}</dd></div>
           </dl>
           <section className="mobile-done-agencies" aria-label="권고 기관 미리보기">
             <h3>권고 기관 미리보기</h3>

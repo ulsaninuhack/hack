@@ -23,6 +23,7 @@ import {
 } from './threeTierClient'
 import type { AssignmentProposalItem, CenterInbox, ReportCard } from './threeTierClient'
 import { caseDisplayName } from './caseDisplayName'
+import { formatScore } from './scoreFormat'
 
 const CENTER_ACTOR = '동센터 담당자'
 const TRANSFER_TRACK_MESSAGE = '안부확인 트랙에서 사례관리·전문기관 트랙으로 전환하는 권고입니다. 전환 확정은 별도 행정 절차로 진행합니다.'
@@ -61,7 +62,7 @@ function ProposalRow({
       {item.lane === 'phone' && <div className="selection-reasons" aria-label="전화 대상 선정 사유">
         {item.selection_reason_labels.map((label) => <span key={label}>{label}</span>)}
       </div>}
-      {item.lane === 'visit' && <p className="mobile-acute-summary">급성도 {item.급성도_점수 ?? '기록 없음'}{item.급성도_점수 === null ? '' : '점'} · {item.급성도_등급 ?? '등급 기록 없음'}</p>}
+      {item.lane === 'visit' && <p className="mobile-acute-summary">급성도 {formatScore(item.급성도_점수, '기록 없음')}{item.급성도_점수 === null ? '' : '점'} · {item.급성도_등급 ?? '등급 기록 없음'}</p>}
       <dl className="assignment-facts">
         <div className="assignment-fact">
           <dt>마지막 연락</dt>
@@ -91,7 +92,7 @@ function ProposalRow({
         </>}
       </dl>
       {item.lane === 'visit' && item.급성도_기여내역.length > 0 && <ul className="mobile-acute-contributions" aria-label="급성도 주요 기여내역">
-        {item.급성도_기여내역.map((entry) => <li key={entry.코드}>{entry.근거} · +{entry.가산점}점</li>)}
+        {item.급성도_기여내역.map((entry) => <li key={entry.코드}>{entry.근거} · +{formatScore(entry.가산점)}점</li>)}
       </ul>}
       {item.adjustment_flags.length > 0 && (
         <p className="assignment-flags" role="note">조정 필요: {item.adjustment_flags.map((flag) => ({
@@ -135,12 +136,12 @@ function ReportCardView({
       </header>
       {card.road_address !== null && <p className="report-address">{card.road_address}</p>}
       <dl className="report-scores">
-        <div><dt>급성도</dt><dd>{card.급성도_점수}</dd></div>
-        <div><dt>취약도</dt><dd>{card.취약도_점수}</dd></div>
+        <div><dt>급성도</dt><dd>{formatScore(card.급성도_점수)}</dd></div>
+        <div><dt>취약도</dt><dd>{formatScore(card.취약도_점수)}</dd></div>
       </dl>
       <section className="report-reasons">
         <h4>사유</h4>
-        <ul>{card.사유_요약.map((reason) => <li key={`${reason.축}-${reason.근거}`}>{reason.축} · {reason.근거} · {reason.가산점}점</li>)}</ul>
+        <ul>{card.사유_요약.map((reason) => <li key={`${reason.축}-${reason.근거}`}>{reason.축} · {reason.근거} · {formatScore(reason.가산점)}점</li>)}</ul>
       </section>
       <section className="report-agencies">
         <h4>권고 기관</h4>
@@ -384,7 +385,7 @@ export function CenterPage() {
                         <li key={item.household.id}>
                           <button aria-pressed={item.household.id === selectedVisitId} onClick={() => { setSelectedVisitId(item.household.id); setDecision(null) }}>
                             <span className="case-id">{displayNameForCase(item.household.id)} 어르신</span>
-                            <span>급성도 {item.triage?.급성도_점수 ?? '–'} · 취약도 {item.triage?.취약도_점수 ?? '–'}</span>
+                            <span>급성도 {formatScore(item.triage?.급성도_점수)} · 취약도 {formatScore(item.triage?.취약도_점수)}</span>
                           </button>
                         </li>
                       ))}

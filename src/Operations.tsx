@@ -30,6 +30,7 @@ import type { DataBundle } from './types'
 import { loadStructuralContext } from './structuralContext'
 import type { StructuralContext, StructuralIndicator, StructuralZone } from './structuralContext'
 import { caseDisplayName } from './caseDisplayName'
+import { formatScore } from './scoreFormat'
 
 const CONTACT_LABELS: ContactResultLabel[] = [
   '안부 확인 완료',
@@ -69,14 +70,14 @@ function AxisCards({ detail }: { detail: CaseDetail | null }) {
     <section className="ops-axis-grid" aria-label="분리된 점수 축">
       <article className="ops-axis ops-axis-primary">
         <span>급성도</span>
-        <strong>{detail?.triage?.급성도_점수 ?? '–'}</strong>
+        <strong>{formatScore(detail?.triage?.급성도_점수)}</strong>
         <small>오늘의 재연락·방문 검토 순서</small>
         <details>
           <summary>급성도 근거 보기</summary>
           {contributions.some((item) => item.축 === '급성도') ? (
             <ul>
               {contributions.filter((item) => item.축 === '급성도').map((item) => (
-                <li key={`${item.코드 ?? item.근거}-${item.가산점}`}>{item.근거} · {item.가산점}점</li>
+                <li key={`${item.코드 ?? item.근거}-${item.가산점}`}>{item.근거} · {formatScore(item.가산점)}점</li>
               ))}
             </ul>
           ) : <p>아직 기록된 급성도 가산 근거가 없습니다.</p>}
@@ -84,14 +85,14 @@ function AxisCards({ detail }: { detail: CaseDetail | null }) {
       </article>
       <article className="ops-axis">
         <span>취약도</span>
-        <strong>{detail?.triage?.취약도_점수 ?? '–'}</strong>
+        <strong>{formatScore(detail?.triage?.취약도_점수)}</strong>
         <small>공개 동단위 맥락과 관계망 관찰</small>
         <details>
           <summary>취약도 근거 보기</summary>
           {contributions.some((item) => item.축 === '취약도') ? (
             <ul>
               {contributions.filter((item) => item.축 === '취약도').map((item) => (
-                <li key={`${item.코드 ?? item.근거}-${item.가산점}`}>{item.근거} · {item.가산점}점</li>
+                <li key={`${item.코드 ?? item.근거}-${item.가산점}`}>{item.근거} · {formatScore(item.가산점)}점</li>
               ))}
             </ul>
           ) : <p>아직 기록된 취약도 가산 근거가 없습니다.</p>}
@@ -467,8 +468,8 @@ export function ManagerPage() {
                   >
                     <span>{caseDisplayName(item.household.id)} 어르신</span>
                     <strong>
-                      <b data-score-axis="acute">급성도 {item.triage?.급성도_점수 ?? '–'}</b>
-                      <b data-score-axis="vulnerability">취약도 {item.triage?.취약도_점수 ?? '–'}</b>
+                      <b data-score-axis="acute">급성도 {formatScore(item.triage?.급성도_점수)}</b>
+                      <b data-score-axis="vulnerability">취약도 {formatScore(item.triage?.취약도_점수)}</b>
                     </strong>
                     <small>방문 권고 · 담당자 승인 대기</small>
                   </button>
@@ -540,7 +541,7 @@ function ManagerBreadthPanel({ breadth, error }: { breadth: ManagerBreadth | nul
   if (error) return <section className="ops-breadth" aria-label="관리자 운영 요약"><p role="alert">{error}</p></section>
   if (!breadth) return <section className="ops-breadth" aria-label="관리자 운영 요약"><p role="status">관리자 운영 요약을 불러오는 중입니다.</p></section>
   return <aside className="ops-breadth" aria-label="관리자 운영 요약">
-    <section><h2>행정복지센터 이관</h2>{breadth.transfer_recommendations.length === 0 ? <p>현재 이관 권고가 없습니다.</p> : <ul>{breadth.transfer_recommendations.map((item) => <li key={item.case_id}><strong>{item.status_label}</strong><span>{caseDisplayName(item.case_id)} 어르신</span><small>급성도 {item.acute.score} · 취약도 {item.vulnerability.score}</small></li>)}</ul>}</section>
+    <section><h2>행정복지센터 이관</h2>{breadth.transfer_recommendations.length === 0 ? <p>현재 이관 권고가 없습니다.</p> : <ul>{breadth.transfer_recommendations.map((item) => <li key={item.case_id}><strong>{item.status_label}</strong><span>{caseDisplayName(item.case_id)} 어르신</span><small>급성도 {formatScore(item.acute.score)} · 취약도 {formatScore(item.vulnerability.score)}</small></li>)}</ul>}</section>
     <section><h2>분리된 2축 분포</h2><h3>급성도 분포</h3><Distribution values={breadth.grade_distribution.acute.grades} /><h3>취약도 분포</h3><Distribution values={breadth.grade_distribution.vulnerability.score_bands} /></section>
     <section className="ops-tuning"><h2>배점 점검</h2><strong>{breadth.tuning_warning.current_mild_signal_count.toLocaleString()}건</strong><p>점수 규칙 점검값이며 실제 개인 판정이 아닙니다.</p></section>
     <section><h2>승인된 방문 {breadth.approved_visit_hint.approved_visit_count}건</h2><p>{breadth.approved_visit_hint.label}</p>{breadth.approved_visit_hint.items.length > 0 && <ol>{breadth.approved_visit_hint.items.map((item) => <li key={item.case_id}>{caseDisplayName(item.case_id)} 어르신 · {item.admin_dong}{item.distance_from_previous_km != null ? ` · 이전 지점에서 ${item.distance_from_previous_km}km` : ''}</li>)}</ol>}</section>
@@ -572,8 +573,8 @@ export function ZoneOperationsPanel({ zone }: { zone: OperationsMapZone | null }
     <p>채색은 구역 내 급성도 최댓값, 원 크기는 취약도 최댓값입니다. 두 축은 각각 표시하며 자동 승인은 사용하지 않습니다.</p>
     <p className="zone-scenario-note"><strong>고정 운영 예시</strong><br />현행 행정동마다 한 건의 고정 예시로 로직을 보여줍니다. 같은 업무에 현재 세션의 입력 기록이 생기면 그 기록을 사용합니다. 기준일 {operations.scenario_reference_date}</p>
     <dl className="zone-operation-metrics">
-      <div><dt>급성도 채색값</dt><dd>{operations.acute_color_metric ?? '점수 없음'} · {sourceLabel(operations.acute_metric_source)}{operations.acute_max_case_id ? ` · ${caseDisplayName(operations.acute_max_case_id)} 어르신` : ''}</dd></div>
-      <div><dt>취약도 원 크기값</dt><dd>{operations.vulnerability_size_metric ?? '점수 없음'} · {sourceLabel(operations.vulnerability_metric_source)}{operations.vulnerability_max_case_id ? ` · ${caseDisplayName(operations.vulnerability_max_case_id)} 어르신` : ''}</dd></div>
+      <div><dt>급성도 채색값</dt><dd>{formatScore(operations.acute_color_metric, '점수 없음')} · {sourceLabel(operations.acute_metric_source)}{operations.acute_max_case_id ? ` · ${caseDisplayName(operations.acute_max_case_id)} 어르신` : ''}</dd></div>
+      <div><dt>취약도 원 크기값</dt><dd>{formatScore(operations.vulnerability_size_metric, '점수 없음')} · {sourceLabel(operations.vulnerability_metric_source)}{operations.vulnerability_max_case_id ? ` · ${caseDisplayName(operations.vulnerability_max_case_id)} 어르신` : ''}</dd></div>
       <div><dt>점수 출처</dt><dd>세션 기록 {operations.session_scored_case_count}건 · 고정 예시 {operations.scenario_scored_case_count}건 · 미기록 {operations.unscored_case_count}건</dd></div>
     </dl>
     <p className="zone-aggregation">구역 집계: 최댓값 우선 맥락. 동점이면 높은 축 점수 후 내부 업무 식별자 오름차순으로 선택합니다.</p>
@@ -594,7 +595,7 @@ function ContributionSummary({ title, entries }: { title: string; entries: Array
     동단위_기초수급_밀도: '동단위 기초수급 밀도',
   }[code] ?? code.replaceAll('_', ' '))
   return <section className="zone-contributions"><h4>{title}</h4>{entries.length === 0 ? <p>점수 기록이 없습니다.</p> : <>
-    <ul>{entries.map((entry) => <li key={entry.code}><span>{displayCode(entry.code)}</span><strong>{entry.total_points}점 · {entry.case_count}건</strong></li>)}</ul>
+    <ul>{entries.map((entry) => <li key={entry.code}><span>{displayCode(entry.code)}</span><strong>{formatScore(entry.total_points)}점 · {entry.case_count}건</strong></li>)}</ul>
     {entries.some(({ total_points: points }) => points === 0) && <p className="zero-contribution-note">0점 항목은 평가되었으나 가산되지 않은 지표입니다.</p>}
   </>}</section>
 }

@@ -117,7 +117,7 @@ test('surveyor contact raises a recommendation and only a manager can approve it
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/ops/manager')
   const managerTarget = page.getByRole('listbox', { name: '방문 권고 목록' }).getByRole('option')
-    .filter({ hasText: CASE_NAME }).filter({ hasText: '급성도 62' }).filter({ hasText: '취약도 37.602737968418836' })
+    .filter({ hasText: CASE_NAME }).filter({ hasText: '급성도 62' }).filter({ hasText: '취약도 37.6' })
   await expect(managerTarget).toBeVisible()
   await managerTarget.click()
   await expect(page.getByRole('region', { name: '연락업무 위치와 공개 동단위 맥락 지도' }))

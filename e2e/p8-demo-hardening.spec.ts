@@ -267,7 +267,7 @@ test('P8 hardening: production-like surfaces, explicit states, accessibility, an
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/ops/manager')
   const managerTarget = page.getByRole('listbox', { name: '방문 권고 목록' }).getByRole('option')
-    .filter({ hasText: CASE_NAME }).filter({ hasText: '급성도 62' }).filter({ hasText: '취약도 37.602737968418836' })
+    .filter({ hasText: CASE_NAME }).filter({ hasText: '급성도 62' }).filter({ hasText: '취약도 37.6' })
   await expect(managerTarget).toBeVisible()
   await managerTarget.click()
   await expect(page.getByText('배점 점검')).toBeVisible()

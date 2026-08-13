@@ -31,11 +31,11 @@
       "violations": []
     },
     {
-      "surface": "error-mobile",
+      "surface": "empty-mobile",
       "violations": []
     },
     {
-      "surface": "empty-mobile",
+      "surface": "error-mobile",
       "violations": []
     }
   ]
