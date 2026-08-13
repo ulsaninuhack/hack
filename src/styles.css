@@ -31,7 +31,7 @@ body { overflow: hidden; }
 button, input, select { font: inherit; }
 button { color: inherit; }
 
-.app-shell { height: 100%; display: grid; grid-template-rows: 74px minmax(0, 1fr); background: #eef1eb; isolation: isolate; }
+.app-shell { height: 100%; display: grid; grid-template-rows: 74px auto minmax(0, 1fr); background: #eef1eb; isolation: isolate; }
 .topbar { position: relative; display: grid; grid-template-columns: 290px 1fr 260px; align-items: center; padding: 0 22px; background: var(--dark); color: white; border-bottom: 1px solid rgba(255,255,255,.08); box-shadow: 0 1px 0 rgba(255,255,255,.05) inset, 0 8px 24px rgba(8,20,18,.28); z-index: 20; }
 .brand { display: flex; align-items: center; gap: 11px; }
 .brand-mark { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px; color: var(--dark); background: var(--gold); box-shadow: 0 6px 16px rgba(240,186,80,.32); transform: rotate(-3deg); transition: transform .25s var(--ease); }
@@ -47,6 +47,8 @@ button { color: inherit; }
 .header-actions { justify-self: end; display: flex; align-items: center; gap: 7px; }
 .method-button { display: flex; align-items: center; gap: 6px; padding: 9px 11px; color: #dce9e5; background: transparent; border: 1px solid rgba(255,255,255,.16); border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; transition: background .2s var(--ease), border-color .2s var(--ease), transform .2s var(--ease); }
 .method-button:hover { background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.28); transform: translateY(-1px); }
+
+.p2-snapshot-note { margin: 0; padding: 5px 18px; color: #3f5e58; background: #eef1eb; border-bottom: 1px solid var(--line); font-size: 11px; font-weight: 600; text-align: center; }
 
 .workspace { min-height: 0; display: grid; grid-template-columns: 348px minmax(0, 1fr); }
 .sidebar { position: relative; z-index: 12; min-height: 0; overflow-y: auto; padding: 27px 24px 20px; background: #f7f6f0; border-right: 1px solid var(--line); box-shadow: 8px 0 28px rgba(17,40,35,.08); }
@@ -195,7 +197,7 @@ button { color: inherit; }
 
 @media (max-width: 720px) {
   body { overflow: hidden; }
-  .app-shell { grid-template-rows: 58px minmax(0, 1fr); }
+  .app-shell { grid-template-rows: 58px auto minmax(0, 1fr); }
   .topbar { grid-template-columns: 1fr auto; padding: 0 14px; }
   .brand-mark { width: 33px; height: 33px; }
   .brand div span { display: none; }
