@@ -54,7 +54,7 @@ npm run audio -- \
 텍스트 Planner/Critic은 기본적으로 `OPENAI_API_KEY`를 쓰지만,
 `CONTACT_OPS_CODEX_BRIDGE_URL`과 32자 이상의 `CONTACT_OPS_CODEX_BRIDGE_TOKEN`을 설정하면
 인증된 Mac mini Codex 브리지를 우선 사용한다. 두 transport가 모두 설정된 경우에만 네트워크
-연결 실패, 타임아웃, HTTP 503/504에 기존 `OPENAI_API_KEY`를 재사용한다. 인증 실패, 사용량 제한,
+연결 실패, 타임아웃, HTTP 503/504 또는 본문 없는 게이트웨이 502에 기존 `OPENAI_API_KEY`를 재사용한다. 인증 실패, 사용량 제한,
 모델 출력 오류, 응답 계약 오류는 OpenAI로 가리지 않고 그대로 실패한다. 외부 브리지 URL은
 HTTPS만 허용한다. 운영 방법은
 [`../docs/MAC_MINI_CODEX_BRIDGE.md`](../docs/MAC_MINI_CODEX_BRIDGE.md)를 따른다.
