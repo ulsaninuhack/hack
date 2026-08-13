@@ -51,10 +51,14 @@ describe('live phone evidence policy', () => {
     expect(candidate.observations.관찰_6징후.우편물_고지서_적체).toBe(true)
   })
 
-  it('marks a populated low-confidence value pending without erasing it', () => {
+  it('marks a populated Critic-review value pending without erasing it', () => {
     const pendingMeal = {
       ...candidate,
       critic: { ...candidate.critic, low_confidence_fields: ['식사상태'] },
+    } as VoiceCandidate
+    const transcriptMissingButPlannerPopulated = {
+      ...candidate,
+      critic: { ...candidate.critic, missing_fields: ['식사상태'] },
     } as VoiceCandidate
     const missingMeal = {
       ...pendingMeal,
@@ -64,6 +68,7 @@ describe('live phone evidence policy', () => {
 
     expect(isCandidateValuePending(pendingMeal, '식사상태')).toBe(true)
     expect(pendingMeal.observations.식사상태).toBe('불량')
+    expect(isCandidateValuePending(transcriptMissingButPlannerPopulated, '식사상태')).toBe(true)
     expect(isCandidateValuePending(missingMeal, '식사상태')).toBe(false)
   })
 

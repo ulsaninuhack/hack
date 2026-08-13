@@ -21,7 +21,7 @@
 
 트리아지 경계를 지키기 위해 `risk_score`는 발화에 숫자 점수가 직접 등장할 때만 옮기고 기본값은 `0`이다. `visit_recommended`도 연결단원이 방문 필요를 직접 권고·요청했을 때만 `true`다. 이 값은 방문 확정이 아니며 최종 규칙과 담당자 승인은 메인 시스템의 책임이다.
 
-ContactOps 확인 후보 `contact-ops-observation-candidate/v2`는 기존 음성 계약의 `risk_score`와 `visit_recommended`를 항상 제거하고 제거 내역만 남긴다. 미응답 연속 횟수, 재연락 기한, 점수, 방문 승인, 이관 완료, 경로 제약은 후보 스키마가 받지 않는 서버 소유 필드다. Luna Planner의 구조화 결과가 식사·위생·공과금 같은 의미 판단의 원본이다. 결정론 코드는 schema와 enum을 검증하고, 서버 소유 필드를 제거하고, 전화 발화만으로 자동 채울 수 없는 관찰 항목을 막고, 후보를 `confirmed: false` 경계에 둔다. 식사 모순·모호성·추가 확인 질문은 병렬 Luna Critic 결과를 후보에 합쳐 표시한다. Critic이 정확한 `low_confidence_fields` 항목으로 재확인을 요구하면 UI는 값이 있는 Planner 필드에만 `(보류)`를 붙인다. Critic 호출만 실패한 경우에도 Planner 후보를 유지하고 채워진 정규 필드를 모두 보류 처리한다. 값이 `null`이면 기존 `미확인` 표시를 유지한다. 조사원이 해당 select를 직접 변경하면 보류 표시는 해제된다. 보류 표시는 제출 강제 차단이 아니라 조사원의 검토·수정 신호다.
+ContactOps 확인 후보 `contact-ops-observation-candidate/v2`는 기존 음성 계약의 `risk_score`와 `visit_recommended`를 항상 제거하고 제거 내역만 남긴다. 미응답 연속 횟수, 재연락 기한, 점수, 방문 승인, 이관 완료, 경로 제약은 후보 스키마가 받지 않는 서버 소유 필드다. Luna Planner의 구조화 결과가 식사·위생·공과금 같은 의미 판단의 원본이다. 결정론 코드는 schema와 enum을 검증하고, 서버 소유 필드를 제거하고, 전화 발화만으로 자동 채울 수 없는 관찰 항목을 막고, 후보를 `confirmed: false` 경계에 둔다. 식사 모순·모호성·추가 확인 질문은 병렬 Luna Critic 결과를 후보에 합쳐 표시한다. Critic이 정확한 `missing_fields` 또는 `low_confidence_fields` 항목으로 재확인을 요구하면 UI는 값이 있는 Planner 필드에만 `(보류)`를 붙인다. Critic 호출만 실패한 경우에도 Planner 후보를 유지하고 채워진 정규 필드를 모두 보류 처리한다. 값이 `null`이면 기존 `미확인` 표시를 유지한다. 조사원이 해당 select를 직접 변경하면 보류 표시는 해제된다. 보류 표시는 제출 강제 차단이 아니라 조사원의 검토·수정 신호다.
 
 ## 설치와 오프라인 테스트
 

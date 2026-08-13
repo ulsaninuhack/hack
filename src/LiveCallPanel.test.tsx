@@ -167,7 +167,7 @@ describe('LiveCallPanel', () => {
         최근_건강_정신_괴로움: null, 관계망_유무: null, 연락_빈도: null,
       },
       critic: {
-        missing_fields: [], contradictions: [], low_confidence_fields: ['식사상태'], warnings: [],
+        missing_fields: ['식사상태'], contradictions: [], low_confidence_fields: [], warnings: [],
         next_question: '오늘 식사를 한 끼도 하지 못한 건가요, 아니면 평소보다 양이 줄어든 건가요?',
       },
     } satisfies Pick<VoiceCandidate, 'contact_result' | 'transcript' | 'observations' | 'critic'>
