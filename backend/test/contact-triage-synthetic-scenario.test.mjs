@@ -5,6 +5,7 @@ import { describe, test } from 'node:test';
 import { createContactOpsService } from '../src/contact-ops-service.mjs';
 import { createMemoryContactOpsState } from '../src/contact-ops-state.mjs';
 import {
+  buildPublicStructuralContext,
   buildSyntheticScenarioInput,
   buildSyntheticScenarioTriage,
   prepareSyntheticScenarioOverlayRecords,
@@ -30,6 +31,36 @@ function record(household, triage = null) {
 }
 
 describe('deterministic synthetic scenario overlay', () => {
+  test('fails visibly when the public-address case or structural evidence is malformed', () => {
+    const household = fixture.households[0];
+    const zone = structuralContext.zones.find(
+      (item) => item.geometry_zone_id === household.location.geometry_zone_id,
+    );
+
+    assert.throws(
+      () => buildPublicStructuralContext({ ...household, synthetic: false }, structuralContext),
+      /valid synthetic household/,
+    );
+    assert.throws(
+      () => buildPublicStructuralContext(household, { ...structuralContext, zones: null }),
+      /dataset is invalid/,
+    );
+    assert.throws(
+      () => buildPublicStructuralContext(household, { ...structuralContext, zones: [] }),
+      /missing structural context/,
+    );
+    assert.throws(
+      () => buildPublicStructuralContext(household, {
+        ...structuralContext,
+        zones: structuralContext.zones.map((item) => item === zone ? {
+          ...item,
+          indicators: { ...item.indicators, older_population_share: null },
+        } : item),
+      }),
+      /indicator is invalid: older_population_share/,
+    );
+  });
+
   test('injects the frozen public structural context before any phone result exists', () => {
     const household = fixture.households[0];
     const zone = structuralContext.zones.find(
