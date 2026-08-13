@@ -154,6 +154,13 @@ function CandidateEditor({
     </label>
     <section className="ai-critic" aria-labelledby="ai-critic-heading">
       <h3 id="ai-critic-heading">비평(Critic) 검토 결과</h3>
+      {candidate.critic.next_question && (
+        <section className="ai-next-question" aria-labelledby="ai-next-question-heading">
+          <h4 id="ai-next-question-heading">다음 확인 질문</h4>
+          <p>{candidate.critic.next_question}</p>
+          <span>답을 확인한 뒤 후보를 수정해 주세요.</span>
+        </section>
+      )}
       <CriticList title="누락 필드" values={candidate.critic.missing_fields} />
       <CriticList title="모순 확인" values={candidate.critic.contradictions} />
       <CriticList title="낮은 확신 필드" values={candidate.critic.low_confidence_fields} />

@@ -28,7 +28,7 @@ async function withServer(callback, overrides = {}) {
   const decisionClient = overrides.decisionClient || {
     async analyzeStructured(input) {
       calls.push(input);
-      return '{"missing_fields":[],"contradictions":[],"low_confidence_fields":[],"warnings":[]}';
+      return '{"missing_fields":[],"contradictions":[],"low_confidence_fields":[],"warnings":[],"next_question":null}';
     },
     close() {},
   };
@@ -88,7 +88,7 @@ test('bridge accepts only the two ContactOps schemas and validates Codex JSON be
     assert.equal(response.status, 200);
     assert.deepEqual(await response.json(), {
       status: 'completed',
-      output_text: '{"missing_fields":[],"contradictions":[],"low_confidence_fields":[],"warnings":[]}',
+      output_text: '{"missing_fields":[],"contradictions":[],"low_confidence_fields":[],"warnings":[],"next_question":null}',
       model: 'gpt-5.5',
     });
     assert.equal(calls.length, 1);
@@ -172,7 +172,7 @@ test('bridge enforces a small in-flight queue for the single Codex process', asy
     decisionClient: {
       async analyzeStructured() {
         await blocked;
-        return '{"missing_fields":[],"contradictions":[],"low_confidence_fields":[],"warnings":[]}';
+        return '{"missing_fields":[],"contradictions":[],"low_confidence_fields":[],"warnings":[],"next_question":null}';
       },
       close() {},
     },

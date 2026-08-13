@@ -19,7 +19,7 @@ function response(data: unknown) {
 }
 
 const candidate = {
-  schema_version: 'contact-ops-observation-candidate/v1',
+  schema_version: 'contact-ops-observation-candidate/v2',
   synthetic: true,
   marker: '[합성]',
   case_id: 'SYN-HH-2812551000-0001',
@@ -49,6 +49,7 @@ const candidate = {
     contradictions: [],
     low_confidence_fields: ['위생상태'],
     warnings: [],
+    next_question: '오늘 식사를 한 끼도 하지 못한 건가요, 아니면 평소보다 양이 줄어든 건가요?',
   },
   stripped_server_owned_fields: [
     'contact_result.risk_score',

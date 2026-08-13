@@ -92,6 +92,7 @@ test('text Planner output becomes an exact ContactOps candidate with canonical K
     'confirmed',
   ]);
   assert.equal(result.case_id, ROUTE_CASE_ID);
+  assert.equal(result.schema_version, 'contact-ops-observation-candidate/v2');
   assert.equal(result.contact_result, 'connected_concern');
   assert.deepEqual(result.observations, {
     '관찰_6징후': {
@@ -149,6 +150,114 @@ test('Critic exposes missing and low-confidence fields instead of silently conve
     assert.ok(result.critic.missing_fields.includes(field), field);
   }
   assert.ok(result.critic.low_confidence_fields.includes('관찰_6징후.우편물_고지서_적체'));
+  assert.equal(result.critic.next_question, null);
+});
+
+test('Critic proposes one information-gain question for an ambiguous meal statement', async () => {
+  const transcript = '요즘 밥을 잘 못 먹어요.';
+  const result = await planContactOpsObservation(
+    { kind: 'text', text: transcript, surveyorId: SURVEYOR_ID, caseId: ROUTE_CASE_ID },
+    {
+      plannerClient: mockPlanner(plannerOutput({
+        transcript,
+        caseId: null,
+        observation: { meal_status: '심각', hygiene: null },
+        riskSignals: [],
+        freeText: '식사량이 평소보다 줄었다고 말함',
+      })),
+    },
+  );
+
+  assert.equal(result.observations.식사상태, null);
+  assert.ok(result.critic.warnings.includes('모호한 식사 표현은 등급 후보로 확정하지 않음'));
+  assert.equal(
+    result.critic.next_question,
+    '오늘 식사를 한 끼도 하지 못한 건가요, 아니면 평소보다 양이 줄어든 건가요?',
+  );
+  assert.equal(result.requires_user_confirmation, true);
+  assert.equal(result.confirmed, false);
+});
+
+test('Critic does not ask a redundant question when the meal severity is explicit', async () => {
+  const transcript = '이틀째 한 끼도 먹지 못했어요.';
+  const result = await planContactOpsObservation(
+    { kind: 'text', text: transcript, surveyorId: SURVEYOR_ID, caseId: ROUTE_CASE_ID },
+    {
+      plannerClient: mockPlanner(plannerOutput({
+        transcript,
+        caseId: null,
+        observation: { meal_status: '심각', hygiene: null },
+        riskSignals: ['식사 심각'],
+      })),
+    },
+  );
+
+  assert.equal(result.observations.식사상태, '심각');
+  assert.equal(result.critic.next_question, null);
+});
+
+test('Critic preserves conflicting meal statements and asks one time-scope clarification', async () => {
+  const transcript = '오늘 아무것도 못 먹었어요. 아침에는 죽을 조금 먹었죠.';
+  const result = await planContactOpsObservation(
+    { kind: 'text', text: transcript, surveyorId: SURVEYOR_ID, caseId: ROUTE_CASE_ID },
+    {
+      plannerClient: mockPlanner(plannerOutput({
+        transcript,
+        caseId: null,
+        observation: { meal_status: '심각', hygiene: null },
+        riskSignals: ['식사 심각'],
+      })),
+    },
+  );
+
+  assert.equal(result.observations.식사상태, null);
+  assert.ok(result.critic.contradictions.includes('식사 발화가 서로 달라 추가 확인이 필요함'));
+  assert.ok(result.critic.low_confidence_fields.includes('식사상태'));
+  assert.equal(
+    result.critic.next_question,
+    '오늘은 조금 드셨지만 그 전에는 식사를 거의 못 하셨다는 뜻인가요?',
+  );
+  assert.equal(result.requires_user_confirmation, true);
+  assert.equal(result.confirmed, false);
+});
+
+test('Critic does not mark different explicit dates as a meal contradiction', async () => {
+  const transcript = '어제는 아무것도 못 먹었지만 오늘 아침에는 죽을 조금 먹었어요.';
+  const result = await planContactOpsObservation(
+    { kind: 'text', text: transcript, surveyorId: SURVEYOR_ID, caseId: ROUTE_CASE_ID },
+    {
+      plannerClient: mockPlanner(plannerOutput({
+        transcript,
+        caseId: null,
+        observation: { meal_status: '불량', hygiene: null },
+        riskSignals: ['식사 불량'],
+      })),
+    },
+  );
+
+  assert.equal(result.observations.식사상태, '불량');
+  assert.ok(!result.critic.contradictions.includes('식사 발화가 서로 달라 추가 확인이 필요함'));
+  assert.equal(result.critic.next_question, null);
+});
+
+test('Critic treats an immediately negated no-meal phrase as a correction, not a contradiction', async () => {
+  const transcript = '오늘 아무것도 못 먹은 건 아니고 아침에는 죽을 조금 먹었어요.';
+  const result = await planContactOpsObservation(
+    { kind: 'text', text: transcript, surveyorId: SURVEYOR_ID, caseId: ROUTE_CASE_ID },
+    {
+      plannerClient: mockPlanner(plannerOutput({
+        transcript,
+        caseId: null,
+        observation: { meal_status: '양호', hygiene: null },
+        riskSignals: [],
+        freeText: '',
+      })),
+    },
+  );
+
+  assert.equal(result.observations.식사상태, '양호');
+  assert.ok(!result.critic.contradictions.includes('식사 발화가 서로 달라 추가 확인이 필요함'));
+  assert.equal(result.critic.next_question, null);
 });
 
 test('the explicit route case ID is authoritative and mismatch becomes a Critic contradiction', async () => {
@@ -190,7 +299,8 @@ test('selected-case memo context maps AI social-isolation signals into the canon
   assert.equal(result.case_id, ROUTE_CASE_ID);
   assert.equal(result.contact_result, 'connected_concern');
   assert.equal(result.observations.관찰_6징후.외출_없음, true);
-  assert.equal(result.observations.식사상태, '심각');
+  assert.equal(result.observations.식사상태, null);
+  assert.equal(result.critic.next_question, '오늘 식사를 한 끼도 하지 못한 건가요, 아니면 평소보다 양이 줄어든 건가요?');
   assert.equal(result.observations.공과금_2개월_이상_체납, true);
   assert.equal(result.observations.최근_건강_정신_괴로움, true);
   assert.equal(result.observations.관계망_유무, '없음');
@@ -248,6 +358,7 @@ test('an injected Critic may add flags but cannot mutate the candidate', async (
           contradictions: ['연락 결과와 메모 확인 필요'],
           low_confidence_fields: ['위생상태'],
           warnings: ['사용자 확인 필수'],
+          next_question: '오늘 식사는 평소와 같았나요, 아니면 양이 줄었나요?',
         };
       },
     },
@@ -257,6 +368,34 @@ test('an injected Critic may add flags but cannot mutate the candidate', async (
   assert.ok(result.critic.contradictions.includes('연락 결과와 메모 확인 필요'));
   assert.equal(result.confirmed, false);
 });
+
+for (const nextQuestion of [
+  '위험도 점수를 올릴까요?',
+  '내일 방문할까요?',
+  '동 행정복지센터에 이관할까요?',
+  '식사는 했나요? 위생은 괜찮나요?',
+  '식사를 했나요?\n다시 답해 주세요.',
+]) {
+  test(`Critic rejects unsafe or multi-part next question: ${JSON.stringify(nextQuestion)}`, async () => {
+    const transcript = `${ROUTE_CASE_ID} 상태를 잘 모르겠어요.`;
+    await assert.rejects(
+      planContactOpsObservation(
+        { kind: 'text', text: transcript, surveyorId: SURVEYOR_ID, caseId: ROUTE_CASE_ID },
+        {
+          plannerClient: mockPlanner(plannerOutput({ transcript })),
+          critic: async () => ({
+            missing_fields: [],
+            contradictions: [],
+            low_confidence_fields: [],
+            warnings: [],
+            next_question: nextQuestion,
+          }),
+        },
+      ),
+      ContactOpsAdapterError,
+    );
+  });
+}
 
 test('validated WAV/MP3/M4A input uses the injected transcriber and the same Planner adapter', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'contact-ops-adapter-audio-'));
@@ -343,6 +482,7 @@ test('the live gate adds a second Structured Outputs Critic node without exposin
             contradictions: [],
             low_confidence_fields: ['식사상태'],
             warnings: ['발화 근거를 사용자가 확인해야 함'],
+            next_question: '오늘 식사는 평소와 같았나요, 아니면 양이 줄었나요?',
           };
         return { status: 'completed', output_text: JSON.stringify(output) };
       },
@@ -363,6 +503,7 @@ test('the live gate adds a second Structured Outputs Critic node without exposin
     assert.equal(JSON.stringify(criticInput).includes('risk_score'), false);
     assert.equal(JSON.stringify(criticInput).includes('visit_recommended'), false);
     assert.ok(result.critic.warnings.includes('발화 근거를 사용자가 확인해야 함'));
+    assert.equal(result.critic.next_question, '오늘 식사는 평소와 같았나요, 아니면 양이 줄었나요?');
   } finally {
     if (previous === undefined) delete process.env.ENABLE_LIVE_CONTACT_OPS_AI;
     else process.env.ENABLE_LIVE_CONTACT_OPS_AI = previous;

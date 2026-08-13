@@ -588,6 +588,7 @@ export interface VoiceCandidate {
     contradictions: string[]
     low_confidence_fields: string[]
     warnings: string[]
+    next_question: string | null
   }
   requires_user_confirmation: true
 }
