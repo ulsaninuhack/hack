@@ -92,7 +92,7 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
     await expect(page.getByRole('table')).toContainText('부하 순위')
     await expect(page.getByRole('table')).toContainText('구조 순위')
     await page.getByRole('button', { name: '구 단위 요약 읽기' }).click()
-    await expect(page.getByText('[AI 생성 · 관측 집계 해석 · 개인 예측 아님]')).toBeVisible()
+    // #46이 라벨 칩을 제거했다 — 요약 카드 내용만 검증한다.
     await expect(page.getByLabel('제물포구 AI 요약')).toContainText('관측 집계에서')
     const cityHtml = await page.content()
     expect(cityHtml).not.toMatch(/SYN-HH-/)
