@@ -464,7 +464,6 @@ select:focus-visible,
 .mobile-list h2, .mobile-case h2, .mobile-done h2 { margin-top: 10px; }
 .mobile-task-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .mobile-task { width: 100%; display: grid; gap: 6px; text-align: left; border: 1.5px solid var(--line-strong); border-radius: var(--radius-lg); background: var(--surface); padding: 14px; cursor: pointer; box-shadow: var(--shadow-sm); }
-.mobile-task-meta { color: var(--muted); font-size: 16px; }
 .mobile-back { display: inline-flex; align-items: center; gap: 4px; border: none; background: none; color: var(--green-strong); font-weight: 800; cursor: pointer; padding: 0 10px 0 0; }
 .mobile-case, .mobile-list, .mobile-done { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 16px; }
 .mobile-case-facts { display: grid; gap: 8px; margin: 0 0 10px; }
@@ -719,10 +718,10 @@ select:focus-visible,
 .center-page .assignment-address { margin: 0; font-size: 14px; color: var(--t-faint); }
 .center-page .assignment-facts { margin: 4px 0 0; display: flex; flex-wrap: wrap; column-gap: 24px; row-gap: 4px; }
 .center-page .assignment-fact { display: flex; align-items: center; gap: 8px; }
-.center-page .assignment-fact dt { font-size: 14px; color: var(--t-faint); font-weight: 500; }
+.center-page .assignment-fact dt { font-size: 14px; color: var(--t-faint); font-weight: 500; white-space: nowrap; }
 .center-page .assignment-fact dd { margin: 0; display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--t-sub); font-weight: 600; font-variant-numeric: tabular-nums; }
-.center-page .fact-status { font-size: 13px; font-weight: 600; border-radius: 6px; padding: 2px 7px; background: var(--t-track); color: var(--t-sub); }
-.center-page .fact-status[data-attention] { background: var(--t-red-soft); color: #c22f2f; }
+.center-page .fact-status, .mobile-page .fact-status { font-size: 13px; font-weight: 600; border-radius: 6px; padding: 2px 7px; background: var(--t-track); color: var(--t-sub); white-space: nowrap; }
+.center-page .fact-status[data-attention], .mobile-page .fact-status[data-attention] { background: var(--t-red-soft); color: #c22f2f; }
 .center-page .assignment-row-main .assignment-confirmed { margin-left: 0; }
 .center-page .assignment-row-main .confirm-one, .center-page .assignment-row-main .assignment-confirmed { margin-left: 12px; }
 .center-page .assignment-worker { margin-left: auto; }
@@ -734,6 +733,8 @@ select:focus-visible,
   --t-bg: #f1f5fa; --t-card: #ffffff; --t-ink: #191b1e; --t-sub: #41454a;
   --t-faint: #656b75; --t-line: #d7dfea; --t-track: #edf2f8;
   --t-blue: #5a42ee; --t-blue-dark: #452aea; --t-blue-soft: #f0f0fc;
+  --t-red: #f52e2e; --t-red-soft: #fef2f2;
+  --t-green: #047a4e; --t-green-soft: #e6f6ef;
   --t-radius: 16px; --t-radius-sm: 10px;
   background: var(--t-bg); color: var(--t-ink);
   font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, 'Noto Sans KR', sans-serif;
@@ -762,7 +763,16 @@ select:focus-visible,
 .mobile-page .mobile-task:hover { border-color: #c1b7ff; box-shadow: 0 4px 14px rgba(90, 66, 238, 0.08); }
 .mobile-page .mobile-task:active { transform: scale(0.98); }
 .mobile-page .case-id { font-weight: 700; color: var(--t-ink); letter-spacing: -0.01em; }
-.mobile-page .mobile-task-meta { color: var(--t-faint); font-size: 15px; }
+.mobile-page .mobile-task-top { display: flex; align-items: center; gap: 8px; }
+.mobile-page .mobile-task-address { color: var(--t-faint); font-size: 14px; }
+.mobile-page .mobile-task-facts { display: flex; flex-wrap: wrap; column-gap: 20px; row-gap: 4px; margin-top: 2px; }
+.mobile-page .mobile-task-fact { display: inline-flex; align-items: baseline; gap: 8px; }
+.mobile-page .fact-label { font-size: 14px; color: var(--t-faint); font-weight: 500; white-space: nowrap; }
+.mobile-page .fact-value { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; font-size: 14px; color: var(--t-sub); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.mobile-page .live-indicator { display: inline-flex; align-items: center; gap: 5px; margin-left: 10px; color: var(--t-green); font-size: 14px; font-weight: 700; }
+.mobile-page .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--t-green); animation: live-pulse 2s ease-in-out infinite; }
+@keyframes live-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(4, 165, 104, 0.35); } 50% { box-shadow: 0 0 0 4px rgba(4, 165, 104, 0); } }
 
 .mobile-page .grade-chip { font-size: 13px; font-weight: 700; padding: 4px 10px; }
 .mobile-page .grade-chip[data-grade="정상"] { background: var(--t-track); color: #4e5968; }

@@ -75,7 +75,8 @@ describe('MobilePage (조사원 /m)', () => {
     const visitList = await screen.findByLabelText('오늘 방문 목록')
     expect(within(visitList).getByText('이순자 어르신')).toBeInTheDocument()
     expect(within(visitList).queryByText('김영자 어르신')).toBeNull()
-    expect(within(visitList).getByText(/선호 시간 10:00~13:00/)).toBeInTheDocument()
+    expect(within(visitList).getByText('선호 시간')).toBeInTheDocument()
+    expect(within(visitList).getByText(/10:00~13:00/)).toBeInTheDocument()
     expect(within(visitList).getByText(/공무원 동행 필요/)).toBeInTheDocument()
   })
 
