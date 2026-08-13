@@ -232,7 +232,7 @@ test('P8 hardening: production-like surfaces, explicit states, accessibility, an
   await publicScenarioPanel.getByText(/세션 기록 0건 · 고정 예시 1건 · 미기록 \d+건/).scrollIntoViewIfNeeded()
   await expect(publicScenarioPanel.getByText('고정 운영 예시')).toBeInViewport()
   await expect(publicScenarioPanel.getByText(/세션 기록 0건 · 고정 예시 1건 · 미기록 \d+건/)).toBeInViewport()
-  await capture(publicPage, 'public-operations-scenario-desktop.png', 1440, 900, '공개 지도에서 실제 API가 채운 초기 합성 시나리오')
+  await capture(publicPage, 'public-operations-scenario-desktop.png', 1440, 900, '공개 지도에서 실제 API가 채운 초기 고정 운영 예시')
   await audit(publicPage, 'public-operations-scenario-desktop')
   await desktop.close()
 
@@ -279,7 +279,7 @@ test('P8 hardening: production-like surfaces, explicit states, accessibility, an
   const mapRegion = page.getByRole('region', { name: '연락업무 위치와 공개 동단위 맥락 지도' })
   await expect(mapRegion).toHaveAttribute('data-map-ready', 'true', { timeout: 45_000 })
   await page.locator('.ops-map-context').scrollIntoViewIfNeeded()
-  await capture(page, 'manager-map-desktop.png', 1440, 900, '실제 선택 합성 점과 키보드 목록 대안')
+  await capture(page, 'manager-map-desktop.png', 1440, 900, '실제 선택 위치와 키보드 목록 대안')
   await audit(page, 'manager-map-desktop')
 
   await page.getByRole('button', { name: '연락업무' }).click()
@@ -290,12 +290,12 @@ test('P8 hardening: production-like surfaces, explicit states, accessibility, an
   await operationsPanel.scrollIntoViewIfNeeded()
   await expect(operationsPanel.getByText('고정 운영 예시')).toBeInViewport()
   await expect(operationsPanel.getByText(/세션 기록 \d+건 · 고정 예시 \d+건 · 미기록 \d+건/)).toBeInViewport()
-  await capture(page, 'operations-scenario-desktop.png', 1440, 900, '실제 162개 행정동 합성 시나리오와 세션·예시·미기록 출처')
+  await capture(page, 'operations-scenario-desktop.png', 1440, 900, '실제 162개 행정동 고정 운영 예시와 세션·예시·미기록 출처')
   await expect(page.getByText(MODEL_LABEL)).toBeVisible()
   await page.getByText(MODEL_LABEL).scrollIntoViewIfNeeded()
   await expect(operationsPanel).toBeInViewport()
   await expect(page.getByText(MODEL_LABEL)).toBeInViewport()
-  await capture(page, 'operations-overlay-desktop.png', 1440, 900, '실제 156구역 [합성] 연락업무 모드와 투명한 구조 맥락')
+  await capture(page, 'operations-overlay-desktop.png', 1440, 900, '실제 156구역 연락업무 모드와 투명한 구조 맥락')
   await audit(page, 'operations-overlay-desktop')
 
   const operationsText = await page.locator('main.ops-page').innerText()
@@ -340,7 +340,7 @@ test('P8 hardening: production-like surfaces, explicit states, accessibility, an
       minTargetWidthPx,
       minTargetHeightPx,
       horizontalOverflowPx,
-      syntheticMarker: true,
+      syntheticPresentationAbsent: !operationsText.includes('합성'),
       separateAxes: true,
       mixedSnapshotWarning: true,
       modelOutputLabel: true,
