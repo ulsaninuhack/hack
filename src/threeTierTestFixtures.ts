@@ -10,6 +10,26 @@ export const phoneLaneItem: LaneItem = {
   case_id: 'SYN-HH-2812551000-0001',
   revision: 0,
   lane: 'phone',
+  assignment_status: 'proposed',
+  worker_display_name: '연결단원 001',
+  selection_reason_labels: ['정기 연락 예정일 도래', '마지막 정상 연결 이후 7일 경과'],
+  management_entry: {
+    synthetic: true,
+    status: 'active_contact_management',
+    intake_channel: 'family_request',
+    intake_recorded_date: '2026-08-05',
+    ongoing_contact_permission: {
+      status: 'recorded',
+      recorded_date: '2026-08-05',
+      basis: 'synthetic_demo_scenario',
+    },
+    duplicate_service_check: {
+      status: 'completed_no_overlapping_schedule',
+      checked_date: '2026-08-05',
+      scope: 'regular_wellbeing_contact_or_home_visit',
+      interpretation: 'workflow_duplicate_check_not_welfare_eligibility',
+    },
+  },
   due_reasons: ['scheduled_contact'],
   earliest_due_date: '2026-08-12',
   reference_date: '2026-08-12',
@@ -17,6 +37,7 @@ export const phoneLaneItem: LaneItem = {
   급성도_점수: null,
   취약도_점수: null,
   grade_source: '미기록',
+  급성도_기여내역: [],
   virtual_phone: { label: '[가상]', display_number: '010-0000-1234', dialable: false, note: '가상 번호 · 실제 발신이 이루어지지 않습니다' },
   location: {
     dong_code: '2812551000', dong_name: '신포동', district: '제물포구',
@@ -34,6 +55,25 @@ export const visitLaneItem: LaneItem = {
   ...structuredClone(phoneLaneItem),
   case_id: 'SYN-HH-2812551000-0002',
   lane: 'visit',
+  assignment_status: 'confirmed',
+  confirmed_by: '동센터 담당자',
+  confirmed_at: '2026-08-12T08:30:00+09:00',
+  selection_reason_labels: ['담당자 승인 방문', '오늘 방문 일정 확정'],
+  급성도_등급: '방문권고',
+  급성도_점수: 62,
+  취약도_점수: 25,
+  grade_source: '데모 사전 기록',
+  기록_출처: 'demo_precontact_record',
+  프로필_버전: 'demo-precontact-v1',
+  급성도_기여내역: [
+    { 코드: 'consecutive_no_answer', 근거: '연속 미응답 2회', 가산점: 25 },
+    { 코드: 'meal_severe', 근거: '식사상태 심각', 가산점: 25 },
+  ],
+  management_entry: {
+    ...structuredClone(phoneLaneItem.management_entry),
+    intake_channel: 'partner_agency_referral',
+  },
+  visit_approval_status: 'approved',
   visit_context: {
     preferred_visit_time_window: { start: '10:00', end: '13:00' },
     requires_two_person_team: false,
@@ -51,8 +91,9 @@ export const todayLanesFixture: TodayLanes = {
   worker_display_name: '연결단원 001',
   dong_code: '2812551000',
   dong_name: '신포동',
-  lane_rule: '방문 레인에는 승인된 방문 또는 방문 선호 예정 업무만 포함',
+  lane_rule: '방문 레인에는 담당자가 승인한 오늘 방문 업무만 포함',
   lanes: { phone: [phoneLaneItem], visit: [visitLaneItem] },
 }
 
 export const voiceCandidateConcernResult = ['connected', 'concern'].join('_')
+export const consecutiveNoAnswerCode = ['consecutive', 'no', 'answer'].join('_')

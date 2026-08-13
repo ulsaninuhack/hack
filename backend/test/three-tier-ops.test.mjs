@@ -61,6 +61,13 @@ function household(id, overrides = {}) {
       visit_approval_status: null, transfer_status: 'not_required', visit_decision: null,
       ...overrides.workflow,
     },
+    management_entry: {
+      synthetic: true,
+      status: 'active_contact_management',
+      intake_channel: 'family_request',
+      intake_recorded_date: '2026-08-05',
+      ...overrides.management_entry,
+    },
     approved_visit_constraints: overrides.approved_visit_constraints ?? null,
   };
 }
@@ -218,6 +225,7 @@ describe('three-tier report card', () => {
 
   test('labels every raw contact result in Korean', () => {
     assert.equal(contactResultLabel('connected_ok'), '안부 확인 완료');
+    assert.equal(contactResultLabel('refused'), '연락(또는 방문) 거부');
     assert.equal(contactResultLabel('not_attempted'), '시도 전');
     assert.equal(contactResultLabel('unknown_enum'), '기록 없음');
   });
@@ -227,16 +235,30 @@ describe('three-tier assignment proposal engine', () => {
   const workers = [worker('SYN-W-2812551000-01'), worker('SYN-W-2826051000-01', { constraints: { available_time_window: { start: '09:00', end: '18:00' } } })];
   const records = [
     record(household('SYN-HH-2812551000-0001')),
-    record(household('SYN-HH-2812551000-0002', { contact: { preferred_contact_method: 'visit' } }), { revision: 1, triage: sampleTriage }),
+    record(household('SYN-HH-2812551000-0002', {
+      contact: { preferred_contact_method: 'visit' },
+      workflow: { visit_approval_status: 'recommended' },
+    }), { revision: 1, triage: sampleTriage }),
     record(household('SYN-HH-2812551000-0003', { contact: { next_contact_date: '2026-08-20' } })),
-    record(household('SYN-HH-2812551000-0004')),
+    record(household('SYN-HH-2812551000-0004', {
+      contact: { preferred_contact_method: 'visit' },
+      workflow: { visit_approval_status: 'rejected' },
+    })),
+    record(household('SYN-HH-2812551000-0005', {
+      contact: { next_contact_date: '2026-08-20', preferred_contact_method: 'visit' },
+      workflow: { visit_approval_status: 'approved' },
+      approved_visit_constraints: { max_route_distance_km: 2, assigned_worker_ids: ['SYN-W-2812551000-01'], routing_interpretation: 'approved_visit_only_not_person_risk' },
+    }), { revision: 1, triage: sampleTriage }),
     record(household('SYN-HH-2826051000-0001', { contact: { preferred_contact_method: 'visit' }, workflow: { follow_up_status: 'overdue', follow_up_deadline: '2026-08-10' } })),
     record(household('SYN-HH-2826051000-0002', {
       contact: { next_contact_date: '2026-08-20' },
       workflow: { visit_approval_status: 'approved' },
       approved_visit_constraints: { max_route_distance_km: 2, assigned_worker_ids: ['SYN-W-2826051000-01'], routing_interpretation: 'approved_visit_only_not_person_risk' },
     })),
-    record(household('SYN-HH-2826051000-0003', { contact: { preferred_contact_method: 'visit' } }), {
+    record(household('SYN-HH-2826051000-0003', {
+      contact: { preferred_contact_method: 'visit' },
+      workflow: { visit_approval_status: 'rejected' },
+    }), {
       revision: 1,
       triage: {
         급성도_점수: 80, 급성도_등급: '방문권고-우선', 취약도_점수: 10, 권고_액션: '방문권고_우선',
@@ -246,25 +268,30 @@ describe('three-tier assignment proposal engine', () => {
     }),
   ];
 
-  test('separates phone and visit lanes with proposal status only (INV14/INV16)', () => {
+  test('puts only approved visits in visit, omits recommendations, and keeps other due work in phone (INV14/INV16)', () => {
     const batches = buildAssignmentProposals({ records, workers, referenceDate: '2026-08-12' });
     assert.equal(batches.length, 2);
     const [first, second] = batches;
     assert.equal(first.dong_code, '2812551000');
     assert.deepEqual(first.lanes.phone.map((item) => item.case_id), ['SYN-HH-2812551000-0001', 'SYN-HH-2812551000-0004']);
-    assert.deepEqual(first.lanes.visit.map((item) => item.case_id), ['SYN-HH-2812551000-0002']);
-    assert.deepEqual(second.lanes.visit.map((item) => item.case_id),
-      ['SYN-HH-2826051000-0002', 'SYN-HH-2826051000-0003', 'SYN-HH-2826051000-0001'],
-      'visit lane orders approved first, then higher acute grade before ungraded due tasks');
+    assert.deepEqual(first.lanes.visit.map((item) => item.case_id), ['SYN-HH-2812551000-0005'],
+      'approved visits are assigned even when neither contact nor follow-up is due');
+    assert.deepEqual(second.lanes.phone.map((item) => item.case_id),
+      ['SYN-HH-2826051000-0001', 'SYN-HH-2826051000-0003'],
+      'null and rejected approvals remain phone work even when visit is preferred');
+    assert.deepEqual(second.lanes.visit.map((item) => item.case_id), ['SYN-HH-2826051000-0002']);
+    const allCaseIds = batches.flatMap((batch) => [...batch.lanes.phone, ...batch.lanes.visit])
+      .map((item) => item.case_id);
+    assert.equal(allCaseIds.includes('SYN-HH-2812551000-0002'), false,
+      'a visit recommendation is review work, not an assignment proposal');
     for (const batch of batches) {
       assert.equal(batch.status, 'proposed');
       for (const proposal of [...batch.lanes.phone, ...batch.lanes.visit]) {
         assert.equal(proposal.status, 'proposed');
         if (proposal.lane === 'visit') {
-          assert.ok(proposal.preferred_contact_method === 'visit' || proposal.approved_visit,
-            'visit lane accepts only approved visits or visit-preferred due tasks');
+          assert.equal(proposal.approved_visit, true,
+            'visit lane accepts only explicitly approved visits');
         } else {
-          assert.equal(proposal.preferred_contact_method, 'phone');
           assert.equal(proposal.approved_visit, false);
         }
       }
@@ -273,11 +300,100 @@ describe('three-tier assignment proposal engine', () => {
     }
   });
 
+  test('exposes assignment display fields, the raw management entry, and only the top three acute contributions', () => {
+    const triage = {
+      ...sampleTriage,
+      점수_기여내역: [
+        { 축: '급성도', 코드: 'low_acute', 근거: '낮은 급성도 기여', 가산점: 5 },
+        { 축: '취약도', 코드: 'high_vulnerability', 근거: '높은 취약도 기여', 가산점: 99 },
+        { 축: '급성도', 코드: 'second_acute', 근거: '두 번째 급성도 기여', 가산점: 30 },
+        { 축: '급성도', 코드: 'top_acute', 근거: '가장 큰 급성도 기여', 가산점: 40 },
+        { 축: '급성도', 코드: 'third_acute', 근거: '세 번째 급성도 기여', 가산점: 20 },
+      ],
+    };
+    const rawHousehold = household('SYN-HH-2812551000-0090', {
+      management_entry: { intake_channel: 'partner_agency_referral', custom_fixture_field: 'preserved' },
+    });
+    const [batch] = buildAssignmentProposals({
+      records: [record(rawHousehold, { revision: 1, triage })],
+      workers: [workers[0]],
+      referenceDate: '2026-08-12',
+    });
+    const [proposal] = batch.lanes.phone;
+
+    assert.equal(proposal.assignment_status, 'proposed');
+    assert.equal(proposal.worker_display_name, workers[0].display_name);
+    assert.deepEqual(proposal.management_entry, rawHousehold.management_entry);
+    assert.deepEqual(proposal.급성도_기여내역, [
+      { 코드: 'top_acute', 근거: '가장 큰 급성도 기여', 가산점: 40 },
+      { 코드: 'second_acute', 근거: '두 번째 급성도 기여', 가산점: 30 },
+      { 코드: 'third_acute', 근거: '세 번째 급성도 기여', 가산점: 20 },
+    ]);
+  });
+
+  test('maps due reasons to exact Korean selection labels without dropping due metadata', () => {
+    const labelRecords = [
+      record(household('SYN-HH-2812551000-0101', {
+        contact: { next_contact_date: '2026-08-10' },
+      })),
+      record(household('SYN-HH-2812551000-0102', {
+        workflow: { follow_up_status: 'required', follow_up_deadline: '2026-08-12' },
+      })),
+      record(household('SYN-HH-2812551000-0103', {
+        contact: { next_contact_date: '2026-08-20' },
+        workflow: { follow_up_status: 'overdue', follow_up_deadline: '2026-08-10' },
+      })),
+      record(household('SYN-HH-2812551000-0104', {
+        contact: { next_contact_date: '2026-08-20' },
+        workflow: { follow_up_status: 'required', follow_up_deadline: null },
+      })),
+    ];
+    const [batch] = buildAssignmentProposals({
+      records: labelRecords,
+      workers: [workers[0]],
+      referenceDate: '2026-08-12',
+    });
+    const proposals = new Map(batch.lanes.phone.map((proposal) => [proposal.case_id, proposal]));
+
+    assert.deepEqual(proposals.get('SYN-HH-2812551000-0101').selection_reason_labels, ['정기 연락 2일 지연']);
+    assert.deepEqual(proposals.get('SYN-HH-2812551000-0101').due_reasons, ['scheduled_contact']);
+    assert.equal(proposals.get('SYN-HH-2812551000-0101').earliest_due_date, '2026-08-10');
+
+    assert.deepEqual(proposals.get('SYN-HH-2812551000-0102').selection_reason_labels, ['오늘 정기 연락', '오늘 재연락']);
+    assert.deepEqual(proposals.get('SYN-HH-2812551000-0102').due_reasons, ['scheduled_contact', 'follow_up_deadline']);
+    assert.equal(proposals.get('SYN-HH-2812551000-0102').earliest_due_date, '2026-08-12');
+
+    assert.deepEqual(proposals.get('SYN-HH-2812551000-0103').selection_reason_labels, ['재연락 2일 지연']);
+    assert.deepEqual(proposals.get('SYN-HH-2812551000-0103').due_reasons, ['follow_up_deadline']);
+    assert.equal(proposals.get('SYN-HH-2812551000-0103').earliest_due_date, '2026-08-10');
+
+    assert.deepEqual(proposals.get('SYN-HH-2812551000-0104').selection_reason_labels, ['재연락 기한 확인 필요']);
+    assert.deepEqual(proposals.get('SYN-HH-2812551000-0104').due_reasons, ['follow_up_missing_deadline']);
+    assert.equal(proposals.get('SYN-HH-2812551000-0104').earliest_due_date, '');
+  });
+
   test('flags time-window mismatch, capacity overflow, and missing workers as 조정 필요', () => {
     const batches = buildAssignmentProposals({ records, workers, referenceDate: '2026-08-12' });
     const visitJemulpo = batches[0].lanes.visit[0];
     assert.ok(visitJemulpo.adjustment_flags.includes('time_window_mismatch'));
-    const bupyeongVisits = batches[1].lanes.visit;
+    const capacityRecords = [
+      record(household('SYN-HH-2826051000-0101', {
+        contact: { next_contact_date: '2026-08-20' },
+        workflow: { visit_approval_status: 'approved' },
+      }), { revision: 1, triage: { ...sampleTriage, 급성도_점수: 80, 급성도_등급: '방문권고-우선' } }),
+      record(household('SYN-HH-2826051000-0102', {
+        contact: { next_contact_date: '2026-08-20' },
+        workflow: { visit_approval_status: 'approved' },
+      }), { revision: 1, triage: sampleTriage }),
+      record(household('SYN-HH-2826051000-0103', {
+        contact: { next_contact_date: '2026-08-20' },
+        workflow: { visit_approval_status: 'approved' },
+      })),
+    ];
+    const [capacityBatch] = buildAssignmentProposals({
+      records: capacityRecords, workers: [workers[1]], referenceDate: '2026-08-12',
+    });
+    const bupyeongVisits = capacityBatch.lanes.visit;
     assert.deepEqual(bupyeongVisits.map((item) => item.adjustment_flags.includes('capacity_exceeded')), [false, false, true],
       'capacity keeps the approved visit and the 방문권고-우선 case; the ungraded case overflows');
     assert.equal(bupyeongVisits[2].급성도_등급, null,

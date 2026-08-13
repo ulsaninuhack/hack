@@ -18,10 +18,11 @@ import {
   loadCenterInbox,
 } from './threeTierClient'
 import type { AssignmentProposalItem, CenterInbox, ReportCard } from './threeTierClient'
+import { caseDisplayName, workerDisplayName, workerIdForDong } from './caseDisplayName'
 
 const CENTER_ACTOR = '동센터 담당자'
-const SYNTHETIC_MESSAGE = '합성 연락업무 데모 · 실제 주민, 실제 업무, 개인 판정이 아닙니다.'
-const TRANSFER_TRACK_MESSAGE = '안부확인 트랙에서 사례관리·전문기관 트랙으로 전환하는 권고입니다. 전환 확정은 별도 행정 절차이며 이 합성 데모의 범위 밖입니다.'
+const DEMO_MESSAGE = '데모 화면 · 표시된 이름은 모두 가명이며 실제 주민·업무·개인 판정이 아닙니다.'
+const TRANSFER_TRACK_MESSAGE = '안부확인 트랙에서 사례관리·전문기관 트랙으로 전환하는 권고입니다. 전환 확정은 별도 행정 절차이며 이 데모의 범위 밖입니다.'
 
 function errorText(cause: unknown, fallback: string) {
   if (cause instanceof ContactOpsClientError && cause.code === 'STATE_CONFLICT') {
@@ -33,6 +34,11 @@ function errorText(cause: unknown, fallback: string) {
 function GradeChip({ grade }: { grade: string | null }) {
   const value = grade ?? '미기록'
   return <span className="grade-chip" data-grade={value}>{value}</span>
+}
+
+function proposalStatusLabel(item: AssignmentProposalItem) {
+  if (item.lane === 'visit') return item.assignment_status === 'confirmed' ? '오늘 방문 할당 확정' : '오늘 방문 배치 제안'
+  return item.assignment_status === 'confirmed' ? '오늘 전화 할당 확정' : '오늘 전화 배치 제안'
 }
 
 function ProposalRow({
@@ -47,10 +53,24 @@ function ProposalRow({
   return (
     <li className="assignment-row" data-lane={item.lane}>
       <div className="assignment-row-main">
-        <span className="case-id">[합성] {item.case_id}</span>
-        <GradeChip grade={item.급성도_등급} />
-        <span className="assignment-worker">{item.worker_display_name ?? '담당 미배정'}</span>
+        <span className="case-id">{caseDisplayName(item.case_id)}</span>
+        <span className="assignment-status" data-status={item.assignment_status}>{proposalStatusLabel(item)}</span>
+        <span className="assignment-worker">담당 {item.worker_display_name ?? '미배정'}</span>
       </div>
+      {item.lane === 'phone' && (
+        <>
+          <div className="selection-reasons" aria-label="전화 대상 선정 사유">
+            {(item.selection_reason_labels ?? []).map((label) => <span key={label}>{label}</span>)}
+          </div>
+          <p className="assignment-due">연락 기한 {item.earliest_due_date ?? '기한 없음'}</p>
+        </>
+      )}
+      {item.lane === 'visit' && (
+        <>
+          <p className="visit-approved"><CheckCircle2 aria-hidden="true" size={17} /> 담당자 승인 완료</p>
+          <p className="assignment-acute">급성도 {item.급성도_점수 ?? '기록 없음'}{item.급성도_점수 === null ? '' : '점'} · {item.급성도_등급 ?? '등급 기록 없음'}</p>
+        </>
+      )}
       <p className="assignment-basis">{item.제안_근거.join(' · ')}</p>
       {item.adjustment_flags.length > 0 && (
         <p className="assignment-flags" role="note">조정 필요: {item.adjustment_flags.map((flag) => ({
@@ -59,7 +79,7 @@ function ProposalRow({
           capacity_exceeded: '일일 방문 용량 초과',
         }[flag] ?? flag)).join(' · ')}</p>
       )}
-      {item.status === 'confirmed'
+      {item.assignment_status === 'confirmed'
         ? <p className="assignment-confirmed"><CheckCircle2 aria-hidden="true" size={17} /> 확인됨 · {item.confirmed_by}</p>
         : <button className="confirm-one" disabled={busy} onClick={() => onConfirm(item.case_id)}>이 제안 확인</button>}
     </li>
@@ -77,10 +97,10 @@ function ReportCardView({
 }) {
   const [showTransfer, setShowTransfer] = useState(false)
   return (
-    <article className="report-card" aria-label={`[합성] ${card.case_id} 보고 카드`}>
+    <article className="report-card" aria-label={`${caseDisplayName(card.case_id)} 보고 카드`}>
       <header>
         <GradeChip grade={card.등급} />
-        <span className="case-id">[합성] {card.case_id}</span>
+        <span className="case-id">{caseDisplayName(card.case_id)}</span>
         <span className="report-meta">{card.evidence.마지막_연락_결과_라벨} · {card.evidence.마지막_연락_일자 ?? '기록 없음'}</span>
       </header>
       <dl className="report-scores">
@@ -174,9 +194,17 @@ export function CenterPage() {
   }, [mapOpen, mapData])
 
   const proposal = inbox?.assignment_proposal ?? null
-  const laneItems = useMemo(() => proposal?.lanes[lane] ?? [], [proposal, lane])
+  const approvedVisitProposalItems = useMemo(
+    () => proposal?.lanes.visit.filter((item) => item.approved_visit) ?? [],
+    [proposal],
+  )
+  const laneItems = useMemo(
+    () => lane === 'phone' ? proposal?.lanes.phone ?? [] : approvedVisitProposalItems,
+    [approvedVisitProposalItems, lane, proposal],
+  )
   const selectedVisit = recommendations.find((item) => item.household.id === selectedVisitId) ?? null
-  const workerId = `SYN-W-${DEMO_CENTER_DONG_CODE}-01`
+  const workerId = workerIdForDong(DEMO_CENTER_DONG_CODE)
+  const selectedWorkerDisplayName = proposal?.worker_display_name ?? workerDisplayName(workerId)
 
   const act = async (action: () => Promise<void>, doneMessage: string, failMessage: string) => {
     try {
@@ -234,11 +262,10 @@ export function CenterPage() {
     <main className="tier-page center-page">
       <header className="tier-header">
         <div>
-          <span className="synthetic-chip">[합성]</span>
           <h1>동 행정복지센터용 · {inbox?.dong_name ?? '신포동'}</h1>
           <p className="tier-audience">{inbox?.district ?? '제물포구'} {inbox?.dong_name ?? '신포동'} 행정복지센터 확인·승인 화면</p>
         </div>
-        <p>{SYNTHETIC_MESSAGE}</p>
+        <p>{DEMO_MESSAGE}</p>
         <nav aria-label="3계층 화면 이동">
           <a href="/m">조사원 모바일</a>
           <a href="/city">시·구 지도</a>
@@ -277,9 +304,9 @@ export function CenterPage() {
                     </p>
                     <div className="lane-tabs" role="tablist" aria-label="전화 레인과 방문 레인">
                       <button role="tab" aria-selected={lane === 'phone'} onClick={() => setLane('phone')}>전화 레인 {proposal.lanes.phone.length}건</button>
-                      <button role="tab" aria-selected={lane === 'visit'} onClick={() => setLane('visit')}>방문 레인 {proposal.lanes.visit.length}건</button>
+                      <button role="tab" aria-selected={lane === 'visit'} onClick={() => setLane('visit')}>방문 레인 {approvedVisitProposalItems.length}건</button>
                     </div>
-                    <p className="lane-rule">방문 레인에는 승인된 방문 또는 방문 선호 예정 업무만 들어옵니다. 전화 큐와 섞지 않습니다.</p>
+                    <p className="lane-rule">방문 레인에는 담당자가 승인한 오늘 방문 업무만 들어옵니다. 전화 큐와 섞지 않습니다.</p>
                     <ul className="assignment-list" aria-label={lane === 'phone' ? '전화 레인 할당 제안' : '방문 레인 할당 제안'}>
                       {laneItems.length === 0 ? <li className="ops-empty">이 레인에는 오늘 제안이 없습니다.</li>
                         : laneItems.map((item) => <ProposalRow key={item.case_id} item={item} onConfirm={confirmOne} busy={busy} />)}
@@ -296,7 +323,7 @@ export function CenterPage() {
                 <h2 id="reports-heading"><Inbox aria-hidden="true" size={20} /> 보고 확인</h2>
                 <p className="center-section-note">조사원 제출이 도착하면 등급·사유·권고 기관이 담긴 보고 카드가 쌓입니다.</p>
                 {inbox.report_cards.length === 0
-                  ? <p className="ops-empty">아직 도착한 보고가 없습니다. 조사원 모바일 화면에서 통화 결과를 제출하면 이곳에 나타납니다.</p>
+                  ? <p className="ops-empty">아직 도착한 보고가 없습니다. 조사원 모바일 화면에서 통화(또는 방문) 결과를 제출하면 이곳에 나타납니다.</p>
                   : inbox.report_cards.map((card) => (
                     <ReportCardView key={card.card_id} card={card} onAcknowledge={acknowledge} busy={busy} />
                   ))}
@@ -311,8 +338,14 @@ export function CenterPage() {
                       {recommendations.map((item) => (
                         <li key={item.household.id}>
                           <button aria-pressed={item.household.id === selectedVisitId} onClick={() => { setSelectedVisitId(item.household.id); setDecision(null) }}>
-                            <span className="case-id">[합성] {item.household.id}</span>
+                            <span className="case-id">{caseDisplayName(item.household.id)}</span>
                             <span>급성도 {item.triage?.급성도_점수 ?? '–'} · 취약도 {item.triage?.취약도_점수 ?? '–'}</span>
+                            {item.triage?.점수_기여내역.find((contribution) => contribution.축 === '급성도') && (
+                              <span className="visit-review-contribution">
+                                주요 급성도 근거 · {item.triage.점수_기여내역.find((contribution) => contribution.축 === '급성도')?.근거}
+                                {' '}(+{item.triage.점수_기여내역.find((contribution) => contribution.축 === '급성도')?.가산점}점)
+                              </span>
+                            )}
                           </button>
                         </li>
                       ))}
@@ -320,13 +353,13 @@ export function CenterPage() {
                     {selectedVisit && (
                       <form className="ops-form" onSubmit={submitVisitDecision}>
                         <fieldset>
-                          <legend>담당자 결정 · [합성] {selectedVisit.household.id}</legend>
+                          <legend>담당자 결정 · {caseDisplayName(selectedVisit.household.id)}</legend>
                           <label className="ops-choice"><input checked={decision === 'approved'} onChange={() => setDecision('approved')} type="radio" name="center-decision" /><span>방문 권고 승인</span></label>
                           <label className="ops-choice"><input checked={decision === 'rejected'} onChange={() => setDecision('rejected')} type="radio" name="center-decision" /><span>방문 권고 반려</span></label>
                           {decision === 'approved' && (
                             <>
                               <label>연결단원 배정
-                                <select value={workerId} onChange={() => {}}><option value={workerId}>{workerId}</option></select>
+                                <select value={workerId} onChange={() => {}}><option value={workerId}>{selectedWorkerDisplayName}</option></select>
                               </label>
                               <label>승인된 방문 거리 제한 (km)
                                 <input min="0.1" max="50" step="0.1" type="number" value={distance} onChange={(event) => setDistance(event.target.value)} required />
@@ -366,7 +399,7 @@ export function CenterPage() {
                         longitude: selectedVisit.household.location.longitude,
                         latitude: selectedVisit.household.location.latitude,
                       } : null}
-                      ariaLabel="[합성] 우리 동 케이스 위치 참고 지도"
+                      ariaLabel="우리 동 케이스 위치 참고 지도"
                       onSelectDong={() => {}}
                     />
                   ) : <p role="status">지도를 열면 우리 동 위치를 확인할 수 있습니다.</p>}

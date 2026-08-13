@@ -3,6 +3,7 @@ import * as maplibregl from 'maplibre-gl'
 import type { ExpressionSpecification, Map, MapMouseEvent } from 'maplibre-gl'
 import type { FeatureCollection, Point } from 'geojson'
 import type { DataBundle, DongProperties, MetricKey } from './types'
+import { caseDisplayName } from './caseDisplayName'
 
 interface MapViewProps {
   data: DataBundle
@@ -272,7 +273,7 @@ function toSyntheticPointCollection(point: MapViewProps['syntheticPoint']): Feat
     features: point ? [{
       type: 'Feature',
       geometry: { type: 'Point', coordinates: [point.longitude, point.latitude] },
-      properties: { case_id: point.caseId, synthetic: true, display_marker: '[합성]' },
+      properties: { display_name: caseDisplayName(point.caseId), synthetic: true },
     }] : [],
   }
 }

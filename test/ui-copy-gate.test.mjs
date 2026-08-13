@@ -53,6 +53,25 @@ test('rejects raw operational enum values in renderable files', async () => {
   assert.equal(violations[0].rule, 'raw-enum');
 });
 
+test('rejects legacy synthetic markers and internal IDs in renderable UI files', async () => {
+  const root = await makeProject({
+    'src/App.tsx': '<span>[합성] SYN-HH-2812551000-0003 SYN-W-2812551000-01</span>',
+  });
+  const violations = await findUiCopyViolations(root);
+  assert.deepEqual(violations.map(({ rule, value }) => ({ rule, value })), [
+    { rule: 'legacy-ui-identifier', value: '[합성]' },
+    { rule: 'legacy-ui-identifier', value: 'SYN-HH-' },
+    { rule: 'legacy-ui-identifier', value: 'SYN-W-' },
+  ]);
+});
+
+test('allows internal IDs in test fixtures that do not ship as UI', async () => {
+  const root = await makeProject({
+    'src/App.test.tsx': "const caseId = 'SYN-HH-2812551000-0003'; const marker = '[합성]'",
+  });
+  assert.deepEqual(await findUiCopyViolations(root), []);
+});
+
 test('allows raw enum declarations in non-rendering contract files', async () => {
   const root = await makeProject({
     'src/contact-contract.ts': "export type Result = 'no_answer';",

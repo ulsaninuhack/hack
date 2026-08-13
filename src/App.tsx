@@ -253,7 +253,7 @@ function PublicMapApp() {
 
           <div className="public-map-mode map-mode-toggle" role="group" aria-label="지도 표시 모드">
             <button type="button" aria-pressed={mapMode === 'public'} onClick={() => setMapMode('public')}>공개 인구 맥락</button>
-            <button type="button" aria-pressed={mapMode === 'operations'} onClick={() => setMapMode('operations')}>[합성] 연락업무</button>
+            <button type="button" aria-pressed={mapMode === 'operations'} onClick={() => setMapMode('operations')}>연락업무</button>
           </div>
 
           <MapView
@@ -276,7 +276,7 @@ function PublicMapApp() {
             <DetailPanel dong={selectedDong} openMobile={mobilePanel} onClose={() => { setSelectedDong(null); setMobilePanel(false) }} />
           )}
           {mapMode === 'operations' && selectedOperationsZoneId && (
-            <div className="public-zone-operations" tabIndex={0} role="region" aria-label="선택한 구역의 합성 시나리오 상세">
+            <div className="public-zone-operations" tabIndex={0} role="region" aria-label="선택한 구역의 데모 예시 상세">
               <ZoneOperationsPanel zone={operationsMap?.zones.find((zone) => zone.geometry_zone_id === selectedOperationsZoneId) ?? null} />
             </div>
           )}

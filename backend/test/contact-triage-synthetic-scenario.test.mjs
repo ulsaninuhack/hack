@@ -5,11 +5,31 @@ import { describe, test } from 'node:test';
 import { createContactOpsService } from '../src/contact-ops-service.mjs';
 import { createMemoryContactOpsState } from '../src/contact-ops-state.mjs';
 import {
+  buildDemoPrecontactSeedRecords,
   buildPublicStructuralContext,
   buildSyntheticScenarioInput,
   buildSyntheticScenarioTriage,
   prepareSyntheticScenarioOverlayRecords,
 } from '../src/contact-triage-synthetic-scenario.mjs';
+
+const OBSERVATION_KEYS = [
+  '관찰_6징후',
+  '식사상태',
+  '위생상태',
+  '공과금_2개월_이상_체납',
+  '최근_건강_정신_괴로움',
+  '관계망_유무',
+  '연락_빈도',
+];
+
+const SIGN_KEYS = [
+  '우편물_고지서_적체',
+  '악취_벌레',
+  '쓰레기_술병',
+  '인기척_없이_TV_불',
+  '외출_없음',
+  '연락_두절',
+];
 
 const fixture = JSON.parse(await readFile(
   new URL('../../public/data/synthetic-households.json', import.meta.url),
@@ -30,7 +50,162 @@ function record(household, triage = null) {
   };
 }
 
+function groupHouseholdsByDong(households) {
+  const groups = new Map();
+  for (const household of households) {
+    const dongCode = household.location.current_admin_dong_code_20260701;
+    groups.set(dongCode, [...(groups.get(dongCode) ?? []), household]);
+  }
+  return groups;
+}
+
 describe('deterministic synthetic scenario overlay', () => {
+  test('builds a deterministic pre-contact seed for all 162 dongs without mutating the 5,869-case fixture', () => {
+    const householdsBefore = structuredClone(fixture.households);
+    const contextBefore = structuredClone(structuralContext);
+
+    const first = buildDemoPrecontactSeedRecords(
+      fixture.households,
+      fixture.scenario_reference_date,
+      structuralContext,
+    );
+    const second = buildDemoPrecontactSeedRecords(
+      fixture.households,
+      fixture.scenario_reference_date,
+      structuralContext,
+    );
+
+    assert.equal(fixture.households.length, 5_869);
+    assert.equal(first.length, 162);
+    assert.equal(new Set(first.map(
+      ({ household }) => household.location.current_admin_dong_code_20260701,
+    )).size, 162);
+    assert.deepEqual(second, first);
+    assert.deepEqual(fixture.households, householdsBefore);
+    assert.deepEqual(structuralContext, contextBefore);
+    assert.equal(first.every(({ revision, updated_at: updatedAt }) => (
+      revision === 1
+      && updatedAt === `${fixture.scenario_reference_date}T00:00:00.000Z`
+    )), true);
+
+    const sourceById = new Map(fixture.households.map((household) => [household.id, household]));
+    assert.equal(first.every(({ household }) => (
+      sourceById.has(household.id) && household !== sourceById.get(household.id)
+    )), true);
+  });
+
+  test('pre-contact seeds contain populated demo evidence and recommendation only, never approval', () => {
+    const seeds = buildDemoPrecontactSeedRecords(
+      fixture.households,
+      fixture.scenario_reference_date,
+      structuralContext,
+    );
+
+    assert.equal(seeds.every(({ household, observations, triage }) => (
+      triage.급성도_점수 >= 55
+      && triage.방문_승인_상태 === '권고'
+      && household.workflow.visit_approval_status === 'recommended'
+      && household.workflow.visit_decision === null
+      && household.approved_visit_constraints === null
+      && !Object.hasOwn(household.workflow, 'approved_by')
+      && triage.기록_출처 === 'demo_precontact_record'
+      && triage.프로필_버전 === 'demo-precontact-v1'
+      && Object.keys(observations).toSorted().join('|') === OBSERVATION_KEYS.toSorted().join('|')
+      && Object.values(observations).every((value) => value !== null)
+      && Object.keys(observations.관찰_6징후).toSorted().join('|') === SIGN_KEYS.toSorted().join('|')
+      && Object.values(observations.관찰_6징후).every((value) => typeof value === 'boolean')
+    )), true);
+  });
+
+  test('avoids the minimum case ID in every dong that has another recommendation-eligible case', () => {
+    const seeds = buildDemoPrecontactSeedRecords(
+      fixture.households,
+      fixture.scenario_reference_date,
+      structuralContext,
+    );
+    const seedByDong = new Map(seeds.map(({ household }) => [
+      household.location.current_admin_dong_code_20260701,
+      household,
+    ]));
+
+    for (const [dongCode, households] of groupHouseholdsByDong(fixture.households)) {
+      const sorted = households.toSorted((left, right) => left.id.localeCompare(right.id));
+      const minimumId = sorted[0].id;
+      const eligibleNonMinimum = sorted.some((household) => (
+        household.id !== minimumId
+        && buildSyntheticScenarioTriage(
+          household,
+          fixture.scenario_reference_date,
+          structuralContext,
+        ).급성도_점수 >= 55
+      ));
+      if (eligibleNonMinimum) {
+        assert.notEqual(seedByDong.get(dongCode).id, minimumId, dongCode);
+      }
+    }
+
+    const sinpoSeed = seeds.find(
+      ({ household }) => household.location.current_admin_dong_name_20260701 === '신포동',
+    );
+    assert.notEqual(sinpoSeed.household.id, 'SYN-HH-2812551000-0001');
+  });
+
+  test('keeps the live Sinpo 0001 score 62 as the operations maximum over the lowest-score bootstrap', async () => {
+    const seeds = buildDemoPrecontactSeedRecords(
+      fixture.households,
+      fixture.scenario_reference_date,
+      structuralContext,
+    );
+    const sinpoSeed = seeds.find(
+      ({ household }) => household.location.current_admin_dong_name_20260701 === '신포동',
+    );
+    assert.equal(sinpoSeed.household.id, 'SYN-HH-2812551000-0004');
+    assert.equal(sinpoSeed.triage.급성도_점수, 62);
+
+    const state = createMemoryContactOpsState({
+      households: fixture.households,
+      initialRecords: seeds,
+    });
+    const service = createContactOpsService({
+      state,
+      structuralContext,
+      scenarioReferenceDate: fixture.scenario_reference_date,
+    });
+    const recorded = await service.recordContactResult({
+      sessionId: 'sinpo-operations-regression',
+      caseId: 'SYN-HH-2812551000-0001',
+      expectedRevision: 0,
+      contactDate: fixture.scenario_reference_date,
+      contactResult: 'no_answer',
+      observations: {
+        관찰_6징후: {
+          우편물_고지서_적체: true,
+          악취_벌레: false,
+          쓰레기_술병: false,
+          인기척_없이_TV_불: false,
+          외출_없음: false,
+          연락_두절: false,
+        },
+        식사상태: '심각',
+        위생상태: null,
+        공과금_2개월_이상_체납: null,
+        최근_건강_정신_괴로움: null,
+        관계망_유무: null,
+        연락_빈도: null,
+      },
+    });
+    assert.equal(recorded.triage.급성도_점수, 62);
+
+    const operationsMap = await service.getOperationsMap({
+      sessionId: 'sinpo-operations-regression',
+    });
+    const zone = operationsMap.zones.find(
+      ({ geometry_zone_id: id }) => id === recorded.household.location.geometry_zone_id,
+    );
+    assert.equal(zone.operations.acute_color_metric, 62);
+    assert.equal(zone.operations.acute_max_case_id, 'SYN-HH-2812551000-0001');
+  });
+
   test('fails visibly when the public-address case or structural evidence is malformed', () => {
     const household = fixture.households[0];
     const zone = structuralContext.zones.find(

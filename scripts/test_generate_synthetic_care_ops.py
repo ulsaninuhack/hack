@@ -12,6 +12,7 @@ import sys
 import tempfile
 import unittest
 from collections import Counter
+from datetime import date
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -33,6 +34,7 @@ ADDRESS_ANCHORS = (
     REPO_ROOT / "public" / "data" / "synthetic-residential-address-anchors.json"
 )
 TOTAL_SYNTHETIC_CASES = 5_869
+EXPECTED_GENERATOR_VERSION = 4
 OUTPUT_NAMES = (
     "synthetic-workers.json",
     "synthetic-households.json",
@@ -46,8 +48,34 @@ FORBIDDEN_KEYS = {
     "beneficiary_status",
     "unserved",
     "non_recipient",
+    "welfare_eligibility",
+    "welfare_recipient_status",
+    "welfare_non_recipient",
+    "benefit_eligibility",
+    "service_eligibility",
+    "support_recipient_status",
+    "triage",
+    "triage_score",
+    "triage_status",
+    "acute_score",
+    "acuity_score",
+    "vulnerability_score",
     "llm_decision",
     "ai_approval",
+}
+MANAGEMENT_ENTRY_REQUIRED_KEYS = {
+    "synthetic",
+    "status",
+    "intake_channel",
+    "intake_recorded_date",
+    "ongoing_contact_permission",
+    "duplicate_service_check",
+}
+INTAKE_CHANNELS = {
+    "self_request",
+    "family_request",
+    "partner_agency_referral",
+    "field_outreach",
 }
 
 CONTACT_REQUIRED_KEYS = {
@@ -354,6 +382,75 @@ class SyntheticCareOpsContractTests(unittest.TestCase):
             )
         )
 
+    def test_every_case_has_a_complete_synthetic_management_entry(self) -> None:
+        households = self.households["households"]
+        scenario_day = date.fromisoformat(self.households["scenario_reference_date"])
+        intake_counts: Counter[str] = Counter()
+
+        self.assertEqual(len(households), TOTAL_SYNTHETIC_CASES)
+        for household in households:
+            with self.subTest(record_id=household["id"]):
+                management = household["management_entry"]
+                self.assertEqual(set(management), MANAGEMENT_ENTRY_REQUIRED_KEYS)
+                self.assertIs(management["synthetic"], True)
+                self.assertEqual(management["status"], "active_contact_management")
+                self.assertIn(management["intake_channel"], INTAKE_CHANNELS)
+
+                permission = management["ongoing_contact_permission"]
+                self.assertEqual(
+                    permission,
+                    {
+                        "status": "recorded",
+                        "recorded_date": permission["recorded_date"],
+                        "basis": "synthetic_demo_scenario",
+                    },
+                )
+                duplicate_check = management["duplicate_service_check"]
+                self.assertEqual(
+                    duplicate_check,
+                    {
+                        "status": "completed_no_overlapping_schedule",
+                        "checked_date": duplicate_check["checked_date"],
+                        "scope": "regular_wellbeing_contact_or_home_visit",
+                        "interpretation": (
+                            "workflow_duplicate_check_not_welfare_eligibility"
+                        ),
+                    },
+                )
+
+                intake_day = date.fromisoformat(management["intake_recorded_date"])
+                permission_day = date.fromisoformat(permission["recorded_date"])
+                checked_day = date.fromisoformat(duplicate_check["checked_date"])
+                self.assertLessEqual(intake_day, permission_day)
+                self.assertLessEqual(permission_day, checked_day)
+                self.assertLessEqual(checked_day, scenario_day)
+                intake_counts[management["intake_channel"]] += 1
+
+        self.assertEqual(set(intake_counts), INTAKE_CHANNELS)
+        self.assertEqual(sum(intake_counts.values()), TOTAL_SYNTHETIC_CASES)
+        self.assertEqual(
+            self.manifest["counts"]["active_contact_management_tasks"],
+            TOTAL_SYNTHETIC_CASES,
+        )
+        self.assertEqual(
+            self.manifest["counts"]["management_intake_channels"],
+            dict(sorted(intake_counts.items())),
+        )
+        self.assertEqual(
+            self.manifest["counts"]["recorded_ongoing_contact_permissions"],
+            TOTAL_SYNTHETIC_CASES,
+        )
+        self.assertEqual(
+            self.manifest["counts"]["completed_duplicate_service_checks"],
+            TOTAL_SYNTHETIC_CASES,
+        )
+        self.assertIs(
+            self.manifest["checks"]["every_household_has_management_entry"], True
+        )
+        self.assertIs(
+            self.manifest["checks"]["management_entry_dates_are_ordered"], True
+        )
+
     def test_generator_rejects_approval_without_human_decision(self) -> None:
         result = subprocess.run(
             [
@@ -377,6 +474,34 @@ class SyntheticCareOpsContractTests(unittest.TestCase):
         )
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("no_visit_is_preapproved_by_fixture_generation", result.stderr)
+
+    def test_generator_rejects_personal_welfare_or_triage_judgment_fields(self) -> None:
+        for forbidden_key in ("welfare_eligibility", "triage"):
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "-c",
+                    (
+                        "from pathlib import Path; "
+                        "from scripts.generate_synthetic_care_ops import "
+                        "allocate_case_counts, load_admin_contract, read_csv, validate_datasets; "
+                        f"import json; workers=json.load(open({str(self.output_dir / 'synthetic-workers.json')!r})); "
+                        f"households=json.load(open({str(self.output_dir / 'synthetic-households.json')!r})); "
+                        f"households['households'][0][{forbidden_key!r}]='synthetic-invalid'; "
+                        f"admin,geometry=load_admin_contract(Path({str(CURRENT_DONGS)!r}), Path({str(CROSSWALK)!r}), Path({str(GEOMETRY)!r})); "
+                        f"counts=allocate_case_counts(read_csv(Path({str(DEMOGRAPHICS)!r}))); "
+                        "validate_datasets(workers, households, admin, geometry, counts)"
+                    ),
+                ],
+                cwd=REPO_ROOT,
+                text=True,
+                capture_output=True,
+            )
+            with self.subTest(forbidden_key=forbidden_key):
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(
+                    "no_forbidden_person_risk_or_beneficiary_keys", result.stderr
+                )
 
     def test_schema_enforces_visit_decision_and_follow_up_state_invariants(self) -> None:
         baseline = copy.deepcopy(self.households["households"][0])
@@ -507,6 +632,9 @@ class SyntheticCareOpsContractTests(unittest.TestCase):
             self.assertEqual(self.manifest["outputs"][name]["sha256"], digest)
 
     def test_json_schemas_publish_the_same_contract_version(self) -> None:
+        self.assertEqual(
+            self.manifest["generator_version"], EXPECTED_GENERATOR_VERSION
+        )
         for name in ("synthetic-worker.schema.json", "synthetic-household.schema.json"):
             schema = load_json(REPO_ROOT / "data" / "schemas" / name)
             self.assertEqual(schema["$schema"], "https://json-schema.org/draft/2020-12/schema")
@@ -518,7 +646,16 @@ class SyntheticCareOpsContractTests(unittest.TestCase):
         )
         household_definition = household_schema["$defs"]["household"]
         self.assertIn("contact", household_definition["required"])
+        self.assertIn("management_entry", household_definition["required"])
         self.assertIn("approved_visit_constraints", household_definition["required"])
+        management_definition = household_schema["$defs"]["management_entry"]
+        self.assertEqual(
+            set(management_definition["required"]), MANAGEMENT_ENTRY_REQUIRED_KEYS
+        )
+        self.assertEqual(
+            set(management_definition["properties"]["intake_channel"]["enum"]),
+            INTAKE_CHANNELS,
+        )
         self.assertEqual(
             set(household_schema["$defs"]["contact"]["required"]),
             CONTACT_REQUIRED_KEYS,

@@ -40,6 +40,11 @@ const RAW_ENUM_VALUES = [
   'no_answer',
   'invalid_contact',
 ];
+const LEGACY_UI_IDENTIFIERS = ['[합성]', 'SYN-HH-', 'SYN-W-'];
+
+function isTestFile(file) {
+  return /(?:^|\/)[^/]+\.(?:test|spec)\.[^.]+$/.test(file);
+}
 
 async function collectFiles(directory) {
   let entries;
@@ -106,6 +111,9 @@ export async function findUiCopyViolations(cwd = process.cwd()) {
     }
     if (RENDERABLE_EXTENSIONS.has(extname(absolutePath).toLowerCase())) {
       addMatches(violations, content, file, 'raw-enum', RAW_ENUM_VALUES);
+      if (!isTestFile(file)) {
+        addMatches(violations, content, file, 'legacy-ui-identifier', LEGACY_UI_IDENTIFIERS);
+      }
     }
   }
   return violations.sort((left, right) => (

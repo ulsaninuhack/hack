@@ -17,7 +17,7 @@ desktop audience is a non-specialist municipal manager who needs guardrails agai
 accidental approval. Headings name the task:
 
 - `오늘 연락할 대상`
-- `통화 결과 입력`
+- `통화(또는 방문) 결과 입력`
 - `방문 권고 승인`
 - `행정복지센터 이관`
 

@@ -41,10 +41,10 @@ vi.mock('./contactOpsClient', async (importOriginal) => {
   }
 })
 vi.mock('./data', () => ({ loadData: mocks.loadData }))
-vi.mock('./MapView', () => ({ default: () => <div role="region" aria-label="[합성] 우리 동 케이스 위치 참고 지도" /> }))
+vi.mock('./MapView', () => ({ default: () => <div role="region" aria-label="우리 동 케이스 위치 참고 지도" /> }))
 
 import { CenterPage } from './CenterPage'
-import { BANNED_GROUP_WORD } from './threeTierTestFixtures'
+import { BANNED_GROUP_WORD, consecutiveNoAnswerCode } from './threeTierTestFixtures'
 
 const virtualPhone = {
   label: '[가상]' as const,
@@ -105,20 +105,37 @@ const proposal: AssignmentProposal = {
   lanes: {
     phone: [{
       status: 'proposed', case_id: 'SYN-HH-2812551000-0001', lane: 'phone',
+      assignment_status: 'proposed',
       dong_code: '2812551000', dong_name: '신포동', district: '제물포구',
       worker_id: 'SYN-W-2812551000-01', worker_display_name: '연결단원 001',
       급성도_등급: '방문권고', 급성도_점수: 62, grade_source: '세션 기록',
       due_reasons: ['scheduled_contact'], earliest_due_date: '2026-08-12',
+      selection_reason_labels: ['정기 연락 예정일 도래', '마지막 정상 연결 이후 7일 경과'],
+      management_entry: {
+        synthetic: true, status: 'active_contact_management', intake_channel: 'family_request', intake_recorded_date: '2026-08-05',
+        ongoing_contact_permission: { status: 'recorded', recorded_date: '2026-08-05', basis: 'synthetic_demo_scenario' },
+        duplicate_service_check: { status: 'completed_no_overlapping_schedule', checked_date: '2026-08-05', scope: 'regular_wellbeing_contact_or_home_visit', interpretation: 'workflow_duplicate_check_not_welfare_eligibility' },
+      },
+      급성도_기여내역: [],
       preferred_contact_method: 'phone', approved_visit: false,
       adjustment_flags: [], 제안_근거: ['담당 동 일치 (신포동)'],
     }],
     visit: [{
       status: 'proposed', case_id: 'SYN-HH-2812551000-0002', lane: 'visit',
+      assignment_status: 'confirmed', confirmed_by: '동센터 담당자', confirmed_at: '2026-08-12T08:30:00+09:00',
       dong_code: '2812551000', dong_name: '신포동', district: '제물포구',
       worker_id: 'SYN-W-2812551000-01', worker_display_name: '연결단원 001',
-      급성도_등급: null, 급성도_점수: null, grade_source: '미기록',
+      급성도_등급: '방문권고', 급성도_점수: 62, grade_source: '데모 사전 기록',
+      기록_출처: 'demo_precontact_record', 프로필_버전: 'demo-precontact-v1',
       due_reasons: ['scheduled_contact'], earliest_due_date: '2026-08-12',
-      preferred_contact_method: 'visit', approved_visit: false,
+      selection_reason_labels: ['담당자 승인 방문', '오늘 방문 일정 확정'],
+      management_entry: {
+        synthetic: true, status: 'active_contact_management', intake_channel: 'partner_agency_referral', intake_recorded_date: '2026-08-04',
+        ongoing_contact_permission: { status: 'recorded', recorded_date: '2026-08-04', basis: 'synthetic_demo_scenario' },
+        duplicate_service_check: { status: 'completed_no_overlapping_schedule', checked_date: '2026-08-04', scope: 'regular_wellbeing_contact_or_home_visit', interpretation: 'workflow_duplicate_check_not_welfare_eligibility' },
+      },
+      급성도_기여내역: [{ 코드: consecutiveNoAnswerCode, 근거: '연속 미응답 2회', 가산점: 25 }],
+      preferred_contact_method: 'visit', approved_visit: true,
       adjustment_flags: ['time_window_mismatch'], 제안_근거: ['담당 동 일치 (신포동)', '선호 시간창과 연결단원 가용 시간창 불일치 — 조정 필요'],
     }],
   },
@@ -186,11 +203,11 @@ describe('CenterPage (동 행정복지센터)', () => {
     arrange()
     render(<CenterPage />)
     expect(await screen.findByRole('heading', { name: /동 행정복지센터용 · 신포동/ })).toBeInTheDocument()
-    expect(screen.getAllByText('[합성]').length).toBeGreaterThan(0)
+    expect(document.documentElement.outerHTML).not.toMatch(/\[합성\]|SYN-HH-/)
     const summary = screen.getByLabelText('오늘 처리 요약과 다음 행동')
     expect(within(summary).getByText('보고 확인 대기')).toBeInTheDocument()
     expect(within(summary).getByText('방문 검토 대기')).toBeInTheDocument()
-    const card = await screen.findByLabelText('[합성] SYN-HH-2812551000-0001 보고 카드')
+    const card = await screen.findByLabelText('박영희 보고 카드')
     expect(within(card).getByText('방문권고')).toBeInTheDocument()
     expect(within(card).getByText('보건소·의료 연계')).toBeInTheDocument()
     expect(within(card).getByText('행정복지센터 이관 권고')).toBeInTheDocument()
@@ -202,13 +219,29 @@ describe('CenterPage (동 행정복지센터)', () => {
     const user = userEvent.setup()
     render(<CenterPage />)
     const phoneLane = await screen.findByLabelText('전화 레인 할당 제안')
-    expect(within(phoneLane).getByText(/SYN-HH-2812551000-0001/)).toBeInTheDocument()
-    expect(within(phoneLane).queryByText(/SYN-HH-2812551000-0002/)).toBeNull()
+    expect(within(phoneLane).getByText('박영희')).toBeInTheDocument()
+    expect(within(phoneLane).queryByText('이민수')).toBeNull()
+    expect(within(phoneLane).getByText('오늘 전화 배치 제안')).toBeInTheDocument()
+    expect(within(phoneLane).getByText('정기 연락 예정일 도래')).toBeInTheDocument()
+    expect(within(phoneLane).getByText('마지막 정상 연결 이후 7일 경과')).toBeInTheDocument()
+    expect(within(phoneLane).getByText('연락 기한 2026-08-12')).toBeInTheDocument()
     await user.click(screen.getByRole('tab', { name: /방문 레인/ }))
+    expect(screen.getByText('방문 레인에는 담당자가 승인한 오늘 방문 업무만 들어옵니다. 전화 큐와 섞지 않습니다.')).toBeInTheDocument()
     const visitLane = await screen.findByLabelText('방문 레인 할당 제안')
-    expect(within(visitLane).getByText(/SYN-HH-2812551000-0002/)).toBeInTheDocument()
-    expect(within(visitLane).queryByText(/SYN-HH-2812551000-0001/)).toBeNull()
+    expect(within(visitLane).getByText('이민수')).toBeInTheDocument()
+    expect(within(visitLane).queryByText('박영희')).toBeNull()
+    expect(within(visitLane).getByText('오늘 방문 할당 확정')).toBeInTheDocument()
+    expect(within(visitLane).getByText('담당자 승인 완료')).toBeInTheDocument()
+    expect(within(visitLane).getByText('급성도 62점 · 방문권고')).toBeInTheDocument()
     expect(within(visitLane).getAllByText(/시간창 불일치/).length).toBeGreaterThan(0)
+  })
+
+  it('shows the leading acute contribution in visit review without implying an automatic decision', async () => {
+    arrange()
+    render(<CenterPage />)
+    const review = await screen.findByLabelText('방문 권고 대기 목록')
+    expect(within(review).getByText('주요 급성도 근거 · 연속 미응답 2회 (+25점)')).toBeInTheDocument()
+    expect(screen.getByText(/방문 권고는 담당자의 명시적 승인 또는 반려로만 확정/)).toBeInTheDocument()
   })
 
   it('confirms assignments only through explicit actions (INV14)', async () => {
@@ -233,7 +266,7 @@ describe('CenterPage (동 행정복지센터)', () => {
     arrange()
     const user = userEvent.setup()
     render(<CenterPage />)
-    const card = await screen.findByLabelText('[합성] SYN-HH-2812551000-0001 보고 카드')
+    const card = await screen.findByLabelText('박영희 보고 카드')
     await user.click(within(card).getByRole('button', { name: '보고 확인' }))
     await waitFor(() => expect(mocks.acknowledgeReport).toHaveBeenCalledWith({
       caseId: 'SYN-HH-2812551000-0001', revision: 1, acknowledgedBy: '동센터 담당자',
@@ -245,13 +278,15 @@ describe('CenterPage (동 행정복지센터)', () => {
     const user = userEvent.setup()
     render(<CenterPage />)
     const review = await screen.findByLabelText('방문 권고 대기 목록')
-    await user.click(within(review).getByRole('button', { name: /SYN-HH-2812551000-0001/ }))
+    await user.click(within(review).getByRole('button', { name: /박영희/ }))
     await user.click(screen.getByRole('radio', { name: '방문 권고 승인' }))
-    await user.type(screen.getByLabelText('결정 사유'), '합성 승인 사유')
+    expect(screen.getByLabelText('연결단원 배정')).toHaveTextContent('연결단원 001')
+    expect(document.body).not.toHaveTextContent('SYN-W-')
+    await user.type(screen.getByLabelText('결정 사유'), '데모 승인 사유')
     await user.click(screen.getByRole('button', { name: '방문 권고 승인 기록' }))
     await waitFor(() => expect(mocks.submitDecision).toHaveBeenCalledWith({
       caseId: 'SYN-HH-2812551000-0001', revision: 1, decision: 'approved',
-      note: '합성 승인 사유', workerIds: ['SYN-W-2812551000-01'], distance: 2,
+      note: '데모 승인 사유', workerIds: ['SYN-W-2812551000-01'], distance: 2,
     }))
   })
 
@@ -259,7 +294,7 @@ describe('CenterPage (동 행정복지센터)', () => {
     arrange()
     const user = userEvent.setup()
     render(<CenterPage />)
-    const card = await screen.findByLabelText('[합성] SYN-HH-2812551000-0001 보고 카드')
+    const card = await screen.findByLabelText('박영희 보고 카드')
     await user.click(within(card).getByRole('button', { name: '이관 안내' }))
     expect(within(card).getByText(/안부확인 트랙에서 사례관리·전문기관 트랙으로 전환/)).toBeInTheDocument()
   })

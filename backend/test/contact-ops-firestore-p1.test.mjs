@@ -4,6 +4,25 @@ import { createFirestoreContactOpsState } from '../src/contact-ops-state.mjs';
 
 const sessionId = 'firestore-session-01';
 const household = { id: 'SYN-HH-2812551000-0001', synthetic: true, contact: {}, workflow: {} };
+function initialContactOpsRecord() {
+  return {
+    revision: 7,
+    household: {
+      ...household,
+      contact: { consecutive_no_answer_count: 4 },
+      workflow: { follow_up_status: 'pending' },
+    },
+    observations: {
+      관찰_6징후: { 연락_두절: true },
+      식사상태: '확인_필요',
+    },
+    triage: {
+      급성도_점수: 3,
+      취약도_점수: 5,
+    },
+    updated_at: '2026-08-13T00:00:00.000Z',
+  };
+}
 function fakeFirestore() {
   const records = new Map(); let queryCount = 0; let createCount = 0;
   const collection = {
@@ -53,7 +72,61 @@ describe('P1 Firestore synthetic state adapter', () => {
     const record = await state.get({ sessionId, caseId: household.id });
 
     assert.equal(record.revision, 0);
+    assert.equal(record.triage, null);
     assert.equal(firestore.createCount, 0);
+    assert.equal(firestore.records.size, 0);
+  });
+  test('uses an initial record as the resettable baseline beneath Firestore overrides', async () => {
+    const firestore = fakeFirestore();
+    const baseline = initialContactOpsRecord();
+    const state = createFirestoreContactOpsState({
+      firestore,
+      collectionName: 'synthetic_ops',
+      households: [household],
+      initialRecords: [baseline],
+    });
+
+    const untouched = await state.get({ sessionId, caseId: household.id });
+    const listed = await state.list({ sessionId });
+
+    assert.equal(untouched.revision, baseline.revision);
+    assert.deepEqual(untouched.household, baseline.household);
+    assert.deepEqual(untouched.observations, baseline.observations);
+    assert.deepEqual(untouched.triage, baseline.triage);
+    assert.equal(untouched.updated_at, baseline.updated_at);
+    assert.equal(listed[0].revision, baseline.revision);
+    assert.deepEqual(listed[0].household, baseline.household);
+    assert.equal(firestore.createCount, 0);
+
+    const updated = await state.update(
+      {
+        sessionId,
+        caseId: household.id,
+        expectedRevision: baseline.revision,
+      },
+      (current) => ({
+        ...current,
+        contact: {
+          ...current.contact,
+          consecutive_no_answer_count: current.contact.consecutive_no_answer_count + 1,
+        },
+      }),
+    );
+
+    assert.equal(updated.revision, baseline.revision + 1);
+    assert.equal(updated.household.contact.consecutive_no_answer_count, 5);
+    assert.deepEqual(updated.observations, baseline.observations);
+    assert.deepEqual(updated.triage, baseline.triage);
+
+    const reset = await state.resetSession({ sessionId });
+    const restored = await state.get({ sessionId, caseId: household.id });
+
+    assert.equal(reset.reset_override_count, 1);
+    assert.equal(restored.revision, baseline.revision);
+    assert.deepEqual(restored.household, baseline.household);
+    assert.deepEqual(restored.observations, baseline.observations);
+    assert.deepEqual(restored.triage, baseline.triage);
+    assert.equal(restored.updated_at, baseline.updated_at);
     assert.equal(firestore.records.size, 0);
   });
   test('validates adapter construction and passes unavailable Firestore errors through', async () => {

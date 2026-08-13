@@ -3,6 +3,7 @@ import type { Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 
 const CASE_ID = 'SYN-HH-2812551000-0001'
+const DISPLAY_NAME = '박영희'
 const WORKER_ID = 'SYN-W-2812551000-01'
 const API_ORIGIN = process.env.PLAYWRIGHT_API_URL ?? 'http://127.0.0.1:18082'
 const SCREENSHOT_DIR = 'artifacts/screenshots'
@@ -102,10 +103,12 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
   await test.step('동 센터가 오늘 배치안을 명시적으로 확인한다 (INV14)', async () => {
     await page.goto('/center')
     await expect(page.getByRole('heading', { name: /동 행정복지센터용 · 신포동/ })).toBeVisible()
-    await expect(page.getByLabel('전화 레인 할당 제안')).toContainText(CASE_ID)
+    await expect(page.getByLabel('전화 레인 할당 제안')).toContainText(DISPLAY_NAME)
+    await expect(page.getByLabel('전화 레인 할당 제안')).toContainText('오늘 재연락')
+    await expect(page.getByLabel('전화 레인 할당 제안')).toContainText('연락 기한 2026-08-12')
     expect(mutationPaths.filter((path) => path.endsWith('/assignment-confirmations'))).toEqual([])
     await page.getByRole('tab', { name: /방문 레인/ }).click()
-    await expect(page.getByLabel('방문 레인 할당 제안')).not.toContainText(CASE_ID)
+    await expect(page.getByLabel('방문 레인 할당 제안')).not.toContainText(DISPLAY_NAME)
     await page.getByRole('tab', { name: /전화 레인/ }).click()
     await page.screenshot({ path: `${SCREENSHOT_DIR}/p9-center-assignment-desktop.png` })
     await page.getByRole('button', { name: '오늘 배치 일괄 확인' }).click()
@@ -120,13 +123,18 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/m')
     await expect(page.getByRole('heading', { name: /조사원 화면/ })).toBeVisible()
-    await expect(page.getByLabel('오늘 전화 목록')).toContainText(CASE_ID)
+    await expect(page.getByRole('heading', { name: '오늘 할당된 연락 대상' })).toBeVisible()
+    await expect(page.getByLabel('오늘 전화 목록')).toContainText(DISPLAY_NAME)
+    await expect(page.getByLabel('오늘 전화 목록')).toContainText('오늘 전화 할당 확정')
+    await expect(page.getByLabel('오늘 전화 목록')).toContainText('오늘 재연락')
+    await expect(page.getByLabel('오늘 전화 목록')).toContainText('등록 근거 · 가족 신청')
+    await expect(page.getByLabel('오늘 전화 목록')).toContainText('연락 동의 기록 · 기존 정기 안부확인 중복 없음')
     await page.getByRole('tab', { name: /방문 \d+건/ }).click()
-    await expect(page.getByLabel('오늘 방문 목록')).not.toContainText(CASE_ID)
+    await expect(page.getByLabel('오늘 방문 목록')).not.toContainText(DISPLAY_NAME)
     await page.getByRole('tab', { name: /전화 \d+건/ }).click()
     await page.screenshot({ path: `${SCREENSHOT_DIR}/p9-mobile-list.png` })
 
-    await page.getByRole('button', { name: new RegExp(CASE_ID) }).click()
+    await page.getByRole('button', { name: new RegExp(DISPLAY_NAME) }).click()
     await expect(page.getByRole('heading', { name: '대상 정보' })).toBeVisible()
     const dialButton = page.getByRole('button', { name: /\[가상\] 010-0000-\d{4}/ })
     await expect(dialButton).toBeVisible()
@@ -142,7 +150,7 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
     await page.getByRole('button', { name: '직접 체크하기' }).click()
     await expectTierMobileMeasurements(page)
     await expectNoSeriousAxeViolations(page)
-    await page.getByLabel('통화 결과').selectOption({ label: '미응답' })
+    await page.getByLabel('통화(또는 방문) 결과').selectOption({ label: '미응답' })
     await page.getByRole('checkbox', { name: '우편물·고지서 적체' }).check()
     await page.getByLabel('식사 상태').selectOption({ label: '심각' })
     await page.screenshot({ path: `${SCREENSHOT_DIR}/p9-mobile-checklist.png` })
@@ -159,7 +167,7 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
   await test.step('동 센터가 보고 카드를 확인하고 방문을 승인한다 (INV6/INV18)', async () => {
     await page.setViewportSize({ width: 1440, height: 900 })
     await page.goto('/center')
-    const card = page.getByLabel(`[합성] ${CASE_ID} 보고 카드`)
+    const card = page.getByLabel(`${DISPLAY_NAME} 보고 카드`)
     await expect(card).toBeVisible()
     await expect(card).toContainText('방문권고')
     await expect(card).toContainText('연락 안 됨')
@@ -170,7 +178,7 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
     await expect(card.getByText(/확인함 · 동센터 담당자/)).toBeVisible()
 
     const reviewList = page.getByLabel('방문 권고 대기 목록')
-    await reviewList.getByRole('button', { name: new RegExp(CASE_ID) }).click()
+    await reviewList.getByRole('button', { name: new RegExp(DISPLAY_NAME) }).click()
     await page.getByRole('radio', { name: '방문 권고 승인' }).check()
     await page.getByLabel('결정 사유').fill('3계층 골든 데모 승인')
     await page.getByRole('button', { name: '방문 권고 승인 기록' }).click()
@@ -190,6 +198,15 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
       assigned_worker_ids: [WORKER_ID],
       routing_interpretation: 'approved_visit_only_not_person_risk',
     })
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/m')
+    await page.getByRole('tab', { name: /방문 \d+건/ }).click()
+    const approvedVisitList = page.getByLabel('오늘 방문 목록')
+    await expect(approvedVisitList).toContainText(DISPLAY_NAME)
+    await expect(approvedVisitList).toContainText('담당자 승인 완료')
+    await expect(approvedVisitList).toContainText('급성도 62점 · 방문권고')
+    await expect(approvedVisitList).toContainText('주요 근거 · 식사상태 심각 (+25점)')
   })
 
   await test.step('시·구 화면과 집계가 승인 결과를 반영한다 (INV17 유지)', async () => {

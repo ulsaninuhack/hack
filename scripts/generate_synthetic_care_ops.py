@@ -25,7 +25,7 @@ from typing import Any, Iterable, Mapping, Sequence
 
 
 SCHEMA_VERSION = "2.0.0"
-GENERATOR_VERSION = 3
+GENERATOR_VERSION = 4
 DEFAULT_SEED = 20_260_812
 DEFAULT_SCENARIO_DATE = "2026-08-12"
 TOTAL_SYNTHETIC_CASES = 5_869
@@ -42,7 +42,25 @@ FORBIDDEN_KEYS = {
     "beneficiary_status",
     "unserved",
     "non_recipient",
+    "welfare_eligibility",
+    "welfare_recipient_status",
+    "welfare_non_recipient",
+    "benefit_eligibility",
+    "service_eligibility",
+    "support_recipient_status",
+    "triage",
+    "triage_score",
+    "triage_status",
+    "acute_score",
+    "acuity_score",
+    "vulnerability_score",
 }
+INTAKE_CHANNELS = (
+    "self_request",
+    "family_request",
+    "partner_agency_referral",
+    "field_outreach",
+)
 TIME_WINDOWS = (
     ("09:00", "11:30"),
     ("10:00", "13:00"),
@@ -494,6 +512,45 @@ def contact_state(
     )
 
 
+def management_entry(
+    code: str,
+    dong_index: int,
+    seed: int,
+    scenario_day: date,
+) -> dict[str, Any]:
+    """Build a synthetic enrollment workflow, never a welfare-status judgment."""
+
+    intake_day = scenario_day - timedelta(
+        days=30 + stable_int(seed, code, dong_index, "intake_date") % 335
+    )
+    permission_day = intake_day + timedelta(
+        days=stable_int(seed, code, dong_index, "permission_date") % 4
+    )
+    duplicate_check_day = permission_day + timedelta(
+        days=stable_int(seed, code, dong_index, "duplicate_check_date") % 4
+    )
+    intake_channel = INTAKE_CHANNELS[
+        stable_int(seed, code, dong_index, "intake_channel") % len(INTAKE_CHANNELS)
+    ]
+    return {
+        "synthetic": True,
+        "status": "active_contact_management",
+        "intake_channel": intake_channel,
+        "intake_recorded_date": iso_date(intake_day),
+        "ongoing_contact_permission": {
+            "status": "recorded",
+            "recorded_date": iso_date(permission_day),
+            "basis": "synthetic_demo_scenario",
+        },
+        "duplicate_service_check": {
+            "status": "completed_no_overlapping_schedule",
+            "checked_date": iso_date(duplicate_check_day),
+            "scope": "regular_wellbeing_contact_or_home_visit",
+            "interpretation": "workflow_duplicate_check_not_welfare_eligibility",
+        },
+    }
+
+
 def household_record(
     admin: Mapping[str, Any],
     address_anchor: Mapping[str, Any],
@@ -515,6 +572,7 @@ def household_record(
     return {
         "id": household_id,
         "synthetic": True,
+        "management_entry": management_entry(code, dong_index, seed, scenario_day),
         "location": make_household_location(admin, address_anchor),
         "contact": contact,
         "visit_context": {
@@ -643,6 +701,53 @@ def validate_datasets(
         for household in households
         if household["contact"]["preferred_contact_method"] == "phone"
     ]
+    intake_channel_counts = Counter(
+        household.get("management_entry", {}).get("intake_channel")
+        for household in households
+    )
+
+    def management_entry_is_complete(household: Mapping[str, Any]) -> bool:
+        entry = household.get("management_entry")
+        if not isinstance(entry, Mapping):
+            return False
+        permission = entry.get("ongoing_contact_permission")
+        duplicate_check = entry.get("duplicate_service_check")
+        return (
+            entry.get("synthetic") is True
+            and entry.get("status") == "active_contact_management"
+            and entry.get("intake_channel") in INTAKE_CHANNELS
+            and isinstance(entry.get("intake_recorded_date"), str)
+            and isinstance(permission, Mapping)
+            and permission.get("status") == "recorded"
+            and isinstance(permission.get("recorded_date"), str)
+            and permission.get("basis") == "synthetic_demo_scenario"
+            and isinstance(duplicate_check, Mapping)
+            and duplicate_check.get("status")
+            == "completed_no_overlapping_schedule"
+            and isinstance(duplicate_check.get("checked_date"), str)
+            and duplicate_check.get("scope")
+            == "regular_wellbeing_contact_or_home_visit"
+            and duplicate_check.get("interpretation")
+            == "workflow_duplicate_check_not_welfare_eligibility"
+        )
+
+    def management_dates_are_ordered(household: Mapping[str, Any]) -> bool:
+        if not management_entry_is_complete(household):
+            return False
+        entry = household["management_entry"]
+        try:
+            intake_day = date.fromisoformat(entry["intake_recorded_date"])
+            permission_day = date.fromisoformat(
+                entry["ongoing_contact_permission"]["recorded_date"]
+            )
+            duplicate_check_day = date.fromisoformat(
+                entry["duplicate_service_check"]["checked_date"]
+            )
+            scenario_day = date.fromisoformat(scenario_date)
+        except (TypeError, ValueError):
+            return False
+        return intake_day <= permission_day <= duplicate_check_day <= scenario_day
+
     coordinates_inside = True
     for record in [*workers, *households]:
         location = record["location"]
@@ -701,6 +806,12 @@ def validate_datasets(
             )
             for household in households
         ),
+        "every_household_has_management_entry": all(
+            management_entry_is_complete(household) for household in households
+        ),
+        "management_entry_dates_are_ordered": all(
+            management_dates_are_ordered(household) for household in households
+        ),
         "no_forbidden_person_risk_or_beneficiary_keys": not forbidden,
         "no_visit_is_preapproved_by_fixture_generation": all(
             household["workflow"]["visit_approval_status"] is None
@@ -735,6 +846,34 @@ def validate_datasets(
             "future_contact_tasks": len(future_contact_tasks),
             "phone_preferred_tasks": len(phone_tasks),
             "visit_preferred_tasks": len(households) - len(phone_tasks),
+            "active_contact_management_tasks": sum(
+                1
+                for household in households
+                if household.get("management_entry", {}).get("status")
+                == "active_contact_management"
+            ),
+            "management_intake_channels": dict(
+                sorted(
+                    (channel, intake_channel_counts[channel])
+                    for channel in INTAKE_CHANNELS
+                )
+            ),
+            "recorded_ongoing_contact_permissions": sum(
+                1
+                for household in households
+                if household.get("management_entry", {})
+                .get("ongoing_contact_permission", {})
+                .get("status")
+                == "recorded"
+            ),
+            "completed_duplicate_service_checks": sum(
+                1
+                for household in households
+                if household.get("management_entry", {})
+                .get("duplicate_service_check", {})
+                .get("status")
+                == "completed_no_overlapping_schedule"
+            ),
             "approved_visit_tasks": 0,
             "apartment_reference_tasks": sum(
                 1
@@ -781,6 +920,10 @@ def write_outputs(
             "rules": "미응답·기한 검사는 결정론적 규칙으로 수행하며 방문을 자동 승인하지 않음",
             "conditional_routing": "담당자가 approved로 명시 승인한 예외 방문만 향후 경로 후보로 사용",
             "not_for": "개인 위험·복지 적격성·미수혜자·실제 업무량 추정",
+            "management_entry_interpretation": (
+                "합성 유입·연락 동의·정기 일정 중복 확인 시나리오이며 "
+                "복지 수급·미수혜 또는 서비스 적격성 판정이 아님"
+            ),
         },
     }
     payloads = {

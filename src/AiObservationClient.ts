@@ -22,7 +22,7 @@ export interface AiObservationCritic {
 export interface AiObservationCandidate {
   schema_version: 'contact-ops-observation-candidate/v1'
   synthetic: true
-  marker: '[합성]'
+  marker: string
   case_id: string
   surveyor_id: string
   source_kind: 'text' | 'audio'

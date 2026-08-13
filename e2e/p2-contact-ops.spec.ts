@@ -3,6 +3,7 @@ import type { Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 
 const CASE_ID = 'SYN-HH-2812551000-0001'
+const DISPLAY_NAME = '박영희'
 const API_ORIGIN = process.env.PLAYWRIGHT_API_URL ?? 'http://127.0.0.1:18082'
 const SCREENSHOT_DIR = 'artifacts/screenshots'
 
@@ -84,21 +85,21 @@ test('surveyor contact raises a recommendation and only a manager can approve it
   const firstBefore = await page.getByRole('option').first().innerText()
   await page.screenshot({ path: `${SCREENSHOT_DIR}/surveyor-queue-mobile.png` })
 
-  const target = page.getByRole('option', { name: new RegExp(CASE_ID) })
+  const target = page.getByRole('option', { name: new RegExp(DISPLAY_NAME) })
   await target.scrollIntoViewIfNeeded()
   await target.click()
-  await page.getByLabel('통화 결과').selectOption({ label: '미응답' })
+  await page.getByLabel('통화(또는 방문) 결과').selectOption({ label: '미응답' })
   await page.getByLabel('우편물·고지서 적체').check()
   await page.getByLabel('식사 상태').selectOption({ label: '심각' })
-  await page.getByRole('button', { name: '통화 결과 저장' }).click()
+  await page.getByRole('button', { name: '통화(또는 방문) 결과 저장' }).click()
 
-  await expect(page.getByText('통화 결과를 저장하고 연락업무 순서를 다시 계산했습니다.')).toBeVisible()
+  await expect(page.getByText('통화(또는 방문) 결과를 저장하고 연락업무 순서를 다시 계산했습니다.')).toBeVisible()
   await expect(page.locator('.ops-detail')).toContainText('급성도')
   await expect(page.locator('.ops-detail')).toContainText('62')
   await expect(page.locator('.ops-detail')).toContainText('취약도')
   await expect(page.locator('.ops-detail')).toContainText('방문 권고 · 담당자 승인 대기')
-  await expect(page.getByRole('option').first()).toContainText(CASE_ID)
-  expect(firstBefore).not.toContain(CASE_ID)
+  await expect(target).toContainText(DISPLAY_NAME)
+  expect(firstBefore).not.toContain(DISPLAY_NAME)
   expect(mutationPaths).toContain(`/api/v1/contact-ops/cases/${CASE_ID}/contact-results`)
   expect(mutationPaths.some((path) => path.endsWith('/visit-decisions'))).toBe(false)
 
@@ -116,8 +117,8 @@ test('surveyor contact raises a recommendation and only a manager can approve it
 
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/ops/manager')
-  await expect(page.getByRole('option', { name: new RegExp(CASE_ID) })).toBeVisible()
-  await expect(page.getByRole('region', { name: '[합성] 연락업무 위치와 공개 동단위 맥락 지도' }))
+  await expect(page.getByRole('option', { name: new RegExp(DISPLAY_NAME) })).toBeVisible()
+  await expect(page.getByRole('region', { name: '연락업무 위치와 공개 동단위 맥락 지도' }))
     .toHaveAttribute('data-map-ready', 'true', { timeout: 45_000 })
   await page.screenshot({ path: `${SCREENSHOT_DIR}/manager-review-desktop.png` })
   await page.locator('.ops-map-context').scrollIntoViewIfNeeded()
@@ -127,10 +128,12 @@ test('surveyor contact raises a recommendation and only a manager can approve it
   await expect(page.getByLabel('승인된 방문 거리 제한 (km)')).toHaveCount(0)
   await page.getByLabel('방문 권고 승인').check()
   await expect(page.getByLabel('연결단원 배정')).toHaveValue('SYN-W-2812551000-01')
-  await page.getByLabel('결정 사유').fill('Playwright 합성 수직 흐름 승인')
+  await expect(page.getByLabel('연결단원 배정')).toContainText('연결단원 001')
+  expect(await page.locator('body').innerText()).not.toContain('SYN-W-')
+  await page.getByLabel('결정 사유').fill('Playwright 데모 수직 흐름 승인')
   await page.getByRole('button', { name: '방문 권고 승인 기록' }).click()
   await expect(page.getByText('담당자 승인을 기록했습니다.')).toBeVisible()
-  await expect(page.getByText('현재 검토할 방문 권고가 없습니다.')).toBeVisible()
+  await expect(target).toHaveCount(0)
 
   expect(mutationPaths.filter((path) => path.endsWith('/visit-decisions'))).toEqual([
     `/api/v1/contact-ops/cases/${CASE_ID}/visit-decisions`,

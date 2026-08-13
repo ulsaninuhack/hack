@@ -48,9 +48,10 @@ for (const [path] of screenshots) {
 }
 
 const operationsSource = readFileSync('src/Operations.tsx', 'utf8')
-for (const required of ['[합성]', '급성도', '취약도', '담당자 승인 대기', '통화 결과 입력']) {
+for (const required of ['caseDisplayName', '급성도', '취약도', '담당자 승인 대기', '통화(또는 방문) 결과 입력']) {
   if (!operationsSource.includes(required)) throw new Error(`Operations UI is missing ${required}`)
 }
+if (operationsSource.includes('[합성]')) throw new Error('Operations UI must not render the legacy synthetic marker')
 const renderedUiSource = ['src/App.tsx', 'src/Operations.tsx', 'src/SurveyorBreadth.tsx']
   .map((path) => readFileSync(path, 'utf8'))
   .join('\n')

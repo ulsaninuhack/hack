@@ -93,7 +93,6 @@ function CandidateEditor({
 
   return <section className="ai-candidate" aria-labelledby="ai-candidate-heading">
     <header>
-      <span>[합성]</span>
       <div>
         <h3 id="ai-candidate-heading">AI 후보 · 자동 승인 아님</h3>
         <p>후보 사실만 검토합니다. 점수와 방문·이관 결정은 이 화면에서 만들지 않습니다.</p>
@@ -235,10 +234,9 @@ export function AiObservationPanel({
 
   return <section className="ai-observation-panel" aria-labelledby="ai-observation-heading">
     <header className="ai-observation-heading">
-      <span>[합성]</span>
       <div>
         <h2 id="ai-observation-heading">인공지능(AI) 관찰 후보 검토</h2>
-        <p>AI 후보 · 자동 승인 아님 · 수동 통화 결과 입력은 언제든 계속 사용할 수 있습니다.</p>
+        <p>AI 후보 · 자동 승인 아님 · 수동 통화(또는 방문) 결과 입력은 언제든 계속 사용할 수 있습니다.</p>
       </div>
     </header>
     <ol className="ai-graph" aria-label="AI 후보 처리 단계">

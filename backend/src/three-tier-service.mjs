@@ -65,13 +65,22 @@ function laneItem(record, proposal, referenceDate) {
     case_id: household.id,
     revision: record.revision,
     lane: proposal.lane,
+    assignment_status: proposal.assignment_status,
+    worker_display_name: proposal.worker_display_name,
+    ...(proposal.confirmed_by ? { confirmed_by: proposal.confirmed_by } : {}),
+    ...(proposal.confirmed_at ? { confirmed_at: proposal.confirmed_at } : {}),
+    selection_reason_labels: structuredClone(proposal.selection_reason_labels),
+    management_entry: structuredClone(proposal.management_entry),
     due_reasons: proposal.due_reasons,
     earliest_due_date: proposal.earliest_due_date,
     reference_date: referenceDate,
     급성도_등급: triage?.급성도_등급 ?? null,
     급성도_점수: triage?.급성도_점수 ?? null,
     취약도_점수: triage?.취약도_점수 ?? null,
-    grade_source: triage === null ? '미기록' : '세션 기록',
+    grade_source: proposal.grade_source,
+    기록_출처: proposal.기록_출처,
+    프로필_버전: proposal.프로필_버전,
+    급성도_기여내역: structuredClone(proposal.급성도_기여내역),
     virtual_phone: deriveVirtualPhone(household.id),
     location: {
       dong_code: household.location.current_admin_dong_code_20260701,
@@ -121,6 +130,7 @@ function applyConfirmation(batch, memory) {
       ? {
         ...proposal,
         status: 'confirmed',
+        assignment_status: 'confirmed',
         confirmed_by: confirmation.confirmed_by,
         confirmed_at: confirmation.confirmed_at,
       }
@@ -185,7 +195,10 @@ export function createThreeTierService({
       const records = await state.list({ sessionId });
       const recordById = new Map(records.map((record) => [record.household.id, record]));
       const batches = buildAssignmentProposals({ records, workers, referenceDate, dongCode });
-      const batch = batches[0] ?? null;
+      const proposedBatch = batches[0] ?? null;
+      const batch = proposedBatch === null
+        ? null
+        : applyConfirmation(proposedBatch, memoryStore.forSession(sessionId));
       const toItems = (lane) => (batch?.lanes[lane] ?? [])
         .map((proposal) => laneItem(recordById.get(proposal.case_id), proposal, referenceDate));
       return {
@@ -196,7 +209,7 @@ export function createThreeTierService({
         worker_display_name: worker.display_name,
         dong_code: dongCode,
         dong_name: worker.location.current_admin_dong_name_20260701,
-        lane_rule: '방문 레인에는 승인된 방문 또는 방문 선호 예정 업무만 포함',
+        lane_rule: '방문 레인에는 담당자가 승인한 오늘 방문 업무만 포함',
         lanes: { phone: toItems('phone'), visit: toItems('visit') },
       };
     },

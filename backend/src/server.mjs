@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { createContactOpsAiRuntime } from './contact-ops-ai-runtime.mjs';
 import { createContactOpsService } from './contact-ops-service.mjs';
 import { createFirestoreContactOpsState, createMemoryContactOpsState } from './contact-ops-state.mjs';
+import { buildDemoPrecontactSeedRecords } from './contact-triage-synthetic-scenario.mjs';
 import { loadDataStore } from './data-store.mjs';
 import { createDistrictAiSummaryAdapter } from './three-tier-ops.mjs';
 import { createThreeTierService } from './three-tier-service.mjs';
@@ -79,13 +80,13 @@ function buildDistrictAiSummaryAdapter() {
   });
 }
 
-async function loadContactOpsState(households) {
+async function loadContactOpsState(households, initialRecords = []) {
   const backend = process.env.CONTACT_OPS_STATE_BACKEND || 'memory';
-  if (backend === 'memory') return createMemoryContactOpsState({ households });
+  if (backend === 'memory') return createMemoryContactOpsState({ households, initialRecords });
   if (backend !== 'firestore') throw new Error('CONTACT_OPS_STATE_BACKEND must be memory or firestore');
   const { Firestore } = await import('@google-cloud/firestore');
   return createFirestoreContactOpsState({
-    firestore: new Firestore(), households,
+    firestore: new Firestore(), households, initialRecords,
     collectionName: process.env.CONTACT_OPS_FIRESTORE_COLLECTION || 'synthetic_contact_ops_sessions',
   });
 }
@@ -123,7 +124,12 @@ async function loadTuningReport() {
 }
 const syntheticDataset = await loadSyntheticHouseholds();
 const structuralContext = await loadStructuralContext();
-const contactOpsState = await loadContactOpsState(syntheticDataset.households);
+const demoPrecontactSeeds = buildDemoPrecontactSeedRecords(
+  syntheticDataset.households,
+  syntheticDataset.scenario_reference_date,
+  structuralContext,
+);
+const contactOpsState = await loadContactOpsState(syntheticDataset.households, demoPrecontactSeeds);
 const contactOpsService = createContactOpsService({
   state: contactOpsState,
   aiAdapter,
