@@ -17,6 +17,7 @@ import { loadData } from './data'
 import MapView from './MapView'
 import type { DataBundle, DongProperties, MetricKey } from './types'
 import { ManagerPage, SurveyorPage, ZoneOperationsPanel } from './Operations'
+import { CenterPage } from './CenterPage'
 import { loadStructuralContext } from './structuralContext'
 import type { StructuralContext } from './structuralContext'
 import { loadOperationsMap } from './contactOpsClient'
@@ -50,6 +51,7 @@ const FACILITY_GROUPS = ['전체', '노인복지', '장애인복지', '지역복
 export default function App() {
   if (window.location.pathname === '/ops/surveyor') return <SurveyorPage />
   if (window.location.pathname === '/ops/manager') return <ManagerPage />
+  if (window.location.pathname === '/center') return <CenterPage />
   return <PublicMapApp />
 }
 

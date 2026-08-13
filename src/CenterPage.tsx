@@ -367,6 +367,7 @@ export function CenterPage() {
                         latitude: selectedVisit.household.location.latitude,
                       } : null}
                       ariaLabel="[합성] 우리 동 케이스 위치 참고 지도"
+                      onSelectDong={() => {}}
                     />
                   ) : <p role="status">지도를 열면 우리 동 위치를 확인할 수 있습니다.</p>}
                 </div>
