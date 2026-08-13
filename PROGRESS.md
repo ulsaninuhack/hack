@@ -432,3 +432,14 @@ hostile follow-up, commit, preview, and blockers. Existing entries are never rew
 - axe 게이트가 등장 애니메이션 중간의 블렌딩 색으로 오탐 → 매트릭스 스캔 대기를
   애니메이션 종료 후(800ms)로 조정. 세 화면 × 두 뷰포트 serious/critical 0 유지.
 - 검증: 프런트 53, E2E 5/5, typecheck·copy 게이트 그린.
+
+## 2026-08-13 — /center v4: Gamegoo-front-v2 디자인 언어 이식 (제품 오너 지정 레퍼런스)
+
+- 레퍼런스 저장소(Gamegoo-repo/gamegoo-front-v2)의 디자인 시스템을 분석해 토큰
+  수준으로 이식: 바이올렛 프라이머리(#5a42ee/#452aea), 블루틴트 그레이 스케일
+  (페이지 #f1f5fa · 보더 #d7dfea · 트랙 #edf2f8), radius 10px 버튼 + active
+  scale(0.95~0.97), 보더 중심 카드(섀도 최소), Pretendard 150% 행간, 레드
+  경고(#ee173c). 히어로는 바이올렛 그라디언트로 재도색, 등급 칩·레일도 동일
+  계열로 정렬. 코드가 아닌 시각 언어(팔레트·라운드·모션 규약)만 가져옴.
+- 레퍼런스의 gray-600(#747a83)은 AA 4.5:1 미달(4.32)이라 #656b75로 보정.
+- 검증: 프런트 53, E2E 5/5(axe 대비 게이트 포함), typecheck·copy 게이트 그린.
