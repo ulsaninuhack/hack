@@ -8,6 +8,9 @@ vi.mock('./Operations', () => ({
 vi.mock('./CenterPage', () => ({
   CenterPage: ({ reviewCaseId }: { reviewCaseId?: string }) => <main><h1>{reviewCaseId ? `방문 승격 검토 ${reviewCaseId}` : '센터 업무'}</h1></main>,
 }))
+vi.mock('./DemoCallPage', () => ({
+  DemoCallPage: () => <main><h1>고정 시연 통화방</h1></main>,
+}))
 
 import App from './App'
 
@@ -32,5 +35,12 @@ describe('P2 Care Operations routes', () => {
     window.history.pushState({}, '', '/center/visit-review/SYN-HH-2812551000-0001')
     render(<App />)
     expect(screen.getByRole('heading', { name: '방문 승격 검토 SYN-HH-2812551000-0001' })).toBeInTheDocument()
+  })
+
+  it('routes the permanent demo entrance without a query credential', () => {
+    window.history.pushState({}, '', '/call/demo')
+    render(<App />)
+    expect(screen.getByRole('heading', { name: '고정 시연 통화방' })).toBeInTheDocument()
+    expect(window.location.search).toBe('')
   })
 })

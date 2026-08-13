@@ -13,6 +13,7 @@ type CallState = 'idle' | 'connecting' | 'connected' | 'finishing' | 'ended'
 interface LiveCallPanelProps {
   join: LiveCallJoin
   inviteUrl?: string
+  inviteMode?: 'qr' | 'fixed-demo'
   targetDisplayName?: string
   onFinish?: (residentTranscript: string) => Promise<void> | void
   onTranscriptUpdate?: (residentTranscript: string) => void
@@ -117,6 +118,7 @@ function LiveNextQuestion({ question, pending }: { question: string; pending: bo
 export function LiveCallPanel({
   join,
   inviteUrl,
+  inviteMode = 'qr',
   targetDisplayName,
   onFinish,
   onTranscriptUpdate,
@@ -146,7 +148,7 @@ export function LiveCallPanel({
   const nextQuestion = selectLiveNextQuestion(liveCandidate)
 
   useEffect(() => {
-    if (!inviteUrl) {
+    if (!inviteUrl || inviteMode === 'fixed-demo') {
       setQrCode(null)
       setQrError(false)
       return
@@ -171,7 +173,7 @@ export function LiveCallPanel({
         setQrError(true)
       })
     return () => { active = false }
-  }, [inviteUrl])
+  }, [inviteMode, inviteUrl])
 
   useEffect(() => () => {
     void sessionRef.current?.disconnect()
@@ -265,7 +267,9 @@ export function LiveCallPanel({
       }
     } catch (cause) {
       if (cause instanceof DOMException && cause.name === 'AbortError') return
-      setShareStatus('링크를 복사하지 못했습니다. QR 코드를 사용해 주세요.')
+      setShareStatus(inviteMode === 'fixed-demo'
+        ? '고정 링크를 복사하지 못했습니다. 화면의 주소를 직접 입력해 주세요.'
+        : '링크를 복사하지 못했습니다. QR 코드를 사용해 주세요.')
     }
   }
 
@@ -273,7 +277,20 @@ export function LiveCallPanel({
     <section className="live-call-panel" aria-label="실시간 통화" aria-busy={callState === 'finishing'}>
       <div ref={audioRef} aria-hidden="true" />
 
-      {inviteUrl && callState === 'idle' && (
+      {inviteUrl && inviteMode === 'fixed-demo' && callState === 'idle' && (
+        <section className="live-call-fixed-invite" aria-label="연락 대상 초대">
+          <h3>시연 고정 입장 주소</h3>
+          <p>상대방은 미리 이 주소를 열어 두면 됩니다. QR 촬영은 필요하지 않습니다.</p>
+          <code>{inviteUrl}</code>
+          <button type="button" className="live-call-share" onClick={() => void shareInvite()}>
+            {canShare ? <Share2 aria-hidden="true" /> : <Copy aria-hidden="true" />}
+            고정 링크 {canShare ? '보내기' : '복사'}
+          </button>
+          {shareStatus && <p role="status" className="live-call-share-status">{shareStatus}</p>}
+        </section>
+      )}
+
+      {inviteUrl && inviteMode === 'qr' && callState === 'idle' && (
         <section className="live-call-invite" aria-label="연락 대상 초대">
           <div>
             <h3>연락 대상 참여</h3>

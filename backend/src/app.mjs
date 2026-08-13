@@ -655,6 +655,13 @@ async function routeContactOps(request, url, service, {
   }
   const readSession = () => sessionFor(request);
   const invitePrefix = '/api/v1/contact-ops/live-calls/invites/';
+  const demoCallPath = '/api/v1/contact-ops/live-calls/demo';
+  if (request.method === 'POST' && url.pathname === demoCallPath) {
+    if (!liveCallService) throw new ApiError(503, 'LIVE_CALL_UNAVAILABLE', '실시간 통화를 사용할 수 없습니다.');
+    if (rejectBodyBearingRequest(request)) throw new ApiError(413, 'REQUEST_BODY_NOT_ALLOWED', 'Request bodies are not accepted');
+    assertKnownQuery(url.searchParams, new Set());
+    return liveCallService.joinDemoCall();
+  }
   if (request.method === 'POST' && url.pathname.startsWith(invitePrefix)) {
     if (!liveCallService) throw new ApiError(503, 'LIVE_CALL_UNAVAILABLE', '실시간 통화를 사용할 수 없습니다.');
     if (rejectBodyBearingRequest(request)) throw new ApiError(413, 'REQUEST_BODY_NOT_ALLOWED', 'Request bodies are not accepted');
@@ -670,12 +677,16 @@ async function routeContactOps(request, url, service, {
     if (!liveCallService) throw new ApiError(503, 'LIVE_CALL_UNAVAILABLE', '실시간 통화를 사용할 수 없습니다.');
     if (!/^application\/json(?:;|$)/i.test(String(request.headers['content-type'] || ''))) throw new ApiError(415, 'UNSUPPORTED_MEDIA_TYPE', 'Content-Type must be application/json');
     const body = await readBody(request);
-    exactBody(body, ['expected_revision']);
-    return liveCallService.createCall({
+    const hasDemoEntry = body && typeof body === 'object' && !Array.isArray(body)
+      && Object.hasOwn(body, 'demo_entry');
+    exactBody(body, hasDemoEntry ? ['expected_revision', 'demo_entry'] : ['expected_revision']);
+    const input = {
       sessionId: sessionFor(request, { required: true }),
       caseId: caseIdFrom(url.pathname, '/live-calls'),
       expectedRevision: body.expected_revision,
-    });
+    };
+    if (hasDemoEntry) input.demoEntry = body.demo_entry;
+    return liveCallService.createCall(input);
   }
   if (!service) throw new ApiError(503, 'CONTACT_OPS_UNAVAILABLE', 'ContactOps state is unavailable');
   if (request.method === 'GET' && url.pathname === '/api/v1/contact-ops/today') {

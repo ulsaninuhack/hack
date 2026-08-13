@@ -124,6 +124,49 @@ describe('live call service', () => {
     assert.equal(issued.at(-1).ttlSeconds, 1_800);
   });
 
+  test('uses one fixed synthetic demo room so the resident can join before the surveyor', async () => {
+    const { service, issued, invites } = harness();
+
+    const guest = await service.joinDemoCall();
+    const host = await service.createCall({
+      sessionId: SESSION_ID,
+      caseId: CASE_ID,
+      expectedRevision: 7,
+      demoEntry: true,
+    });
+
+    assert.deepEqual(guest, {
+      provider: 'livekit',
+      call_id: 'demo-stage',
+      server_url: 'wss://care-test.livekit.cloud',
+      expires_at: '2026-08-13T01:30:00.000Z',
+      participant: { role: 'resident', participant_token: 'token-for-resident' },
+    });
+    assert.equal(host.call_id, 'demo-stage');
+    assert.equal(host.room_name, 'care-call-demo-stage');
+    assert.equal(host.host.participant_token, 'token-for-surveyor');
+    assert.deepEqual(issued.map(({ role, callId, roomName }) => ({ role, callId, roomName })), [
+      { role: 'resident', callId: 'demo-stage', roomName: 'care-call-demo-stage' },
+      { role: 'surveyor', callId: 'demo-stage', roomName: 'care-call-demo-stage' },
+    ]);
+    assert.equal(invites.get('invitecode0123456789abcdef012345').roomName, 'care-call-demo-stage');
+    assert.equal(JSON.stringify(guest).includes('invitecode'), false);
+  });
+
+  test('issues a resident token on every request to the public fixed demo entrance', async () => {
+    const { service, issued } = harness();
+
+    const first = await service.joinDemoCall();
+    const second = await service.joinDemoCall();
+
+    assert.equal(first.call_id, 'demo-stage');
+    assert.equal(second.call_id, 'demo-stage');
+    assert.deepEqual(issued.map(({ role, ttlSeconds }) => ({ role, ttlSeconds })), [
+      { role: 'resident', ttlSeconds: 1_800 },
+      { role: 'resident', ttlSeconds: 1_800 },
+    ]);
+  });
+
   test('rejects missing, unknown, and expired invite codes before issuing a guest token', async () => {
     const { service, issued } = harness();
     await assert.rejects(() => service.redeemInvite({ inviteCode: 'short' }), LiveCallError);
@@ -196,6 +239,7 @@ describe('live call service', () => {
       { sessionId: 'short', caseId: CASE_ID, expectedRevision: 7 },
       { sessionId: SESSION_ID, caseId: 'CASE-1', expectedRevision: 7 },
       { sessionId: SESSION_ID, caseId: CASE_ID, expectedRevision: -1 },
+      { sessionId: SESSION_ID, caseId: CASE_ID, expectedRevision: 7, demoEntry: 'yes' },
     ]) await assert.rejects(() => service.createCall(input), LiveCallError);
 
     const invalidId = harness({ randomCallId: () => '../bad' }).service;
@@ -228,7 +272,9 @@ describe('live call service', () => {
       },
       realtimeBridge: { async exchangeSdp() { return 'answer'; } },
       caseAccess: { async assertReadable(input) { await base.service.createCall(input); } },
-      inviteStore: { async saveInvite() {}, async getInvite() { return null; } },
+      inviteStore: {
+        async saveInvite() {}, async getInvite() { return null; },
+      },
     });
     const result = await service.createCall({ sessionId: SESSION_ID, caseId: CASE_ID, expectedRevision: 7 });
     assert.match(result.call_id, /^[a-f0-9]{32}$/);

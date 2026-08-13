@@ -33,6 +33,14 @@ const liveCallService = {
       participant: { role: 'resident', participant_token: 'guest-token' },
     };
   },
+  async joinDemoCall() {
+    calls.push({ method: 'joinDemoCall' });
+    return {
+      provider: 'livekit', call_id: 'demo-stage', server_url: 'wss://care-test.livekit.cloud',
+      expires_at: '2026-08-13T01:30:00.000Z',
+      participant: { role: 'resident', participant_token: 'guest-token' },
+    };
+  },
   async exchangeRealtimeSdp(input) {
     calls.push({ method: 'exchangeRealtimeSdp', input });
     return 'v=0\r\na=answer\r\n';
@@ -84,6 +92,35 @@ describe('live call HTTP contract', () => {
     });
   });
 
+  test('opens the fixed bodyless demo entrance without putting a credential in the URL', async () => {
+    const response = await fetch(`${origin}/api/v1/contact-ops/live-calls/demo`, {
+      method: 'POST',
+      headers: { Accept: 'application/json' },
+    });
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    assert.equal(body.data.call_id, 'demo-stage');
+    assert.equal(body.data.participant.participant_token, 'guest-token');
+    assert.deepEqual(calls.at(-1), { method: 'joinDemoCall' });
+    assert.equal(response.url.includes('guest-token'), false);
+  });
+
+  test('creates the surveyor side of the same fixed demo room only on explicit request', async () => {
+    const response = await fetch(`${origin}/api/v1/contact-ops/cases/${CASE_ID}/live-calls`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Demo-Session-ID': SESSION_ID },
+      body: JSON.stringify({ expected_revision: 7, demo_entry: true }),
+    });
+
+    assert.equal(response.status, 200);
+    assert.deepEqual(calls.at(-1), {
+      method: 'createCall',
+      input: { sessionId: SESSION_ID, caseId: CASE_ID, expectedRevision: 7, demoEntry: true },
+    });
+  });
+
   test('proxies raw SDP only after bearer-token verification in the live-call service', async () => {
     const response = await fetch(`${origin}/api/v1/contact-ops/live-calls/realtime-sdp`, {
       method: 'POST',
@@ -128,6 +165,14 @@ describe('live call HTTP contract', () => {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
     });
     assert.equal(inviteWithBody.status, 413);
+
+    const demoWithBody = await fetch(`${origin}/api/v1/contact-ops/live-calls/demo`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+    });
+    assert.equal(demoWithBody.status, 413);
+
+    const demoWithQuery = await fetch(`${origin}/api/v1/contact-ops/live-calls/demo?room=other`, { method: 'POST' });
+    assert.equal(demoWithQuery.status, 400);
   });
 
   test('allows Authorization in the operations preflight contract', async () => {

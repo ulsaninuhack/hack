@@ -3,6 +3,7 @@ import { INVITE_CODE_PATTERN } from './live-call-invite-store.mjs';
 const CASE_ID_PATTERN = /^SYN-HH-\d{10}-\d{4}$/;
 const SDP_MAX_BYTES = 64_000;
 const CALL_TTL_SECONDS = 30 * 60;
+const DEMO_CALL_ID = 'demo-stage';
 const SDP_PATTERN = /^v=0(?:\r?\n|$)/;
 const LIVE_TRANSCRIPTION_LANGUAGE = 'ko';
 
@@ -20,7 +21,7 @@ function requiredDependency(value, name) {
   return value;
 }
 
-function assertCreateInput({ sessionId, caseId, expectedRevision }) {
+function assertCreateInput({ sessionId, caseId, expectedRevision, demoEntry }) {
   if (typeof sessionId !== 'string' || sessionId.length < 16) {
     throw new LiveCallError(400, 'INVALID_SESSION', '통화 세션을 확인할 수 없습니다.');
   }
@@ -29,6 +30,9 @@ function assertCreateInput({ sessionId, caseId, expectedRevision }) {
   }
   if (!Number.isSafeInteger(expectedRevision) || expectedRevision < 0) {
     throw new LiveCallError(400, 'INVALID_REVISION', '연락 기록 버전을 확인할 수 없습니다.');
+  }
+  if (typeof demoEntry !== 'boolean') {
+    throw new LiveCallError(400, 'INVALID_DEMO_ENTRY', '시연 통화방 설정을 확인할 수 없습니다.');
   }
 }
 
@@ -90,11 +94,11 @@ export function createLiveCallService({
   }
 
   return Object.freeze({
-    async createCall({ sessionId, caseId, expectedRevision }) {
-      assertCreateInput({ sessionId, caseId, expectedRevision });
+    async createCall({ sessionId, caseId, expectedRevision, demoEntry = false }) {
+      assertCreateInput({ sessionId, caseId, expectedRevision, demoEntry });
       await caseAccess.assertReadable({ sessionId, caseId, expectedRevision });
 
-      const callId = randomCallId();
+      const callId = demoEntry ? DEMO_CALL_ID : randomCallId();
       if (typeof callId !== 'string' || !/^[A-Za-z0-9_-]{3,80}$/.test(callId)) {
         throw new Error('randomCallId must return an opaque URL-safe identifier');
       }
@@ -147,6 +151,22 @@ export function createLiveCallService({
         call_id: invite.callId,
         server_url: tokenProvider.serverUrl,
         expires_at: invite.expiresAt,
+        participant: { role: 'resident', participant_token: participantToken },
+      };
+    },
+
+    async joinDemoCall() {
+      const callId = DEMO_CALL_ID;
+      const roomName = `care-call-${callId}`;
+      const participantToken = await tokenProvider.issueParticipant(
+        tokenRequest({ role: 'resident', callId, roomName }),
+      );
+      const expiresAt = new Date(now().getTime() + CALL_TTL_SECONDS * 1_000).toISOString();
+      return {
+        provider: 'livekit',
+        call_id: callId,
+        server_url: tokenProvider.serverUrl,
+        expires_at: expiresAt,
         participant: { role: 'resident', participant_token: participantToken },
       };
     },

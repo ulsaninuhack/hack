@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => ({
   submitCaseNote: vi.fn(),
   loadData: vi.fn(),
   createLiveCall: vi.fn(),
-  buildGuestInviteUrl: vi.fn(),
+  buildDemoCallUrl: vi.fn(),
 }))
 
 vi.mock('./data', () => ({ loadData: mocks.loadData }))
@@ -34,13 +34,13 @@ vi.mock('./contactOpsClient', async (importOriginal) => {
 })
 vi.mock('./liveCallClient', () => ({
   createLiveCall: mocks.createLiveCall,
-  buildGuestInviteUrl: mocks.buildGuestInviteUrl,
+  buildDemoCallUrl: mocks.buildDemoCallUrl,
 }))
 vi.mock('./AiObservationClient', () => ({
   createAiObservationCandidate: mocks.createAiObservationCandidate,
 }))
 vi.mock('./LiveCallPanel', () => ({
-  LiveCallPanel: ({ onFinish, onTranscriptUpdate, liveCandidate, targetDisplayName }: {
+  LiveCallPanel: ({ onFinish, onTranscriptUpdate, liveCandidate, targetDisplayName, inviteUrl, inviteMode }: {
     onFinish: (transcript: string) => Promise<void>
     onTranscriptUpdate: (transcript: string) => void
     liveCandidate?: {
@@ -55,9 +55,13 @@ vi.mock('./LiveCallPanel', () => ({
       }
     } | null
     targetDisplayName?: string
+    inviteUrl?: string
+    inviteMode?: string
   }) => (
     <section aria-label="실시간 통화 테스트">
       <p>통화 상대: {targetDisplayName}</p>
+      <p>참여 주소: {inviteUrl}</p>
+      <p>초대 방식: {inviteMode}</p>
       <button type="button" onClick={() => onTranscriptUpdate('밥을 잘 못 먹어요.')}>실시간 발화 테스트</button>
       <button type="button" onClick={() => onTranscriptUpdate('밥을 잘 못 먹어요. 공과금도 못 냈어요.')}>실시간 발화 2 테스트</button>
       <p>식사 상태: {liveCandidate?.observations.식사상태 ?? '미확인'}{liveCandidate?.observations.식사상태 !== null
@@ -399,7 +403,7 @@ describe('MobilePage (조사원 /m)', () => {
       host: { role: 'surveyor', participant_token: 'host.token.signature' },
       guest: { role: 'resident', invite_code: 'invitecode0123456789abcdef012345' },
     })
-    mocks.buildGuestInviteUrl.mockReturnValue('https://demo.example/call?invite=invitecode0123456789abcdef012345')
+    mocks.buildDemoCallUrl.mockReturnValue('https://demo.example/call/demo')
     mocks.createAiObservationCandidate.mockResolvedValue({
       revision: 0,
       candidate: {
@@ -421,9 +425,11 @@ describe('MobilePage (조사원 /m)', () => {
     await user.click(await screen.findByText('김영자 어르신'))
     await user.click(screen.getByRole('button', { name: '실시간 통화 시작' }))
     await waitFor(() => expect(mocks.createLiveCall).toHaveBeenCalledWith({
-      caseId: 'SYN-HH-2812551000-0001', revision: 0,
+      caseId: 'SYN-HH-2812551000-0001', revision: 0, demoEntry: true,
     }))
     expect(screen.getByText('통화 상대: 김영자 어르신')).toBeInTheDocument()
+    expect(screen.getByText('참여 주소: https://demo.example/call/demo')).toBeInTheDocument()
+    expect(screen.getByText('초대 방식: fixed-demo')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '실시간 발화 테스트' }))
     expect(await screen.findByText('오늘 식사를 한 끼도 하지 못한 건가요, 아니면 평소보다 양이 줄어든 건가요?', {}, { timeout: 2_000 })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '통화 종료 테스트' }))
@@ -452,7 +458,7 @@ describe('MobilePage (조사원 /m)', () => {
       host: { role: 'surveyor', participant_token: 'host.token.signature' },
       guest: { role: 'resident', invite_code: 'invitecode0123456789abcdef012345' },
     })
-    mocks.buildGuestInviteUrl.mockReturnValue('https://demo.example/call?invite=invitecode0123456789abcdef012345')
+    mocks.buildDemoCallUrl.mockReturnValue('https://demo.example/call/demo')
 
     let resolveFirst!: (value: unknown) => void
     let resolveSecond!: (value: unknown) => void
@@ -511,7 +517,7 @@ describe('MobilePage (조사원 /m)', () => {
       host: { role: 'surveyor', participant_token: 'host.token.signature' },
       guest: { role: 'resident', invite_code: 'invitecode0123456789abcdef012345' },
     })
-    mocks.buildGuestInviteUrl.mockReturnValue('https://demo.example/call?invite=invitecode0123456789abcdef012345')
+    mocks.buildDemoCallUrl.mockReturnValue('https://demo.example/call/demo')
 
     let resolveFirst!: (value: unknown) => void
     let rejectSecond!: (reason: unknown) => void
@@ -562,7 +568,7 @@ describe('MobilePage (조사원 /m)', () => {
       host: { role: 'surveyor', participant_token: 'host.token.signature' },
       guest: { role: 'resident', invite_code: 'invitecode0123456789abcdef012345' },
     })
-    mocks.buildGuestInviteUrl.mockReturnValue('https://demo.example/call?invite=invitecode0123456789abcdef012345')
+    mocks.buildDemoCallUrl.mockReturnValue('https://demo.example/call/demo')
 
     const response = (transcript: string, meal: '불량' | '심각' | null, utility: boolean | null, nextQuestion: string) => ({
       revision: 0,
@@ -640,7 +646,7 @@ describe('MobilePage (조사원 /m)', () => {
       host: { role: 'surveyor', participant_token: 'host.token.signature' },
       guest: { role: 'resident', invite_code: 'invitecode0123456789abcdef012345' },
     })
-    mocks.buildGuestInviteUrl.mockReturnValue('https://demo.example/call?invite=invitecode0123456789abcdef012345')
+    mocks.buildDemoCallUrl.mockReturnValue('https://demo.example/call/demo')
 
     const candidate = (transcript: string, meal: '불량' | null, utility: boolean | null) => ({
       revision: 0,

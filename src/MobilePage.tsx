@@ -25,7 +25,7 @@ import {
 import type { LaneItem, ReportCard, TodayLanes, VoiceCandidate } from './threeTierClient'
 import { createAiObservationCandidate } from './AiObservationClient'
 import { formatScore } from './scoreFormat'
-import { buildGuestInviteUrl, createLiveCall, type LiveCallCredentials, type LiveCallJoin } from './liveCallClient'
+import { buildDemoCallUrl, createLiveCall, type LiveCallCredentials, type LiveCallJoin } from './liveCallClient'
 import { LiveCallPanel } from './LiveCallPanel'
 import { isCandidateValuePending, restrictLiveCandidateToPhoneEvidence } from './liveCandidatePolicy'
 
@@ -371,10 +371,14 @@ export function MobilePage() {
       setError(null)
       setInputPath('live')
       resetLiveCandidate()
-      const credentials = await createLiveCall({ caseId: selected.case_id, revision: selected.revision })
+      const credentials = await createLiveCall({
+        caseId: selected.case_id,
+        revision: selected.revision,
+        demoEntry: true,
+      })
       liveCandidateScopeRef.current = `${selected.case_id}:${selected.revision}:${credentials.call_id}`
       setLiveCallCredentials(credentials)
-      setLiveInviteUrl(buildGuestInviteUrl(credentials))
+      setLiveInviteUrl(buildDemoCallUrl())
     } catch (cause) {
       setInputPath(null)
       setError(errorText(cause, '실시간 통화를 시작하지 못했습니다. 음성 파일이나 직접 입력을 사용할 수 있습니다.'))
@@ -730,6 +734,7 @@ export function MobilePage() {
             <LiveCallPanel
               join={liveHostJoin}
               inviteUrl={liveInviteUrl}
+              inviteMode="fixed-demo"
               targetDisplayName={`${selected.display_name} 어르신`}
               onFinish={finishLiveCall}
               onTranscriptUpdate={scheduleLiveCandidate}
