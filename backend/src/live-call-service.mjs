@@ -4,6 +4,7 @@ const CASE_ID_PATTERN = /^SYN-HH-\d{10}-\d{4}$/;
 const SDP_MAX_BYTES = 64_000;
 const CALL_TTL_SECONDS = 30 * 60;
 const SDP_PATTERN = /^v=0(?:\r?\n|$)/;
+const LIVE_TRANSCRIPTION_LANGUAGE = 'ko';
 
 export class LiveCallError extends Error {
   constructor(status, code, message) {
@@ -71,7 +72,6 @@ export function createLiveCallService({
   randomInviteCode = () => crypto.randomUUID().replaceAll('-', ''),
   now = () => new Date(),
   transcriptionModel = 'gpt-live-transcribe',
-  transcriptionLanguage = 'ko',
 } = {}) {
   requiredDependency(tokenProvider, 'tokenProvider');
   requiredDependency(realtimeBridge, 'realtimeBridge');
@@ -116,7 +116,7 @@ export function createLiveCallService({
         transcription: {
           provider: 'openai',
           model: transcriptionModel,
-          language: transcriptionLanguage,
+          language: LIVE_TRANSCRIPTION_LANGUAGE,
         },
         host: {
           role: 'surveyor',
@@ -162,7 +162,6 @@ export function createLiveCallService({
         sdp,
         safetyIdentifier: `live-call:${participant.callId}:${participant.role}`,
         model: transcriptionModel,
-        language: transcriptionLanguage,
       });
     },
   });
