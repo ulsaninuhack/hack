@@ -33,6 +33,8 @@ UI 변경은 [`docs/UI_UX_REVIEW_RUBRIC.md`](docs/UI_UX_REVIEW_RUBRIC.md)의 조
 
 이웃연결단의 전화 안부 확인, 미응답·이상징후 후속조치, 방문 권고, 담당자 승인 흐름을 병렬 개발할 수 있도록 결정적 합성 계약을 제공한다. 현행 162개 읍면동마다 일반 표시명의 연결단원 1명과 합성 연락업무 20~50건을 생성한다. 현재 seed의 결과는 연결단원 162명, 합성 연락업무 5,869건이며 기준일 `2026-08-12`까지 연락해야 하는 업무는 3,616건이다. 선호 연락수단은 전화 5,291건, 방문 578건이고, fixture 생성 시점에 사전 승인된 방문은 0건이다.
 
+초기 세션에는 실제 연락 결과가 없으므로 운영 지도가 비어 보이지 않도록 현행 행정동마다 가장 작은 합성 업무 ID 1건, 총 162건에만 결정적 배점 시나리오를 표시한다. 이는 156개 지도구역을 모두 채우는 **`[합성 시나리오]` 미리보기**이며, 세션에서 입력한 연락 결과 점수는 같은 케이스의 예시를 대체한다. 나머지 업무는 계속 미기록으로 구분하고, 시나리오는 workflow나 방문 승인·경로 제약을 만들지 않는다.
+
 - `public/data/synthetic-workers.json`
 - `public/data/synthetic-households.json`
 - `public/data/synthetic-care-ops-manifest.json`
@@ -41,6 +43,7 @@ UI 변경은 [`docs/UI_UX_REVIEW_RUBRIC.md`](docs/UI_UX_REVIEW_RUBRIC.md)의 조
 - `src/syntheticCareOpsTypes.ts`
 - `data/schemas/contact-triage-*.schema.json`
 - `backend/src/contact-triage-scoring.mjs`
+- `backend/src/contact-triage-synthetic-scenario.mjs`
 
 모든 레코드는 `synthetic=true`이고 이름·주소·전화번호가 없다. 좌표는 2025 지도구역 안에 생성한 합성 점이며 실제 주거 위치가 아니다. 중심 필드는 `next_contact_date`, `preferred_contact_method`, `consecutive_no_answer_count`, `follow_up_deadline`, `follow_up_status`, `visit_approval_status`, `transfer_status`, `last_contact_result`다. `visit_approval_status`는 규칙 권고 전에는 `null`이며, 방문 제약과 `max_route_distance_km`는 담당자가 명시 승인한 뒤에만 생긴다. UI·규칙 그래프 사용법과 162→156 공간 제약은 [`docs/SYNTHETIC_CARE_OPS_DATA.md`](docs/SYNTHETIC_CARE_OPS_DATA.md)를 따른다.
 

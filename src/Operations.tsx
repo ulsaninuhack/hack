@@ -553,7 +553,10 @@ function ManagerBreadthPanel({ breadth, error }: { breadth: ManagerBreadth | nul
 }
 
 function Distribution({ values }: { values: Record<string, number> }) {
-  return <dl className="ops-distribution">{Object.entries(values).map(([label, count]) => <div key={label}><dt>{label}</dt><dd>{count}건</dd></div>)}</dl>
+  const displayLabel = (label: string) => /^\d+_\d+$/.test(label)
+    ? `${label.replace('_', '–')}점`
+    : label
+  return <dl className="ops-distribution">{Object.entries(values).map(([label, count]) => <div key={label}><dt>{displayLabel(label)}</dt><dd>{count}건</dd></div>)}</dl>
 }
 
 function MapModeToggle({ mode, onChange }: { mode: 'public' | 'operations'; onChange: (mode: 'public' | 'operations') => void }) {
@@ -566,14 +569,18 @@ function MapModeToggle({ mode, onChange }: { mode: 'public' | 'operations'; onCh
 export function ZoneOperationsPanel({ zone }: { zone: OperationsMapZone | null }) {
   if (!zone) return <section className="zone-operations-panel" aria-label="선택한 구역의 합성 연락업무"><p role="status">선택한 구역의 합성 연락업무를 불러오는 중입니다.</p></section>
   const operations = zone.operations
+  const sourceLabel = (source: typeof operations.acute_metric_source) => source === 'session_recorded'
+    ? '세션 기록'
+    : source === 'synthetic_scenario' ? '합성 예시' : '자료 없음'
   return <section className="zone-operations-panel" aria-label="선택한 구역의 합성 연락업무">
     <span className="synthetic-chip">[합성]</span>
     <h3>선택한 구역의 [합성] 연락업무</h3>
     <p>채색은 구역 내 급성도 최댓값, 원 크기는 취약도 최댓값입니다. 두 축은 각각 표시하며 자동 승인은 사용하지 않습니다.</p>
+    <p className="zone-scenario-note"><strong>{operations.scenario_label}</strong><br />현행 행정동마다 1건의 고정 합성 예시로 로직을 미리 보여줍니다. 같은 업무에 이 합성 데모 세션의 입력 기록이 생기면 그 기록을 사용하며, 실제 주민 상태를 뜻하지 않습니다. 기준일 {operations.scenario_reference_date}</p>
     <dl className="zone-operation-metrics">
-      <div><dt>급성도 채색값</dt><dd>{operations.acute_color_metric ?? '점수 없음'}{operations.acute_max_case_id ? ` · ${operations.acute_max_case_id}` : ''}</dd></div>
-      <div><dt>취약도 원 크기값</dt><dd>{operations.vulnerability_size_metric ?? '점수 없음'}{operations.vulnerability_max_case_id ? ` · ${operations.vulnerability_max_case_id}` : ''}</dd></div>
-      <div><dt>점수 기록 / 미기록</dt><dd>{operations.scored_case_count}건 / {operations.unscored_case_count}건</dd></div>
+      <div><dt>급성도 채색값</dt><dd>{operations.acute_color_metric ?? '점수 없음'} · {sourceLabel(operations.acute_metric_source)}{operations.acute_max_case_id ? ` · ${operations.acute_max_case_id}` : ''}</dd></div>
+      <div><dt>취약도 원 크기값</dt><dd>{operations.vulnerability_size_metric ?? '점수 없음'} · {sourceLabel(operations.vulnerability_metric_source)}{operations.vulnerability_max_case_id ? ` · ${operations.vulnerability_max_case_id}` : ''}</dd></div>
+      <div><dt>점수 출처</dt><dd>세션 기록 {operations.session_scored_case_count}건 · 합성 예시 {operations.scenario_scored_case_count}건 · 미기록 {operations.unscored_case_count}건</dd></div>
     </dl>
     <p className="zone-aggregation">구역 집계: 최댓값 우선 맥락. 동점이면 높은 축 점수 후 합성 업무 ID 오름차순으로 선택합니다.</p>
     <ContributionSummary title="급성도 기여" entries={operations.contribution_summaries.acute} />
@@ -582,7 +589,20 @@ export function ZoneOperationsPanel({ zone }: { zone: OperationsMapZone | null }
 }
 
 function ContributionSummary({ title, entries }: { title: string; entries: Array<{ code: string; total_points: number; case_count: number }> }) {
-  return <section className="zone-contributions"><h4>{title}</h4>{entries.length === 0 ? <p>점수 기록이 없습니다.</p> : <ul>{entries.map((entry) => <li key={entry.code}><span>{entry.code}</span><strong>{entry.total_points}점 · {entry.case_count}건</strong></li>)}</ul>}</section>
+  const displayCode = (code: string) => ({
+    연속_미응답: '연속 미응답',
+    관찰_6징후: '우려 관찰 6징후',
+    관계망_없음: '관계망 없음',
+    사회적_고립: '사회적 연락 부족',
+    동단위_고령비율: '동단위 고령비율',
+    동단위_1인가구비율: '동단위 1인가구비율',
+    동단위_노후주택: '동단위 노후주택',
+    동단위_기초수급_밀도: '동단위 기초수급 밀도',
+  }[code] ?? code.replaceAll('_', ' '))
+  return <section className="zone-contributions"><h4>{title}</h4>{entries.length === 0 ? <p>점수 기록이 없습니다.</p> : <>
+    <ul>{entries.map((entry) => <li key={entry.code}><span>{displayCode(entry.code)}</span><strong>{entry.total_points}점 · {entry.case_count}건</strong></li>)}</ul>
+    {entries.some(({ total_points: points }) => points === 0) && <p className="zero-contribution-note">0점 항목은 평가되었으나 가산되지 않은 지표입니다.</p>}
+  </>}</section>
 }
 
 function StructuralContextPanel({ zone }: { zone: StructuralZone | null }) {

@@ -7,6 +7,10 @@
       "violations": []
     },
     {
+      "surface": "public-operations-scenario-desktop",
+      "violations": []
+    },
+    {
       "surface": "surveyor-mobile",
       "violations": []
     },

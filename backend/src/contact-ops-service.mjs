@@ -7,6 +7,7 @@ import {
 } from './contact-ops.mjs';
 import { buildTriageQueue } from './contact-triage-scoring.mjs';
 import { buildManagerBreadth } from './contact-ops-manager-breadth.mjs';
+import { prepareSyntheticScenarioOverlayRecords } from './contact-triage-synthetic-scenario.mjs';
 
 const OBSERVATION_KEYS = ['관찰_6징후', '식사상태', '위생상태', '공과금_2개월_이상_체납', '최근_건강_정신_괴로움', '관계망_유무', '연락_빈도'];
 const SIGN_KEYS = ['우편물_고지서_적체', '악취_벌레', '쓰레기_술병', '인기척_없이_TV_불', '외출_없음', '연락_두절'];
@@ -101,10 +102,12 @@ function contributionSummary(records, axis) {
   return [...summary.values()].toSorted((left, right) => right.total_points - left.total_points || left.code.localeCompare(right.code));
 }
 
-function operationsZone(publicZone, records) {
+function operationsZone(publicZone, records, scenarioReferenceDate) {
   const cases = records.filter(({ household }) => household.location.geometry_zone_id === publicZone.geometry_zone_id);
   const scored = cases.filter(({ triage }) => triage !== null);
   const acute = maxRecord(scored, '급성도_점수'); const vulnerability = maxRecord(scored, '취약도_점수');
+  const sessionScoredCaseCount = cases.filter(({ score_source: source }) => source === 'session_recorded').length;
+  const scenarioScoredCaseCount = cases.filter(({ score_source: source }) => source === 'synthetic_scenario').length;
   return {
     geometry_zone_id: publicZone.geometry_zone_id,
     public_structural_context: {
@@ -115,11 +118,18 @@ function operationsZone(publicZone, records) {
     operations: {
       synthetic: true, displayMarker: '[합성]', aggregation: 'zone_max_priority_context',
       tie_rule: 'highest axis score then synthetic case ID ascending',
+      scenario_label: '[합성 시나리오]',
+      scenario_reference_date: scenarioReferenceDate,
+      scenario_method: 'one_deterministic_example_per_current_admin_dong',
       scored_case_count: scored.length, unscored_case_count: cases.length - scored.length,
+      session_scored_case_count: sessionScoredCaseCount,
+      scenario_scored_case_count: scenarioScoredCaseCount,
       acute_color_metric: acute?.triage.급성도_점수 ?? null,
       acute_max_case_id: acute?.household.id ?? null,
+      acute_metric_source: acute?.score_source ?? null,
       vulnerability_size_metric: vulnerability?.triage.취약도_점수 ?? null,
       vulnerability_max_case_id: vulnerability?.household.id ?? null,
+      vulnerability_metric_source: vulnerability?.score_source ?? null,
       contribution_summaries: { acute: contributionSummary(scored, '급성도'), vulnerability: contributionSummary(scored, '취약도') },
     },
   };
@@ -131,7 +141,7 @@ function stateConflict(message) {
   return error;
 }
 
-export function createContactOpsService({ state, aiAdapter = null, loadTuningReport = null, structuralContext = null }) {
+export function createContactOpsService({ state, aiAdapter = null, loadTuningReport = null, structuralContext = null, scenarioReferenceDate = null }) {
   if (!state || typeof state.get !== 'function' || typeof state.list !== 'function' || typeof state.update !== 'function' || typeof state.resetSession !== 'function') {
     throw new TypeError('state must provide get, list, update, and resetSession');
   }
@@ -248,12 +258,18 @@ export function createContactOpsService({ state, aiAdapter = null, loadTuningRep
     },
     async getOperationsMap({ sessionId }) {
       const dataset = assertStructuralContext(structuralContext);
-      const records = await state.list({ sessionId });
+      const records = prepareSyntheticScenarioOverlayRecords(
+        await state.list({ sessionId }),
+        scenarioReferenceDate,
+      );
       return {
         synthetic: true, displayMarker: '[합성]',
         geometry_zone_count: dataset.zone_count, current_admin_dong_count: dataset.current_admin_dong_count,
         public_context_label: dataset.model_output_label,
-        zones: dataset.zones.map((zone) => operationsZone(zone, records)),
+        scenario_label: '[합성 시나리오]',
+        scenario_reference_date: scenarioReferenceDate,
+        scenario_method: 'one_deterministic_example_per_current_admin_dong',
+        zones: dataset.zones.map((zone) => operationsZone(zone, records, scenarioReferenceDate)),
       };
     },
     async resetDemoSession({ sessionId }) {

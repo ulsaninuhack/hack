@@ -10,6 +10,12 @@
       "state": "실제 공개 집계 지도와 혼합 시점 고지"
     },
     {
+      "file": "artifacts/screenshots/public-operations-scenario-desktop.png",
+      "width": 1440,
+      "height": 900,
+      "state": "공개 지도에서 실제 API가 채운 초기 합성 시나리오"
+    },
+    {
       "file": "artifacts/screenshots/surveyor-queue-mobile.png",
       "width": 390,
       "height": 844,
@@ -40,6 +46,12 @@
       "state": "실제 선택 합성 점과 키보드 목록 대안"
     },
     {
+      "file": "artifacts/screenshots/operations-scenario-desktop.png",
+      "width": 1440,
+      "height": 900,
+      "state": "실제 162개 행정동 합성 시나리오와 세션·예시·미기록 출처"
+    },
+    {
       "file": "artifacts/screenshots/operations-overlay-desktop.png",
       "width": 1440,
       "height": 900,
@@ -52,16 +64,16 @@
       "state": "[검증 화면] loading 상태 · 연락업무 API 가로채기"
     },
     {
-      "file": "artifacts/screenshots/error-mobile.png",
-      "width": 390,
-      "height": 844,
-      "state": "[검증 화면] error 상태 · 연락업무 API 가로채기"
-    },
-    {
       "file": "artifacts/screenshots/empty-mobile.png",
       "width": 390,
       "height": 844,
       "state": "[검증 화면] empty 상태 · 연락업무 API 가로채기"
+    },
+    {
+      "file": "artifacts/screenshots/error-mobile.png",
+      "width": 390,
+      "height": 844,
+      "state": "[검증 화면] error 상태 · 연락업무 API 가로채기"
     },
     {
       "file": "artifacts/screenshots/empty-loading-error-mobile.png",

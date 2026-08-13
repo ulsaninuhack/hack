@@ -24,10 +24,12 @@ async function loadSyntheticHouseholds() {
   const directory = process.env.DATA_DIR || new URL('../../public/data/', import.meta.url);
   const path = directory instanceof URL ? new URL('synthetic-households.json', directory) : `${directory}/synthetic-households.json`;
   const dataset = JSON.parse(await readFile(path, 'utf8'));
-  if (!Array.isArray(dataset.households) || dataset.synthetic !== true || dataset.households.some((household) => household.synthetic !== true)) {
+  if (!Array.isArray(dataset.households) || dataset.synthetic !== true
+      || typeof dataset.scenario_reference_date !== 'string'
+      || dataset.households.some((household) => household.synthetic !== true)) {
     throw new Error('ContactOps seed must contain synthetic households only');
   }
-  return dataset.households;
+  return dataset;
 }
 async function loadStructuralContext() {
   const directory = process.env.DATA_DIR || new URL('../../public/data/', import.meta.url);
@@ -76,11 +78,13 @@ async function loadTuningReport() {
   tuningReport = JSON.parse(result.stdout);
   return structuredClone(tuningReport);
 }
+const syntheticDataset = await loadSyntheticHouseholds();
 const contactOpsService = createContactOpsService({
-  state: await loadContactOpsState(await loadSyntheticHouseholds()),
+  state: await loadContactOpsState(syntheticDataset.households),
   aiAdapter,
   loadTuningReport,
   structuralContext: await loadStructuralContext(),
+  scenarioReferenceDate: syntheticDataset.scenario_reference_date,
 });
 const server = createApiServer({
   store,
