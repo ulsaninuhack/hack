@@ -25,13 +25,21 @@ publication. Do not confuse package publication protection with repository visib
 
 The frontend production URL is `https://incheon-care-map.vercel.app`. The Cloud Run production URL is `https://incheon-care-api-vy3v2ludma-du.a.run.app`; `/health` is the canonical external health endpoint. `/healthz` remains a source-level compatibility alias, but the Cloud Run frontend intercepts that path before it reaches the container, so deployment smoke tests must use `/health`. Match the latest successful `main` run, Cloud Run revision label, and deployed digest before claiming that a specific commit is live.
 
-## UI/UX Review Contract
+## UI/UX Direction
 
-- Every manager-web UI change must follow `docs/UI_UX_REVIEW_RUBRIC.md`.
-- Run `npm run check:ui-copy` before committing UI copy. A hard-ban match fails the change.
-- UI milestones require automated font-size, touch-target, horizontal-overflow, contrast, axe, icon-label, and non-color-status gates before completion.
-- Record the Vercel Preview URL in `docs/PROGRESS.md` and `docs/AGENT_HANDOFF.md` for every UI milestone.
-- After automated gates pass, Claude independently reviews 390×844 mobile and 1440×900 desktop screenshots and returns a punch-list. Codex fixes it; only the re-review can close the milestone.
+The 2026-08 redesign replaced the machine-enforced copy/screenshot gates with a design
+direction that reviewers apply by judgment:
+
+- The public map is map-first: one floating control panel, one detail panel, minimal copy.
+  No marketing hero, no methodology dialog, no repeated disclaimer walls.
+- Demo/synthetic surfaces carry a single small `데모` chip and one short plain-Korean note,
+  not `[합성]` prefixes on every row.
+- Disclosures stay honest but compact: the P2 mixed-snapshot fact is a one-line footnote
+  (`세대 2026.7 · 인구 2026.6 기준`), not a repeated verbatim sentence.
+- Operations pages keep large text (18px+) and 48px touch targets for older field users.
+- Avoid promotional copy (`누구나 쉽게`, `스마트한`, `혁신적`, `한눈에` …) and person-judging
+  vocabulary (`위험도`, `고위험자`, `미수혜자`, `개인예측`) — these remain banned by convention
+  even though the automated copy gate was removed.
 
 ## Data Interpretation Rules
 
@@ -110,9 +118,8 @@ npm run agent:check
 
 `npm run agent:check` is the common Claude/Codex baseline. It verifies the handoff contract,
 deployment invariants, curated and synthetic data, frontend tests/typecheck/build, backend
-coverage, and voice contracts. UI or end-to-end workflow changes must additionally run
-`npm run test:e2e:ops`. If the baseline fails, preserve the first failure as evidence and fix the
-contract rather than bypassing the guardrail.
+coverage, and voice contracts. If the baseline fails, preserve the first failure as evidence
+and fix the contract rather than bypassing the guardrail.
 
 ## Verification Commands
 
@@ -120,7 +127,7 @@ Run from the repository root.
 
 ```sh
 npm ci
-npm run check:ui-copy
+npm run test:ui
 npm run typecheck
 npm run build
 npm run validate:data

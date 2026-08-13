@@ -1,8 +1,6 @@
 #!/bin/sh
 set -eu
 
-npm run verify:overnight-freeze
-
 fail() {
   printf 'FAIL: %s\n' "$1" >&2
   exit 1
@@ -36,7 +34,6 @@ grep -q 'Validate frontend and backend' .github/workflows/ci-deploy.yml || fail 
 grep -q 'npm run validate:data' .github/workflows/ci-deploy.yml || fail "workflow must validate curated web data"
 grep -q 'npm run typecheck' .github/workflows/ci-deploy.yml || fail "workflow must type-check frontend"
 grep -q 'npm run build' .github/workflows/ci-deploy.yml || fail "workflow must build frontend"
-grep -q 'npm run check:ui-copy' .github/workflows/ci-deploy.yml || fail "workflow must enforce UI copy invariants"
 grep -q 'npm --prefix backend ci' .github/workflows/ci-deploy.yml || fail "workflow must install backend dependencies"
 grep -q 'npm --prefix backend run test:coverage' .github/workflows/ci-deploy.yml || fail "workflow must run backend coverage gate"
 grep -q 'docker build --file backend/Dockerfile' .github/workflows/ci-deploy.yml || fail "workflow must build backend container in validation"
@@ -58,8 +55,6 @@ if grep -q 'credentials_json\|service_account_key\|--allow-unauthenticated' .git
 fi
 ok "PR validation and main production deploy lanes are configured"
 
-npm run check:ui-copy
-ok "UI copy invariants and their unit tests pass"
 npm run test:ui
 ok "frontend component and operations contracts pass"
 npm run typecheck

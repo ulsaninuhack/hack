@@ -1,6 +1,6 @@
 .ai-observation-panel { display: grid; gap: 16px; grid-column: 1 / -1; padding: 20px; background: #fff; border: 1px solid #aebeb7; border-radius: 14px; }
 .ai-observation-heading { display: flex; align-items: flex-start; gap: 12px; }
-.ai-observation-heading > span, .ai-candidate header > span { display: inline-flex; min-height: 30px; align-items: center; padding: 0 9px; color: #10211f; background: #f0ba50; border-radius: 99px; font-weight: 900; }
+.ai-observation-heading > span, .ai-candidate header > span { display: inline-flex; min-height: 30px; align-items: center; padding: 0 9px; color: #a06e14; background: #faf1dc; border-radius: 99px; font-weight: 750; }
 .ai-observation-heading h2, .ai-observation-heading p, .ai-candidate h3, .ai-candidate p { margin: 0; }
 .ai-observation-heading h2 { font-size: 22px; }.ai-observation-heading p { margin-top: 5px; line-height: 1.5; }
 .ai-graph { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 7px; margin: 0; padding: 0; list-style: none; }

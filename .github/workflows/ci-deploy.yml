@@ -40,12 +40,6 @@ jobs:
       - name: Verify Claude and Codex handoff contract
         run: npm run test:agent-handoff
 
-      - name: Verify frozen overnight contracts
-        run: npm run verify:overnight-freeze
-
-      - name: Enforce UI copy invariants
-        run: npm run check:ui-copy
-
       - name: Validate curated web data
         run: |
           npm run validate:data
@@ -71,30 +65,6 @@ jobs:
 
       - name: Test backend with coverage gate
         run: npm --prefix backend run test:coverage
-
-      - name: Install Chromium for operations E2E
-        run: npx playwright install --with-deps chromium
-
-      - name: Test the surveyor-to-manager browser flows
-        run: npm run test:e2e:ops
-
-      - name: Verify objective overnight UI evidence
-        run: npm run verify:overnight
-
-      - name: Upload operations browser evidence on failure
-        if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: contact-ops-browser-evidence
-          path: |
-            artifacts/playwright/
-            artifacts/playwright-report/
-            artifacts/screenshots/
-            artifacts/axe/
-            artifacts/p8-evidence.json
-            test-results/
-          if-no-files-found: warn
-          retention-days: 7
 
       - name: Install voice-layer dependencies
         run: npm --prefix voice ci

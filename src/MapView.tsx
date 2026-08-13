@@ -258,7 +258,7 @@ export default function MapView(props: MapViewProps) {
     }
   }, [props.syntheticPoint])
 
-  return <div ref={containerRef} className="map" role="region" aria-label={props.ariaLabel ?? '인천 돌봄 수요 맥락 지도'} />
+  return <div ref={containerRef} className="map" role="region" aria-label={props.ariaLabel ?? '인천 돌봄 지도'} />
 }
 
 export function hasOperationalMapLayers(map: { getSource(id: string): unknown; getLayer(id: string): unknown }) {
@@ -272,7 +272,7 @@ function toSyntheticPointCollection(point: MapViewProps['syntheticPoint']): Feat
     features: point ? [{
       type: 'Feature',
       geometry: { type: 'Point', coordinates: [point.longitude, point.latitude] },
-      properties: { case_id: point.caseId, synthetic: true, display_marker: '[합성]' },
+      properties: { case_id: point.caseId, synthetic: true, display_marker: '데모' },
     }] : [],
   }
 }

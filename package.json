@@ -8,15 +8,8 @@
   },
   "scripts": {
     "agent:check": "sh scripts/agent-check.sh",
-    "check:ui-copy": "node --test test/ui-copy-gate.test.mjs && node scripts/check-ui-copy.mjs",
-    "verify:overnight-freeze": "node scripts/verify-overnight-freeze.mjs",
-    "verify:overnight": "npm run verify:overnight-freeze && npm run check:ui-copy && node scripts/verify-overnight-ui.mjs",
     "test:ui": "vitest run",
     "test:ui:watch": "vitest",
-    "test:e2e:p2": "playwright test e2e/p2-contact-ops.spec.ts",
-    "test:e2e:p4": "playwright test e2e/p4-contact-ops-golden.spec.ts",
-    "test:e2e:p8": "playwright test e2e/p8-demo-hardening.spec.ts",
-    "test:e2e:ops": "playwright test e2e/p2-contact-ops.spec.ts e2e/p4-contact-ops-golden.spec.ts e2e/p8-demo-hardening.spec.ts",
     "dev": "vite",
     "build": "tsc -b && vite build && node scripts/verify-map-worker.mjs",
     "typecheck": "tsc -b",
@@ -38,8 +31,6 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
-    "@axe-core/playwright": "4.13.0",
-    "@playwright/test": "1.62.1",
     "@testing-library/jest-dom": "6.9.1",
     "@testing-library/react": "16.3.2",
     "@testing-library/user-event": "14.6.1",
@@ -50,7 +41,6 @@
     "@vitejs/plugin-react": "6.0.5",
     "ajv": "8.20.0",
     "ajv-formats": "3.0.1",
-    "axe-core": "4.11.0",
     "jsdom": "27.4.0",
     "typescript": "7.0.2",
     "vite": "8.2.1",

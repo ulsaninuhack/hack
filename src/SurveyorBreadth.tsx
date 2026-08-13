@@ -56,33 +56,33 @@ export function SurveyorBreadth({
   return (
     <section
       className="surveyor-breadth"
-      aria-label="[합성] 오늘 연락업무 요약과 목록"
+      aria-label="오늘 연락업무 요약과 목록"
     >
       <header className="surveyor-breadth__header">
-        <span className="surveyor-breadth__marker">[합성]</span>
+        <span className="surveyor-breadth__marker">데모</span>
         <div>
           <h2>오늘 연락업무</h2>
-          <p>합성 연락업무 데모 · 실제 주민, 실제 업무, 개인 판정이 아닙니다.</p>
+          <p>가상 데이터로 구성한 데모입니다. 실제 주민이나 실제 업무가 아닙니다.</p>
         </div>
       </header>
 
       {error ? (
         <div className="surveyor-breadth__state" role="alert">
-          <strong>합성 연락업무를 불러오지 못했습니다.</strong>
+          <strong>연락업무를 불러오지 못했습니다.</strong>
           <p>연결 상태를 확인한 뒤 다시 불러와 주세요.</p>
           <button type="button" style={minimumTarget} onClick={onRetry}>다시 불러오기</button>
         </div>
       ) : loading && items.length === 0 ? (
         <p className="surveyor-breadth__state" role="status" aria-live="polite">
-          합성 연락업무를 불러오는 중입니다.
+          연락업무를 불러오는 중입니다.
         </p>
       ) : items.length === 0 ? (
         <p className="surveyor-breadth__state" role="status">
-          오늘 예정된 합성 연락업무가 없습니다.
+          오늘 예정된 연락업무가 없습니다.
         </p>
       ) : (
         <>
-          <section className="surveyor-breadth__summary" aria-label="오늘 합성 연락업무 요약">
+          <section className="surveyor-breadth__summary" aria-label="오늘 연락업무 요약">
             <strong>오늘 연락업무 {summary.total}건</strong>
             <dl>
               <div><dt>연속 미응답</dt><dd>{summary.repeatedNoAnswer}건</dd></div>
@@ -94,7 +94,7 @@ export function SurveyorBreadth({
           <div
             className="surveyor-breadth__list"
             role="listbox"
-            aria-label="오늘 합성 연락업무 목록"
+            aria-label="오늘 연락업무 목록"
             aria-busy={loading}
           >
             {taskViews.map((task, index) => {
@@ -117,7 +117,7 @@ export function SurveyorBreadth({
                   onClick={() => onSelect(task.item.household_id)}
                   onKeyDown={(event) => moveSelection(event, index)}
                 >
-                  <span className="surveyor-breadth__case">[합성] {task.item.household_id}</span>
+                  <span className="surveyor-breadth__case">{task.item.household_id}</span>
                   <span className="surveyor-breadth__axes">
                     <b>급성도 {task.item.triage.급성도_점수}</b>
                     <b>취약도 {task.item.triage.취약도_점수}</b>

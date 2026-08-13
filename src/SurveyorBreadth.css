@@ -32,10 +32,10 @@
 .surveyor-breadth__marker {
   flex: 0 0 auto;
   padding: 5px 9px;
-  color: #fff;
-  background: #17665c;
+  color: #a06e14;
+  background: #faf1dc;
   border-radius: 999px;
-  font-weight: 800;
+  font-weight: 750;
 }
 
 .surveyor-breadth__summary,

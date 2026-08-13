@@ -117,7 +117,7 @@ describe('P6 surveyor breadth projection', () => {
       />,
     )
 
-    expect(screen.getByRole('region', { name: '[합성] 오늘 연락업무 요약과 목록' })).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: '오늘 연락업무 요약과 목록' })).toBeInTheDocument()
     expect(screen.getByText('오늘 연락업무 2건')).toBeInTheDocument()
     expect(screen.getAllByText('연속 미응답 3회').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('후속조치 기한 지남').length).toBeGreaterThanOrEqual(1)
@@ -181,7 +181,7 @@ describe('P6 explicit loading, empty, and error states', () => {
         onRetry={() => {}}
       />,
     )
-    expect(screen.getByRole('status')).toHaveTextContent('합성 연락업무를 불러오는 중입니다.')
+    expect(screen.getByRole('status')).toHaveTextContent('연락업무를 불러오는 중입니다.')
   })
 
   it('announces an empty day without exposing a disabled action', () => {
@@ -196,7 +196,7 @@ describe('P6 explicit loading, empty, and error states', () => {
         onRetry={() => {}}
       />,
     )
-    expect(screen.getByRole('status')).toHaveTextContent('오늘 예정된 합성 연락업무가 없습니다.')
+    expect(screen.getByRole('status')).toHaveTextContent('오늘 예정된 연락업무가 없습니다.')
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
   })
 
@@ -208,13 +208,13 @@ describe('P6 explicit loading, empty, and error states', () => {
         items={[]}
         details={[]}
         loading={false}
-        error="합성 연락업무를 불러오지 못했습니다."
+        error="연락업무를 불러오지 못했습니다."
         selectedId={null}
         onSelect={() => {}}
         onRetry={onRetry}
       />,
     )
-    expect(screen.getByRole('alert')).toHaveTextContent('합성 연락업무를 불러오지 못했습니다.')
+    expect(screen.getByRole('alert')).toHaveTextContent('연락업무를 불러오지 못했습니다.')
     const retry = screen.getByRole('button', { name: '다시 불러오기' })
     expect(retry).toHaveStyle({ minHeight: '48px' })
     await user.tab()

@@ -24,7 +24,7 @@
 - Operations map: `public/data/structural-context.json` and `GET /api/v1/contact-ops/operations-map` preserve 162 current dongs in 156 geometry zones. Public structure uses four equal midrank contributions with missingness and `[MODEL OUTPUT — UNVALIDATED]`; synthetic overlay color=max acute and size=max vulnerability with no combined score. Fresh sessions no longer look empty: one deterministic `[합성 시나리오]` example per current dong (162 total) covers all 156 zones, while API/UI separately expose session-recorded, scenario, and unrecorded counts. These examples do not mutate workflow or approve visits.
 - Triage evidence: all scores carry contribution traces, no composite score exists, and the deterministic 5,869-case simulation reports 664 mild-signal accumulation cases among 1,941 priority recommendations. This is a tuning warning from synthetic profiles, not an observed-person result. See `docs/CONTACT_TRIAGE_SCORING.md`.
 - Voice file input: `voice/` supports consented masked text and mock-verified WAV/MP3 transcription. Its adapter emits only a confirmation-required candidate; confirmed canonical observations are applied by the backend while scores and manager approval remain server-owned.
-- UI review contract: all UI milestones follow `docs/UI_UX_REVIEW_RUBRIC.md`; hard-ban copy is CI-gated, and each milestone must record its Vercel Preview URL plus Claude screenshot review in this file and `docs/PROGRESS.md`.
+- UI direction: the 2026-08 redesign is map-first with compact demo labeling; see the `## UI/UX Direction` section in `AGENTS.md`. The old rubric/copy CI gates were removed.
 - Latest P8 review milestone: PR #18 is merged and GitHub Actions run `31632681184`
   successfully deployed merge commit `6e43bce8b95e91aaa2abb0c5daba39d7c8bbc9fe` to
   Vercel production and Cloud Run revision `incheon-care-api-00019-qsh`. The live browser
@@ -50,7 +50,7 @@ npm --prefix voice ci
 npm run agent:check
 ```
 
-For UI or cross-layer ContactOps work, also run `npm run test:e2e:ops`. For deployment work,
+For deployment work,
 read `docs/DEPLOYMENT.md` and inspect the latest GitHub Actions run, Cloud Run revision label,
 and deployed image digest before stating that a commit is live. Never reuse a dirty user
 checkout, silently reset another agent's work, or treat screenshots as deployment proof.
@@ -98,7 +98,7 @@ This is historical delivery evidence, not permission to assume a later commit is
 | Backend API contract | `backend/README.md`, `backend/test/api.test.mjs` |
 | Voice input contract and stage status | `voice/README.md`, `voice/schema/voice-output.schema.json` |
 | Agent rules | `AGENTS.md` |
-| UI/UX review contract and preview log | `docs/UI_UX_REVIEW_RUBRIC.md`, `docs/PROGRESS.md` |
+| UI/UX direction and progress log | `AGENTS.md` (`## UI/UX Direction`), `docs/PROGRESS.md` |
 
 ## Current Runtime Counts
 
@@ -161,7 +161,7 @@ Run from the repository root.
 
 ```sh
 npm ci
-npm run check:ui-copy
+npm run test:ui
 npm run typecheck
 npm run build
 npm run validate:data
