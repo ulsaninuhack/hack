@@ -115,6 +115,7 @@
         "free_text": { "type": "string" },
         "risk_signals": {
           "type": "array",
+          "description": "Use exact canonical checklist labels when supported by the transcript, including 최근 건강·정신 괴로움 있음 or 최근 건강·정신 괴로움 없음 for explicit recent physical or emotional distress.",
           "items": { "type": "string", "minLength": 1 }
         },
         "risk_score": {

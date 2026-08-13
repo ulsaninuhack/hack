@@ -357,6 +357,7 @@ function canonicalContactResult(contactResult, observations) {
     || ['불량', '심각'].includes(observation.meal_status)
     || ['불량', '심각'].includes(observation.hygiene)
     || observations.공과금_2개월_이상_체납 === true
+    || observations.최근_건강_정신_괴로움 === true
     || contactResult.free_text.trim() !== '';
   return concern ? 'connected_concern' : 'connected_ok';
 }

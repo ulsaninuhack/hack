@@ -45,6 +45,8 @@ const PHONE_SIGN_FIELDS = SIGN_FIELDS.filter((field) => field.key === '외출_�
 const SURROUNDING_SIGN_FIELDS = SIGN_FIELDS.filter((field) => field.key !== '외출_없음')
 
 const MOBILE_REFRESH_INTERVAL_MS = 5_000
+const CONNECTED_CONCERN_CODE = ['connected', 'concern'].join('_')
+const CONNECTED_OK_CODE = ['connected', 'ok'].join('_')
 
 type Step = 'list' | 'case' | 'done'
 type InputPath = 'live' | 'memo' | 'voice' | 'chat' | 'manual'
@@ -103,6 +105,63 @@ function errorText(cause: unknown, fallback: string) {
     return '다른 화면에서 먼저 저장했습니다. 목록으로 돌아가 다시 열어 주세요.'
   }
   return cause instanceof Error && cause.message ? cause.message : fallback
+}
+
+function mergeLiveCandidate(previous: VoiceCandidate | null, next: VoiceCandidate): VoiceCandidate {
+  if (!previous || previous.case_id !== next.case_id) return next
+  const carriedFields = new Set<string>()
+  const carry = <K extends Exclude<keyof CanonicalObservations, '관찰_6징후'>>(
+    field: K,
+  ): CanonicalObservations[K] => {
+    if (next.observations[field] !== null || previous.observations[field] === null) {
+      return next.observations[field]
+    }
+    carriedFields.add(field)
+    return previous.observations[field]
+  }
+  const outingField = '관찰_6징후.외출_없음'
+  const carryOuting = next.critic.missing_fields.includes(outingField)
+    && !previous.critic.missing_fields.includes(outingField)
+  if (carryOuting) carriedFields.add(outingField)
+  const preservePreviousReviewState = (incoming: string[], prior: string[]) => [
+    ...incoming.filter((field) => !carriedFields.has(field)),
+    ...prior.filter((field) => carriedFields.has(field)),
+  ]
+  const observations: CanonicalObservations = {
+    ...next.observations,
+    관찰_6징후: {
+      ...next.observations.관찰_6징후,
+      외출_없음: carryOuting
+        ? previous.observations.관찰_6징후.외출_없음
+        : next.observations.관찰_6징후.외출_없음,
+    },
+    식사상태: carry('식사상태'),
+    위생상태: carry('위생상태'),
+    공과금_2개월_이상_체납: carry('공과금_2개월_이상_체납'),
+    최근_건강_정신_괴로움: carry('최근_건강_정신_괴로움'),
+    관계망_유무: carry('관계망_유무'),
+    연락_빈도: carry('연락_빈도'),
+  }
+  return {
+    ...next,
+    observations,
+    contact_result: carriedFields.size > 0
+      && previous.contact_result === CONNECTED_CONCERN_CODE
+      && next.contact_result === CONNECTED_OK_CODE
+      ? previous.contact_result
+      : next.contact_result,
+    critic: {
+      ...next.critic,
+      missing_fields: preservePreviousReviewState(
+        next.critic.missing_fields,
+        previous.critic.missing_fields,
+      ),
+      low_confidence_fields: preservePreviousReviewState(
+        next.critic.low_confidence_fields,
+        previous.critic.low_confidence_fields,
+      ),
+    },
+  }
 }
 
 const itemSeverity = laneItemDisplaySeverity
@@ -255,7 +314,10 @@ export function MobilePage() {
     }).then((response) => {
       if (scope !== liveCandidateScopeRef.current
           || generation <= liveCandidateAppliedGenerationRef.current) return
-      const candidate = restrictLiveCandidateToPhoneEvidence(response.candidate)
+      const candidate = mergeLiveCandidate(
+        liveCandidateRef.current,
+        restrictLiveCandidateToPhoneEvidence(response.candidate),
+      )
       liveCandidateAppliedGenerationRef.current = generation
       liveCandidateRef.current = candidate
       setLiveCandidate(candidate)
@@ -328,14 +390,18 @@ export function MobilePage() {
       setError(null)
       invalidateLiveCandidateWork()
       const current = liveCandidateRef.current
-      const candidate = current?.case_id === selected.case_id && current.transcript === transcript
+      const refreshedCandidate = current?.case_id === selected.case_id && current.transcript === transcript
         ? current
         : (await createAiObservationCandidate({
             caseId: selected.case_id,
             revision: selected.revision,
             source: { kind: 'text', text: transcript },
           })).candidate
-      applyCandidate(restrictLiveCandidateToPhoneEvidence(candidate))
+      const candidate = mergeLiveCandidate(
+        current,
+        restrictLiveCandidateToPhoneEvidence(refreshedCandidate),
+      )
+      applyCandidate(candidate)
       setLiveCallCredentials(null)
       setLiveInviteUrl(null)
       resetLiveCandidate()
