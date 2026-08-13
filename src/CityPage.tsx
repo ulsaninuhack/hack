@@ -13,6 +13,10 @@ function formatPct(value: number | null) {
   return value === null ? '자료 없음' : `${value}%`
 }
 
+function splitSummarySentences(text: string) {
+  return text.split(/(?<=[가-힣]\.)(?:\s+)/).map((sentence) => sentence.trim()).filter(Boolean)
+}
+
 // INV17: 시·구 화면은 동 단위 롤업까지만 보여준다. 케이스 ID·개별 상세는
 // 이 컴포넌트에 절대 렌더하지 않는다(케이스 ID 필드는 의도적으로 미사용).
 function CityZoneRollup({ zone, dong }: { zone: CityOperationsMapZone | null; dong: DongProperties | null }) {
@@ -103,8 +107,15 @@ function DistrictBrief({
         </button>
         {summary && summary.district === aggregate.district && (
           <article className="city-ai-summary-card" aria-label={`${aggregate.district} AI 요약`}>
-            <p className="city-ai-text">{summary.summary_text}</p>
-            <details>
+            <details className="city-ai-toggle" open>
+              <summary>핵심 요약</summary>
+              <ul className="city-ai-points" aria-label="핵심 요약 문장">
+                {splitSummarySentences(summary.summary_text).map((sentence) => (
+                  <li key={sentence}>{sentence}</li>
+                ))}
+              </ul>
+            </details>
+            <details className="city-ai-metrics">
               <summary>요약에 주입된 집계 수치 보기</summary>
               <ul>
                 {Object.entries(summary.input_metrics).map(([key, value]) => (
