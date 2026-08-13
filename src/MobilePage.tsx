@@ -333,7 +333,7 @@ export function MobilePage() {
           <h2>대상 정보</h2>
           <p className="case-id">{selected.display_name} 어르신</p>
           <dl className="mobile-case-facts">
-            <div><dt>등급</dt><dd><LaneBadge item={selected} /> <small>({selected.grade_source})</small></dd></div>
+            <div><dt>등급</dt><dd><LaneBadge item={selected} />{selected.grade_source === '세션 기록' && <small>(세션 기록)</small>}</dd></div>
             <div><dt>위치</dt><dd>{selected.location.district} {selected.location.dong_name}</dd></div>
             {selected.location.road_address && (
               <div><dt>주소</dt><dd>
@@ -399,7 +399,6 @@ export function MobilePage() {
             <div className="mobile-input-paths" role="group" aria-label="입력 방법 선택">
               <button onClick={() => setInputPath('voice')}><Mic aria-hidden="true" /> 음성 파일로 채우기</button>
               <button onClick={() => setInputPath('chat')}>문답 또는 직접 체크하기</button>
-              <p className="mobile-path-note">두 방법 모두 같은 체크리스트로 모입니다. 제출 전 조사원 확인이 항상 필요합니다.</p>
             </div>
           )}
 
