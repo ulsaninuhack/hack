@@ -34,6 +34,16 @@ test('rejects forbidden person-risk terminology in UI source', async () => {
   assert.equal(violations[0].rule, 'domain-terminology');
 });
 
+test('rejects 위험군 group labeling in UI source (three-tier INV18)', async () => {
+  const root = await makeProject({
+    'src/copy.ts': "export const label = '방문 위험군';",
+  });
+  const violations = await findUiCopyViolations(root);
+  assert.equal(violations.length, 1);
+  assert.equal(violations[0].rule, 'domain-terminology');
+  assert.equal(violations[0].value, '위험군');
+});
+
 test('rejects raw operational enum values in renderable files', async () => {
   const root = await makeProject({
     'src/Result.tsx': '<span>no_answer</span>',

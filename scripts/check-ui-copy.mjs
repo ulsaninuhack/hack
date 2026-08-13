@@ -29,7 +29,7 @@ const RULES = [
   },
   {
     rule: 'domain-terminology',
-    values: ['위험도', '고위험자', '미수혜자', '개인예측'],
+    values: ['위험도', '위험군', '고위험자', '미수혜자', '개인예측'],
   },
 ];
 
