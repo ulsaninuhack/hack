@@ -143,16 +143,31 @@ Every backend production revision applies:
 | Ingress | `all` |
 | Runtime identity | dedicated runtime service account |
 | `CORS_ORIGINS` | `https://incheon-care-map.vercel.app` |
-| `RATE_LIMIT_PER_MINUTE` | `0` |
+| `RATE_LIMIT_PER_MINUTE` | `30` |
+
+Realtime calls additionally require four Cloud Run runtime secrets. The standard OpenAI
+key remains shared with the existing Planner-Critic runtime; LiveKit credentials never
+enter the browser bundle. The backend issues short-lived participant tokens instead.
+
+| Secret Manager secret | Runtime variable |
+| --- | --- |
+| `openai-api-key` | `OPENAI_API_KEY` |
+| `livekit-url` | `LIVEKIT_URL` |
+| `livekit-api-key` | `LIVEKIT_API_KEY` |
+| `livekit-api-secret` | `LIVEKIT_API_SECRET` |
+
+The post-deploy smoke test creates a short-lived call token pair for a fresh demo session
+without printing either token. This proves Cloud Run secret injection and token issuance;
+it does not prove two-device audio or OpenAI SDP exchange.
 
 The deployment uses the Cloud Run action's `overwrite` environment-variable
 strategy. Each revision therefore receives exactly the application variables
 declared by this workflow instead of retaining stale revision-level variables.
 
-`RATE_LIMIT_PER_MINUTE=0` intentionally disables the in-process, per-instance
-limiter for this demo contract. The maximum of two instances is a cost ceiling,
-not an abuse-control layer. Add an edge-level distributed limit before opening
-the API to sustained untrusted traffic.
+`RATE_LIMIT_PER_MINUTE=30` is a coarse in-process, per-instance demo limit. The
+maximum of two instances is a cost ceiling, not a distributed abuse-control layer.
+Add an edge-level distributed limit before opening the API to sustained untrusted
+traffic.
 
 ### Google Cloud prerequisites
 
