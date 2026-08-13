@@ -27,11 +27,11 @@
       "violations": []
     },
     {
-      "surface": "loading-mobile",
+      "surface": "empty-mobile",
       "violations": []
     },
     {
-      "surface": "empty-mobile",
+      "surface": "loading-mobile",
       "violations": []
     },
     {

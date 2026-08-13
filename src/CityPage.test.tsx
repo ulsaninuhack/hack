@@ -116,7 +116,7 @@ const summary: DistrictAiSummary = {
   synthetic: true,
   displayMarker: '[합성]',
   label: '[AI 생성 · 관측 집계 해석 · 개인 예측 아님]',
-  generator: 'mock_deterministic',
+  generator: 'codex_authored_v1',
   district: '제물포구',
   reference_date: '2026-08-12',
   input_metrics: { 구: '제물포구', 기준일: '2026-08-12', 노인인구_비율_퍼센트: '20' },
@@ -175,6 +175,7 @@ describe('CityPage (시·구 /city)', () => {
     expect(screen.getByLabelText('구조 맥락')).toBeInTheDocument()
     expect(screen.getByLabelText('운영 부하')).toBeInTheDocument()
     expect(document.documentElement.outerHTML).not.toMatch(/SYN-HH-/)
+    expect(document.documentElement.outerHTML).not.toContain('합성')
     expect(document.documentElement.outerHTML).not.toContain(BANNED_GROUP_WORD)
   })
 

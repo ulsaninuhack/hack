@@ -79,6 +79,7 @@ export interface LaneItem {
   synthetic: true
   displayMarker: '[합성]'
   case_id: string
+  display_name: string
   revision: number
   lane: 'phone' | 'visit'
   due_reasons: string[]
@@ -137,6 +138,7 @@ export interface ReportCard {
   displayMarker: '[합성]'
   card_id: string
   case_id: string
+  display_name: string
   revision: number
   dong_code: string
   dong_name: string
@@ -166,6 +168,7 @@ export interface ReportCard {
 export interface AssignmentProposalItem {
   status: 'proposed' | 'confirmed'
   case_id: string
+  display_name: string
   lane: 'phone' | 'visit'
   dong_code: string
   dong_name: string

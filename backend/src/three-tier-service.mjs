@@ -6,6 +6,7 @@ import {
   buildStaffingReview,
   contactResultLabel,
   createDistrictAiSummaryAdapter,
+  deriveCaseDisplayName,
   deriveVirtualPhone,
 } from './three-tier-ops.mjs';
 
@@ -63,6 +64,7 @@ function laneItem(record, proposal, referenceDate) {
     synthetic: true,
     displayMarker: '[합성]',
     case_id: household.id,
+    display_name: deriveCaseDisplayName(household.id),
     revision: record.revision,
     lane: proposal.lane,
     due_reasons: proposal.due_reasons,
@@ -155,7 +157,7 @@ export function createThreeTierService({
   if (!Array.isArray(workers) || workers.length === 0) {
     throw new TypeError('workers fixture is required');
   }
-  const summaryAdapter = aiSummaryAdapter ?? createDistrictAiSummaryAdapter({ mode: 'mock' });
+  const summaryAdapter = aiSummaryAdapter ?? createDistrictAiSummaryAdapter();
   const memoryStore = createSessionMemory();
   const facilityDistribution = store.summary?.distributions?.facilityDistrict ?? {};
   const structuralZones = structuralContext?.zones ?? [];
