@@ -388,10 +388,14 @@ jobs:
           image: ${{ steps.image.outputs.image }}
           env_vars: |-
             CORS_ORIGINS=https://incheon-care-map.vercel.app
-            RATE_LIMIT_PER_MINUTE=0
+            RATE_LIMIT_PER_MINUTE=30
             CONTACT_OPS_STATE_BACKEND=firestore
             CONTACT_OPS_FIRESTORE_COLLECTION=synthetic_contact_ops_sessions
+            ENABLE_LIVE_CONTACT_OPS_AI=1
           env_vars_update_strategy: overwrite
+          secrets: |-
+            OPENAI_API_KEY=openai-api-key:latest
+          secrets_update_strategy: merge
           flags: >-
             --cpu=1
             --memory=512Mi

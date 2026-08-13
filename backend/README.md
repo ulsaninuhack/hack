@@ -69,10 +69,11 @@ transfer.
 
 Live Planner/Critic calls are fail-closed unless `ENABLE_LIVE_CONTACT_OPS_AI=1` and an
 `OPENAI_API_KEY` are configured. CI proves the graph with deterministic injected clients;
-it does not prove live-model quality. Do not enable the live public endpoint in production
-until authentication or an edge quota and a finite rate limit are configured. The mobile
-upload route is implemented and mock-verified, but live production use remains closed by
-the same environment gate and deployment controls.
+it does not prove live-model quality. The demo production deployment injects the key from
+Google Secret Manager and uses a finite global request limit; the plaintext key is never a
+workflow value. The mobile upload route still requires a live synthetic-audio rehearsal,
+and public exposure must stay bounded by the configured request limit and OpenAI project
+budget.
 
 From the repository root:
 
