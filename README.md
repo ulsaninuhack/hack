@@ -27,7 +27,7 @@ UI 변경은 [`docs/UI_UX_REVIEW_RUBRIC.md`](docs/UI_UX_REVIEW_RUBRIC.md)의 조
 
 실행 중인 웹앱은 대용량 원천을 직접 읽지 않고, 검증된 정적 자산만 `public/data/`에서 불러온다. 복지시설 원천 정규화 3,394개는 보존하되, 현재 시설 runtime 레이어는 명백한 아동·청소년 전용 시설을 제외한 관련 canonical 3,115개와 지도 포인트 2,816개를 소비한다. 이는 법적 이용자격 판정이 아니다. `VITE_API_BASE_URL`이 설정된 runtime에서는 Cloud Run API를 우선 사용하고, 환경변수가 없거나 API 호출이 실패하면 Vercel에 배포된 같은 정적 자산으로 fallback한다.
 
-프론트엔드는 React 19·TypeScript 7·Vite 8·MapLibre GL JS 6으로 구성했고 OpenStreetMap 베이스맵을 사용한다. 백엔드는 Node.js 24로 작성했으며, 검증된 `public/data/`와 합성 ContactOps 세션 API를 Cloud Run에서 제공한다. 공개 지도 요청은 개인 데이터나 AI 추론 결과를 생성하지 않고 Firestore 장애와 분리된다. 별도 `voice/` 모듈은 동의받고 개인정보를 마스킹한 텍스트 또는 검증된 WAV/MP3를 Planner→스키마→한글 관찰 DTO→Critic 후보로 바꾼다. 후보는 사용자가 명시적으로 확인하기 전에는 ContactOps 상태를 바꾸지 않으며 방문 승인을 만들 수 없다.
+프론트엔드는 React 19·TypeScript 7·Vite 8·MapLibre GL JS 6으로 구성했고 OpenStreetMap 베이스맵을 사용한다. 백엔드는 Node.js 24로 작성했으며, 검증된 `public/data/`와 합성 ContactOps 세션 API를 Cloud Run에서 제공한다. 공개 지도 요청은 개인 데이터나 AI 추론 결과를 생성하지 않고 Firestore 장애와 분리된다. 별도 `voice/` 모듈은 동의받고 개인정보를 마스킹한 텍스트 또는 검증된 WAV/MP3/M4A를 Planner→스키마→한글 관찰 DTO→Critic 후보로 바꾼다. 후보는 사용자가 명시적으로 확인하기 전에는 ContactOps 상태를 바꾸지 않으며 방문 승인을 만들 수 없다.
 
 ## 합성 ContactOps 개발 데이터
 
@@ -53,7 +53,7 @@ UI 변경은 [`docs/UI_UX_REVIEW_RUBRIC.md`](docs/UI_UX_REVIEW_RUBRIC.md)의 조
 npm --prefix backend run demo:contact-ops
 ```
 
-이 명령은 오늘 연락대상 큐 생성, 더미 연락결과 입력, 미응답·후속조치 규칙 검사, 2축 점수의 방문 권고, 담당자 명시 승인까지 텍스트로 보여 준다. 미응답 2회만으로 방문을 직접 권고하지 않는다. 이 결정론 데모 명령 자체는 LLM·음성·경로 최적화를 호출하지 않는다. 운영 API에는 모킹 검증된 Planner–Critic ContactOps 어댑터와 텍스트·WAV/MP3 입력 계약이 연결됐다. 라이브 OpenAI 호출은 명시적 환경 게이트가 없으면 닫혀 있고, 실제 한국어 음성 품질·Realtime 입력·조건부 경로 게이트는 아직 완료하지 않았다.
+이 명령은 오늘 연락대상 큐 생성, 더미 연락결과 입력, 미응답·후속조치 규칙 검사, 2축 점수의 방문 권고, 담당자 명시 승인까지 텍스트로 보여 준다. 미응답 2회만으로 방문을 직접 권고하지 않는다. 이 결정론 데모 명령 자체는 LLM·음성·경로 최적화를 호출하지 않는다. 운영 API에는 모킹 검증된 Planner–Critic ContactOps 어댑터와 텍스트·WAV/MP3/M4A 입력 계약이 연결됐다. 모바일은 멀티파트 M4A 업로드 API를 통해 같은 3b 파이프라인을 사용한다. 라이브 OpenAI 호출은 명시적 환경 게이트가 없으면 닫혀 있고, 실제 한국어 음성 품질·Realtime 입력·조건부 경로 게이트는 아직 완료하지 않았다.
 
 ## 지표 해석 원칙
 
