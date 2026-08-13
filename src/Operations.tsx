@@ -495,12 +495,10 @@ export function ManagerPage() {
                     metric="age_65_plus_one_person_share_of_age_65_plus_population"
                     showFacilities={false}
                     showTransit={false}
-                    showBubbles={false}
                     facilityCategory="전체"
                     selectedZoneId={activeOperationsZoneId}
                     syntheticPoint={syntheticPoint}
                     mapMode={mapMode}
-                    structuralScores={structuralContext ? Object.fromEntries(structuralContext.zones.map((zone) => [zone.geometry_zone_id, zone.score_0_50])) : undefined}
                     operationsByZone={operationsMap ? Object.fromEntries(operationsMap.zones.map((zone) => [zone.geometry_zone_id, zone.operations])) : undefined}
                     ariaLabel="[합성] 연락업무 위치와 공개 동단위 맥락 지도"
                     onSelectDong={(dong) => setSelectedOperationsZoneId(dong.geometry_zone_id)}
