@@ -42,8 +42,11 @@
 
 ### 미증명 / 사람 확인 필요 (3계층)
 
-- [ ] 음성 실파일 경로 — `/m` 경로 ①은 3b multipart 계약을 그대로 쓰지만 실전사는
-  live 게이트 뒤에 있어 실행 미검증(수동·문답 경로는 E2E 증명).
+- [x] 음성 합성 실파일 경로 — Cloud Run `incheon-care-api-00031-7t8`에서 7초 한국어
+  합성 M4A를 모바일과 동일한 multipart 경로로 전송해 HTTP 200, `source_kind=audio`,
+  `connected_concern`, 식사 `심각`, `confirmed=false` 후보를 확인했다.
+- [ ] 휴대폰 실기기 녹음 — 실제 조사원 음성·전화 음질·사투리·주변 소음은 별도 사람
+  리허설이 필요하다(수동·문답 경로는 E2E 증명).
 - [ ] Vercel 프리뷰 URL — PR에는 배포 자격 증명이 없어(배포 계약) 미생성. 로컬
   프로덕션 빌드 + `artifacts/screenshots/p9-*.png` 14장으로 대체.
 - [ ] 이관 '확정' API — 기존 API에 없음. `/center`는 이관 권고 표시 + 트랙 전환

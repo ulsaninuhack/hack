@@ -122,10 +122,13 @@ ContactOps 실제 Planner–Critic 그래프는 `ENABLE_LIVE_CONTACT_OPS_AI=1`�
 ### 초록이 증명하지 못하는 것
 
 - 실제 Whisper/OpenAI 전사 모델의 한국어 노인 음성, 전화 음질, 사투리, 소음 환경 정확도
-- 실제 API 키·네트워크·계정 한도를 포함한 실 API 연동 성공
 - 3c Realtime/WebRTC 및 실시간 마이크 동작
 
 위 항목은 아침에 실기기·실오디오로 사람이 검증해야 한다. 모킹 테스트 통과를 실제 음성 품질 완료로 간주하지 않는다.
+
+2026-08-13 운영 리허설에서는 Secret Manager 키를 주입한 Cloud Run에서 7초 한국어
+합성 M4A를 모바일 multipart 경로로 전송해 전사·Planner·Critic 후보 HTTP 200을
+확인했다. 이는 실 API 배선만 증명하며 실제 조사원 음성 품질을 증명하지 않는다.
 
 ## 개인정보와 로그
 

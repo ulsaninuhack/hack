@@ -488,3 +488,14 @@ hostile follow-up, commit, preview, and blockers. Existing entries are never rew
   확인된 경우에만 체크 안내), 방문 레인은 "방문 관찰 체크리스트". 필드·엔진
   계약은 불변.
 - 검증: typecheck, 프런트 59, copy 게이트, 빌드, E2E 5/5 그린.
+
+## 2026-08-13 — 운영 음성 전사 Secret Manager 연결
+
+- OpenAI 키를 Google Secret Manager `openai-api-key`에 저장하고 Cloud Run 런타임
+  서비스 계정에 해당 비밀의 accessor 역할만 부여. 키 평문은 저장소·워크플로·로그에
+  기록하지 않음.
+- 운영 배포 계약에 Secret Manager 환경변수 참조, `ENABLE_LIVE_CONTACT_OPS_AI=1`,
+  `RATE_LIMIT_PER_MINUTE=30`을 고정하고 회귀 테스트를 추가.
+- Cloud Run `incheon-care-api-00031-7t8`에서 7초 한국어 합성 M4A를 모바일과 같은
+  multipart 경로로 실행: HTTP 200, `source_kind=audio`, `connected_concern`, 식사
+  `심각`, `confirmed=false`. 실기기·노인 음성·소음 정확도와 3c는 여전히 미증명.

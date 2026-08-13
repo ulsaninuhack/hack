@@ -47,3 +47,15 @@ test('agent check recognizes the production-origin contract used by the workflow
   assert.match(workflow, /production_origin="https:\/\/incheon-care-map\.vercel\.app"/)
   assert.match(agentCheck, /production_origin="https:\/\/incheon-care-map\.vercel\.app"/)
 })
+
+test('production voice AI uses Secret Manager behind a live gate and finite request limit', async () => {
+  const workflow = await read('.github/workflows/ci-deploy.yml')
+
+  assert.match(workflow, /OPENAI_API_KEY=openai-api-key:latest/)
+  assert.match(workflow, /ENABLE_LIVE_CONTACT_OPS_AI=1/)
+  assert.doesNotMatch(workflow, /OPENAI_API_KEY=sk-/)
+
+  const rateLimit = workflow.match(/RATE_LIMIT_PER_MINUTE=([0-9]+)/)
+  assert.ok(rateLimit, 'production request limit must be explicit')
+  assert.ok(Number(rateLimit[1]) > 0, 'production request limit must not disable throttling')
+})
