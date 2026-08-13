@@ -72,7 +72,7 @@ export interface SyntheticHousehold {
 
 export interface CaseDetail {
   synthetic: true
-  displayMarker: '[합성]'
+  displayMarker: string
   revision: number
   household: SyntheticHousehold
   observations: CanonicalObservations
@@ -82,7 +82,7 @@ export interface CaseDetail {
 
 export interface ManagerBreadth {
   synthetic: true
-  displayMarker: '[합성]'
+  displayMarker: string
   transfer_recommendations: Array<{ case_id: string; status_label: string; acute: { score: number }; vulnerability: { score: number } }>
   grade_distribution: {
     scored_case_count: number
@@ -109,10 +109,10 @@ export interface OperationsMapZone {
   }
   operations: {
     synthetic: true
-    displayMarker: '[합성]'
+    displayMarker: string
     aggregation: 'zone_max_priority_context'
     tie_rule: string
-    scenario_label: '[합성 시나리오]'
+    scenario_label: string
     scenario_reference_date: string
     scenario_method: 'one_deterministic_example_per_current_admin_dong'
     acute_color_metric: number | null
@@ -134,11 +134,11 @@ export interface OperationsMapZone {
 
 export interface OperationsMap {
   synthetic: true
-  displayMarker: '[합성]'
+  displayMarker: string
   geometry_zone_count: 156
   current_admin_dong_count: 162
   public_context_label: '[MODEL OUTPUT — UNVALIDATED]'
-  scenario_label: '[합성 시나리오]'
+  scenario_label: string
   scenario_reference_date: string
   scenario_method: 'one_deterministic_example_per_current_admin_dong'
   visit_review_points: VisitReviewPoint[]
@@ -147,7 +147,7 @@ export interface OperationsMap {
 
 export interface VisitReviewPoint {
   synthetic: true
-  displayMarker: '[합성]'
+  displayMarker: string
   case_id: string
   score_source: 'session_recorded' | 'synthetic_scenario'
   visit_approval_status: '권고'
@@ -222,7 +222,7 @@ export async function loadTodayQueue(
   workerId = DEFAULT_SYNTHETIC_WORKER_ID,
 ) {
   const query = new URLSearchParams({ referenceDate, workerId })
-  return request<{ synthetic: true; displayMarker: '[합성]'; items: QueueItem[] }>(
+  return request<{ synthetic: true; displayMarker: string; items: QueueItem[] }>(
     `/api/v1/contact-ops/today?${query}`,
   )
 }
@@ -232,7 +232,7 @@ export async function loadCase(caseId: string) {
 }
 
 export async function loadRecommendations() {
-  return request<{ synthetic: true; displayMarker: '[합성]'; items: CaseDetail[] }>(
+  return request<{ synthetic: true; displayMarker: string; items: CaseDetail[] }>(
     '/api/v1/contact-ops/visit-recommendations',
   )
 }
@@ -268,7 +268,7 @@ const RESULT_CODE_BY_LABEL = {
   '안부 확인 완료': 'connected_ok',
   '우려 사항 있음': 'connected_concern',
   '미응답': 'no_answer',
-  '연락 거부': 'refused',
+  '연락(또는 방문) 거부': 'refused',
   '연락처 확인 필요': 'invalid_contact',
 } as const
 

@@ -62,6 +62,17 @@ function household(id, overrides = {}) {
       visit_approval_status: null, transfer_status: 'not_required', visit_decision: null,
       ...overrides.workflow,
     },
+    management_entry: {
+      synthetic: true,
+      status: 'active_contact_management',
+      intake_channel: 'family_request',
+      intake_recorded_date: '2026-07-21',
+      ongoing_contact_permission: { status: 'recorded', recorded_date: '2026-07-22', basis: 'synthetic_demo_scenario' },
+      duplicate_service_check: {
+        status: 'completed_no_overlapping_schedule', checked_date: '2026-07-23',
+        scope: 'regular_wellbeing_contact_or_home_visit', interpretation: 'workflow_duplicate_check_not_welfare_eligibility',
+      },
+    },
     approved_visit_constraints: overrides.approved_visit_constraints ?? null,
   };
 }
@@ -241,6 +252,7 @@ describe('three-tier report card', () => {
   test('labels every raw contact result in Korean', () => {
     assert.equal(contactResultLabel('connected_ok'), '안부 확인 완료');
     assert.equal(contactResultLabel('not_attempted'), '시도 전');
+    assert.equal(contactResultLabel('refused'), '연락(또는 방문) 거부');
     assert.equal(contactResultLabel('unknown_enum'), '기록 없음');
   });
 });
@@ -249,16 +261,18 @@ describe('three-tier assignment proposal engine', () => {
   const workers = [worker('SYN-W-2812551000-01'), worker('SYN-W-2826051000-01', { constraints: { available_time_window: { start: '09:00', end: '18:00' } } })];
   const records = [
     record(household('SYN-HH-2812551000-0001')),
-    record(household('SYN-HH-2812551000-0002', { contact: { preferred_contact_method: 'visit' } }), { revision: 1, triage: sampleTriage }),
+    record(household('SYN-HH-2812551000-0002', {
+      contact: { preferred_contact_method: 'visit' }, workflow: { visit_approval_status: 'approved' },
+    }), { revision: 1, triage: sampleTriage }),
     record(household('SYN-HH-2812551000-0003', { contact: { next_contact_date: '2026-08-20' } })),
     record(household('SYN-HH-2812551000-0004')),
-    record(household('SYN-HH-2826051000-0001', { contact: { preferred_contact_method: 'visit' }, workflow: { follow_up_status: 'overdue', follow_up_deadline: '2026-08-10' } })),
+    record(household('SYN-HH-2826051000-0001', { contact: { preferred_contact_method: 'visit' }, workflow: { follow_up_status: 'overdue', follow_up_deadline: '2026-08-10', visit_approval_status: 'recommended' } })),
     record(household('SYN-HH-2826051000-0002', {
       contact: { next_contact_date: '2026-08-20' },
       workflow: { visit_approval_status: 'approved' },
       approved_visit_constraints: { max_route_distance_km: 2, assigned_worker_ids: ['SYN-W-2826051000-01'], routing_interpretation: 'approved_visit_only_not_person_risk' },
     })),
-    record(household('SYN-HH-2826051000-0003', { contact: { preferred_contact_method: 'visit' } }), {
+    record(household('SYN-HH-2826051000-0003', { contact: { preferred_contact_method: 'visit' }, workflow: { visit_approval_status: 'recommended' } }), {
       revision: 1,
       triage: {
         급성도_점수: 80, 급성도_등급: '방문권고-우선', 취약도_점수: 10, 권고_액션: '방문권고_우선',
@@ -279,20 +293,21 @@ describe('three-tier assignment proposal engine', () => {
       deriveCaseDisplayName('SYN-HH-2812551000-0004'),
     ]);
     assert.deepEqual(first.lanes.visit.map((item) => item.case_id), ['SYN-HH-2812551000-0002']);
-    assert.deepEqual(second.lanes.visit.map((item) => item.case_id),
-      ['SYN-HH-2826051000-0002', 'SYN-HH-2826051000-0003', 'SYN-HH-2826051000-0001'],
-      'visit lane orders approved first, then higher acute grade before ungraded due tasks');
+    assert.deepEqual(second.lanes.visit.map((item) => item.case_id), ['SYN-HH-2826051000-0002']);
+    assert.ok(![...second.lanes.phone, ...second.lanes.visit]
+      .some((item) => ['SYN-HH-2826051000-0001', 'SYN-HH-2826051000-0003'].includes(item.case_id)),
+    'recommended visits stay in center review and are not assigned');
     for (const batch of batches) {
       assert.equal(batch.status, 'proposed');
       for (const proposal of [...batch.lanes.phone, ...batch.lanes.visit]) {
         assert.equal(proposal.status, 'proposed');
         if (proposal.lane === 'visit') {
-          assert.ok(proposal.preferred_contact_method === 'visit' || proposal.approved_visit,
-            'visit lane accepts only approved visits or visit-preferred due tasks');
+          assert.equal(proposal.approved_visit, true, 'visit lane accepts only approved visits');
         } else {
           assert.equal(proposal.preferred_contact_method, 'phone');
           assert.equal(proposal.approved_visit, false);
         }
+        assert.equal(proposal.management_entry.intake_channel, 'family_request');
       }
       const phoneIds = new Set(batch.lanes.phone.map((item) => item.case_id));
       assert.ok(batch.lanes.visit.every((item) => !phoneIds.has(item.case_id)));
@@ -303,9 +318,17 @@ describe('three-tier assignment proposal engine', () => {
     const batches = buildAssignmentProposals({ records, workers, referenceDate: '2026-08-12' });
     const visitJemulpo = batches[0].lanes.visit[0];
     assert.ok(visitJemulpo.adjustment_flags.includes('time_window_mismatch'));
-    const bupyeongVisits = batches[1].lanes.visit;
+    const capacityRecords = [
+      record(household('SYN-HH-2826051000-0001', { contact: { preferred_contact_method: 'visit' }, workflow: { visit_approval_status: 'approved' } }), { revision: 1, triage: sampleTriage }),
+      record(household('SYN-HH-2826051000-0002', { workflow: { visit_approval_status: 'approved' } })),
+      record(household('SYN-HH-2826051000-0003', { contact: { preferred_contact_method: 'visit' }, workflow: { visit_approval_status: 'approved' } }), {
+        revision: 1,
+        triage: { ...sampleTriage, 급성도_점수: 80, 급성도_등급: '방문권고-우선' },
+      }),
+    ];
+    const bupyeongVisits = buildAssignmentProposals({ records: capacityRecords, workers, referenceDate: '2026-08-12' })[0].lanes.visit;
     assert.deepEqual(bupyeongVisits.map((item) => item.adjustment_flags.includes('capacity_exceeded')), [false, false, true],
-      'capacity keeps the approved visit and the 방문권고-우선 case; the ungraded case overflows');
+      'capacity keeps the two highest acute approved visits; the ungraded case overflows');
     assert.equal(bupyeongVisits[2].급성도_등급, null,
       'grade participates in capacity: the overflow slot goes to the unscored case, not the graded one');
     const orphan = buildAssignmentProposals({

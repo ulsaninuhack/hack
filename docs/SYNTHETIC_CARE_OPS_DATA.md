@@ -1,13 +1,13 @@
 # 합성 ContactOps 데이터 계약
 
-UI와 전화 안부·후속조치·방문 권고·담당자 승인 흐름을 병렬로 개발하기 위한 결정적 합성 시나리오다. 이 파일의 레코드는 실제 조사원이나 주민이 아니며, 실제 대상자 수·개인 위험·복지 미수혜 규모·이웃연결단 실제 업무량을 추정하지 않는다.
+UI와 전화 안부·후속조치·방문 권고·담당자 승인 흐름을 병렬로 개발하기 위한 결정적 합성 시나리오다. 이 파일의 레코드는 실제 조사원이나 주민이 아니며, 실제 대상자 수·개인 위험·복지 수급 여부·복지 미수혜 규모·이웃연결단 실제 업무량을 추정하지 않는다. `management_entry`도 시연용 유입·연락 동의·일정 중복 확인 기록일 뿐, 실제 주민이나 복지 수급 데이터와 연결되지 않는다.
 
 ## 바로 쓰는 파일
 
 | 파일 | 용도 | 현재 건수 |
 | --- | --- | ---: |
 | `public/data/synthetic-workers.json` | 연결단원 목록·현재 위치·근무/이동 제약 | 162명, 현행 동별 1명 |
-| `public/data/synthetic-households.json` | 전화 우선 연락업무·후속조치·방문 권고 전 상태·공개 주거건물 기준점 | 5,869건, 동별 2~97건 |
+| `public/data/synthetic-households.json` | 전화 우선 연락업무·합성 관리 유입·후속조치·방문 권고 전 상태·공개 주거건물 기준점 | 5,869건, 동별 2~97건 |
 | `public/data/synthetic-residential-address-anchors.json` | 실제 공개 도로명주소·주거용 건물 대표좌표와 합성 업무의 결정적 연결 | 5,869건, 고유 PNU 5,683개 |
 | `public/data/synthetic-care-ops-manifest.json` | 건수, 검증 결과, SHA-256, 사용 경계 | 1개 |
 | `data/schemas/synthetic-worker.schema.json` | 연결단원 데이터 JSON Schema 2020-12 | schema `2.0.0` |
@@ -43,6 +43,13 @@ MapLibre 점 레이어는 각 레코드의 `location.longitude`와 `location.lat
 | 2025 지도구역 | 156 |
 | 연결단원 | 162 |
 | 합성 연락업무 | 5,869 |
+| 활성 연락관리 시나리오 | 5,869 |
+| 본인 신청 시나리오 | 1,478 |
+| 가족 신청 시나리오 | 1,506 |
+| 협력기관 의뢰 시나리오 | 1,450 |
+| 현장 발굴 시나리오 | 1,435 |
+| 연락 동의 기록 | 5,869 |
+| 정기 안부·방문 일정 중복 없음 확인 | 5,869 |
 | 기준일까지 연락해야 하는 업무 | 3,597 |
 | 기준일 이후 연락업무 | 2,272 |
 | 전화 선호 업무 | 5,289 |
@@ -61,7 +68,23 @@ MapLibre 점 레이어는 각 레코드의 `location.longitude`와 `location.lat
 
 ## 연락업무 필드 계약
 
-중심 객체는 `contact`, `workflow`, `visit_context`, `approved_visit_constraints`다.
+중심 객체는 `management_entry`, `contact`, `workflow`, `visit_context`, `approved_visit_constraints`다.
+
+### 합성 관리 유입
+
+모든 5,869건에는 `management_entry`가 있다.
+
+- `synthetic=true`, `status=active_contact_management`: 시연용 연락관리 업무임을 명시
+- `intake_channel`: `self_request`, `family_request`, `partner_agency_referral`, `field_outreach` 중 하나
+- `intake_recorded_date`: 결정적으로 생성한 합성 유입일
+- `ongoing_contact_permission.status=recorded`: 시연 시나리오에서 지속 연락 동의가 기록되었다는 뜻
+- `ongoing_contact_permission.basis=synthetic_demo_scenario`: 실제 동의 기록이 아님을 명시
+- `duplicate_service_check.status=completed_no_overlapping_schedule`: 정기 안부 연락 또는 가정방문 일정의 운영상 중복이 없다는 합성 확인
+- `duplicate_service_check.interpretation=workflow_duplicate_check_not_welfare_eligibility`: 복지 적격성·수급·미수혜 판정이 아님을 명시
+
+날짜는 `intake_recorded_date <= ongoing_contact_permission.recorded_date <= duplicate_service_check.checked_date <= scenario_reference_date` 순서를 만족한다. 유입 채널과 날짜는 `stable_int` 기반이라 같은 입력·seed에서는 항상 동일하다. 이 객체만으로 정부 지원 수급 여부나 기존 복지서비스 전체 이용 여부를 판단해서는 안 된다.
+
+### 연락·방문 상태
 
 - `contact.next_contact_date`: 다음 연락일
 - `contact.preferred_contact_method`: `phone` 또는 `visit`
@@ -75,6 +98,15 @@ MapLibre 점 레이어는 각 레코드의 `location.longitude`와 `location.lat
 - `approved_visit_constraints`: 승인 방문 제약, 담당자 승인 전에는 항상 `null`
 
 생성된 fixture는 모든 `visit_approval_status`, `visit_decision`, `approved_visit_constraints`를 `null`로 시작한다. 연락·기한 규칙은 후속조치만 만들고, 별도 2축 트리아지가 방문을 권고할 수는 있지만 자동 승인하지 않는다.
+
+실행 서버는 원본 fixture를 바꾸지 않고 동별 1건, 총 162건의 `데모 사전 기록` baseline을 별도로 주입한다. 모두 급성도 55점 이상인 `recommended` 상태라 센터 방문검토 목록에는 보이지만 전화·방문 할당 레인에는 포함되지 않는다. 담당자가 승인한 뒤에만 오늘 방문 레인으로 이동한다. 원본 fixture의 사전 승인 방문 0건 경계는 그대로 유지된다.
+
+오늘 레인 규칙은 다음과 같다.
+
+- `visit_approval_status=approved`: 오늘 방문 대상
+- `visit_approval_status=recommended`: 센터 검토 대기, 할당 레인 제외
+- `visit_approval_status=null|rejected`이면서 일정 또는 재연락 기한 도래: 오늘 전화 대상
+- 전화 카드의 선정 사유·기한·담당자·확인 상태는 기준일에 계산하는 API projection이며 원본 fixture에 고정 저장하지 않는다.
 
 ## 텍스트 수직 슬라이스
 
@@ -156,15 +188,20 @@ npm --prefix backend run report:contact-triage
 - 동별 연결단원 1명
 - 모든 좌표가 선언한 2025 지도구역 내부
 - ID 중복 0건
+- 모든 5,869건에 완전한 합성 `management_entry` 존재
+- 유입일 → 연락 동의 기록일 → 일정 중복 확인일 → 기준일의 날짜 순서 유지
+- 네 가지 합성 유입 채널 enum 외 값 0건
 - 모든 fixture가 방문 권고 전 `null` 상태로 시작
 - 사전 승인 방문 0건
 - 최대 경로거리는 담당자 승인 뒤에만 존재
-- 개인 위험·수혜자·미수혜자를 암시하는 금지 필드 0건
+- 원본 household의 급성도·triage 필드와 개인 위험·수혜자·미수혜자·복지 적격성 판정 필드 0건
 
 ## 개인정보·표현 경계
 
 - `연결단원 001` 같은 일반 표시명만 사용한다.
 - 주민 이름·전화번호·호수·주민 속성은 넣지 않는다.
+- `management_entry`는 실제 신청·의뢰·동의·복지 조사 이력이 아니라 합성 시연값이다.
+- `duplicate_service_check`는 정기 안부 연락·가정방문 **일정 중복**만 표현하며, 정부 지원 수급 여부나 복지서비스 적격성을 뜻하지 않는다.
 - `road_address`와 좌표는 공개 주소DB·주거용 건축물대장·건물도형을 결합한 실제 건물 기준점이다. 해당 주소 거주자의 나이·고립·복지 상태를 뜻하지 않는다.
 - 송도5동의 보유 VWorld 도형 누락 14건은 공식 주소DB의 `송도 SK VIEW` 주소와 OSM 주거지 도형 대표점을 사용하며 출처를 별도 컬럼으로 남긴다.
 - 운영 표현은 `연락업무`, `안부 확인`, `후속조치`, `방문 권고`, `담당자 승인`, `행정복지센터 이관`을 사용한다.

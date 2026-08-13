@@ -38,7 +38,19 @@ function clone(value) {
   return structuredClone(value);
 }
 
-function initialRecord(sessionId, household) {
+function initialRecord(sessionId, household, baseline = null) {
+  if (baseline !== null) {
+    return {
+      schemaVersion: 1,
+      synthetic: true,
+      session_id: sessionId,
+      revision: baseline.revision,
+      household: clone(baseline.household),
+      observations: clone(baseline.observations),
+      triage: clone(baseline.triage),
+      updated_at: baseline.updated_at,
+    };
+  }
   return {
     schemaVersion: 1,
     synthetic: true,
@@ -53,6 +65,29 @@ function initialRecord(sessionId, household) {
     triage: null,
     updated_at: new Date().toISOString(),
   };
+}
+
+function buildBaselines(initialRecords, seeds) {
+  if (!Array.isArray(initialRecords)) throw new TypeError('initialRecords must be an array');
+  const baselines = new Map();
+  for (const record of initialRecords) {
+    const household = record?.household;
+    assertSyntheticHousehold(household);
+    if (!seeds.has(household.id)) {
+      throw new TypeError(`initial record case is not present in households: ${household.id}`);
+    }
+    if (baselines.has(household.id)) {
+      throw new TypeError(`duplicate initial record case ID: ${household.id}`);
+    }
+    if (!Number.isSafeInteger(record.revision) || record.revision < 0
+        || !record.observations || typeof record.observations !== 'object' || Array.isArray(record.observations)
+        || !(record.triage === null || (typeof record.triage === 'object' && !Array.isArray(record.triage)))
+        || typeof record.updated_at !== 'string' || Number.isNaN(Date.parse(record.updated_at))) {
+      throw new TypeError('initial record must contain a valid revision, observations, triage, and updated_at');
+    }
+    baselines.set(household.id, clone(record));
+  }
+  return baselines;
 }
 
 function transitionRecord(current, transition) {
@@ -93,7 +128,7 @@ function assertStoredRecord(record, { sessionId, seeds }) {
   return record;
 }
 
-export function createMemoryContactOpsState({ households }) {
+export function createMemoryContactOpsState({ households, initialRecords = [] }) {
   if (!Array.isArray(households)) throw new TypeError('households must be an array');
   const seedById = new Map();
   for (const household of households) {
@@ -101,6 +136,7 @@ export function createMemoryContactOpsState({ households }) {
     if (seedById.has(household.id)) throw new TypeError(`duplicate synthetic case ID: ${household.id}`);
     seedById.set(household.id, clone(household));
   }
+  const baselines = buildBaselines(initialRecords, seedById);
   const records = new Map();
   const keyFor = ({ sessionId, caseId }) => `${sessionId}\u0000${caseId}`;
 
@@ -109,7 +145,7 @@ export function createMemoryContactOpsState({ households }) {
     const mapKey = keyFor(key);
     const household = seedById.get(key.caseId);
     if (!household) throw new ContactOpsStateError('CASE_NOT_FOUND', 'Synthetic case not found');
-    return records.get(mapKey) || initialRecord(key.sessionId, household);
+    return records.get(mapKey) || initialRecord(key.sessionId, household, baselines.get(key.caseId) ?? null);
   }
 
   return Object.freeze({
@@ -148,7 +184,7 @@ export function createMemoryContactOpsState({ households }) {
   });
 }
 
-export function createFirestoreContactOpsState({ firestore, collectionName, households }) {
+export function createFirestoreContactOpsState({ firestore, collectionName, households, initialRecords = [] }) {
   if (!firestore || typeof firestore.collection !== 'function' || typeof firestore.runTransaction !== 'function') {
     throw new TypeError('firestore must provide collection and runTransaction');
   }
@@ -160,6 +196,7 @@ export function createFirestoreContactOpsState({ firestore, collectionName, hous
     assertSyntheticHousehold(household);
     seeds.set(household.id, clone(household));
   }
+  const baselines = buildBaselines(initialRecords, seeds);
   const document = ({ sessionId, caseId }) => {
     assertKey({ sessionId, caseId });
     return firestore.collection(collectionName).doc(`${sessionId}--${caseId}`);
@@ -175,7 +212,7 @@ export function createFirestoreContactOpsState({ firestore, collectionName, hous
     }
     const seed = seeds.get(key.caseId);
     if (!seed) throw new ContactOpsStateError('CASE_NOT_FOUND', 'Synthetic case not found');
-    const record = initialRecord(key.sessionId, seed);
+    const record = initialRecord(key.sessionId, seed, baselines.get(key.caseId) ?? null);
     transaction.create(reference, record);
     return { reference, record };
   };
@@ -187,7 +224,7 @@ export function createFirestoreContactOpsState({ firestore, collectionName, hous
       if (!snapshot.exists) {
         const seed = seeds.get(key.caseId);
         if (!seed) throw new ContactOpsStateError('CASE_NOT_FOUND', 'Synthetic case not found');
-        return initialRecord(key.sessionId, seed);
+        return initialRecord(key.sessionId, seed, baselines.get(key.caseId) ?? null);
       }
       return clone(assertStoredRecord(snapshot.data(), { sessionId: key.sessionId, seeds }));
     },
@@ -201,7 +238,7 @@ export function createFirestoreContactOpsState({ firestore, collectionName, hous
         return [record.household?.id, record];
       }));
       return [...seeds.keys()].sort().map((caseId) => clone(
-        overrides.get(caseId) || initialRecord(sessionId, seeds.get(caseId)),
+        overrides.get(caseId) || initialRecord(sessionId, seeds.get(caseId), baselines.get(caseId) ?? null),
       ));
     },
     async update(key, transition) {

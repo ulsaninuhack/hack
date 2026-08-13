@@ -28,6 +28,19 @@ function assertExactObservation(value) {
   }
 }
 
+function hasNoConfirmableDetails(observations) {
+  return Object.values(observations.관찰_6징후).every((observed) => observed === false)
+    && OBSERVATION_KEYS
+      .filter((key) => key !== '관찰_6징후')
+      .every((key) => observations[key] === null);
+}
+
+function isUnresolvedApprovedVisitRefusal(household, input) {
+  return household.workflow.visit_approval_status === 'approved'
+    && input.contactResult === 'refused'
+    && hasNoConfirmableDetails(input.observations);
+}
+
 function triageInput(household, observations, referenceDate, structuralContext = null) {
   const last = household.contact.last_contact_date;
   const elapsed = last && ['connected_ok', 'connected_concern'].includes(household.contact.last_contact_result)
@@ -192,12 +205,24 @@ export function createContactOpsService({ state, aiAdapter = null, loadTuningRep
   async function recordContactResult(input) {
     assertExactObservation(input.observations);
     const record = await state.update(input, (household, current) => {
+      const preserveExistingEvidence = isUnresolvedApprovedVisitRefusal(household, input);
       const recorded = applyStructuredContactResult(household, contactPayload(input));
+      if (preserveExistingEvidence) {
+        recorded.contact.consecutive_no_answer_count = household.contact.consecutive_no_answer_count;
+      }
       const evaluated = evaluateDeterministicRules(recorded, input.contactDate);
-      const triage = buildTriageQueue([
-        triageInput(evaluated.household, input.observations, input.contactDate, structuralContext),
+      const effectiveObservations = preserveExistingEvidence ? current.observations : input.observations;
+      const calculatedTriage = buildTriageQueue([
+        triageInput(evaluated.household, effectiveObservations, input.contactDate, structuralContext),
       ])[0];
-      return { household: applyTriageVisitRecommendation(evaluated.household, triage), observations: input.observations, triage };
+      const triage = preserveExistingEvidence && current.triage !== null
+        ? current.triage
+        : calculatedTriage;
+      return {
+        household: applyTriageVisitRecommendation(evaluated.household, triage),
+        observations: effectiveObservations,
+        triage,
+      };
     });
     return response(record);
   }

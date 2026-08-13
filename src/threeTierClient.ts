@@ -7,7 +7,7 @@ const LABEL_BY_RESULT_CODE: Record<string, ContactResultLabel> = {
   connected_ok: '안부 확인 완료',
   connected_concern: '우려 사항 있음',
   no_answer: '미응답',
-  refused: '연락 거부',
+  refused: '연락(또는 방문) 거부',
   invalid_contact: '연락처 확인 필요',
 }
 
@@ -15,10 +15,23 @@ export function contactResultLabelFromCode(code: string): ContactResultLabel | '
   return LABEL_BY_RESULT_CODE[code] ?? ''
 }
 
+export type ManagementIntakeChannel = 'self_request' | 'family_request' | 'partner_agency_referral' | 'field_outreach'
+
+const LABEL_BY_INTAKE_CHANNEL: Record<ManagementIntakeChannel, string> = {
+  self_request: '본인 신청',
+  family_request: '가족 신청',
+  partner_agency_referral: '지역기관 의뢰',
+  field_outreach: '현장 발굴',
+}
+
+export function managementIntakeLabel(channel: ManagementIntakeChannel): string {
+  return LABEL_BY_INTAKE_CHANNEL[channel]
+}
+
 // 목록에서 강조가 필요한 연락 결과 라벨. 백엔드 3계층 어댑터는 no_answer를
 // '연락 안 됨'으로, 프런트 제출 흐름은 '미응답'으로 표기하므로 둘 다 포함한다.
 export const ATTENTION_CONTACT_LABELS: ReadonlySet<string> = new Set([
-  '연락 안 됨', '미응답', '연락 거부', '연락처 확인 필요', '우려 사항 있음',
+  '연락 안 됨', '미응답', '연락(또는 방문) 거부', '연락처 확인 필요', '우려 사항 있음',
 ])
 
 // 3계층 어댑터 API 클라이언트. contactOpsClient와 같은 규약을 쓴다:
@@ -31,6 +44,11 @@ const SHARED_DEMO_SESSION_ID = 'incheon-care-shared-demo-floor'
 export const DEMO_CENTER_DONG_CODE = '2812551000'
 export const DEMO_CENTER_DONG_NAME = '신포동'
 export const DEMO_WORKER_ID = 'SYN-W-2812551000-01'
+
+export function demoWorkerIdForDong(dongCode: string): string {
+  if (!/^\d{10}$/.test(dongCode)) throw new TypeError('dongCode must be 10 digits')
+  return `SYN-W-${dongCode}-01`
+}
 
 function demoSessionId(): string {
   const existing = sessionStorage.getItem(SESSION_KEY)
@@ -82,20 +100,55 @@ export interface LaneLocation {
   address_note: string
 }
 
+export type AssignmentStatus = 'proposed' | 'confirmed'
+
+export interface ManagementEntry {
+  synthetic: true
+  status: 'active_contact_management'
+  intake_channel: ManagementIntakeChannel
+  intake_recorded_date: string
+  ongoing_contact_permission: {
+    status: 'recorded'
+    recorded_date: string
+    basis: 'synthetic_demo_scenario'
+  }
+  duplicate_service_check: {
+    status: 'completed_no_overlapping_schedule'
+    checked_date: string
+    scope: 'regular_wellbeing_contact_or_home_visit'
+    interpretation: 'workflow_duplicate_check_not_welfare_eligibility'
+  }
+}
+
+export interface AcuteContribution {
+  코드: string
+  근거: string
+  가산점: number
+}
+
 export interface LaneItem {
   synthetic: true
-  displayMarker: '[합성]'
+  displayMarker: string
   case_id: string
   display_name: string
   revision: number
   lane: 'phone' | 'visit'
+  assignment_status: AssignmentStatus
+  worker_display_name: string | null
+  confirmed_by?: string
+  confirmed_at?: string
+  selection_reason_labels: string[]
+  management_entry: ManagementEntry
   due_reasons: string[]
   earliest_due_date: string | null
   reference_date: string
   급성도_등급: string | null
   급성도_점수: number | null
   취약도_점수: number | null
-  grade_source: '세션 기록' | '미기록'
+  grade_source: '세션 기록' | '데모 사전 기록' | '미기록'
+  기록_출처?: 'demo_precontact_record' | null
+  프로필_버전?: 'demo-precontact-v1' | null
+  급성도_기여내역: AcuteContribution[]
   virtual_phone: VirtualPhone
   location: LaneLocation
   last_contact: {
@@ -115,7 +168,7 @@ export interface LaneItem {
 
 export interface TodayLanes {
   synthetic: true
-  displayMarker: '[합성]'
+  displayMarker: string
   reference_date: string
   worker_id: string
   worker_display_name: string
@@ -144,7 +197,7 @@ export interface ReportAcknowledgement {
 
 export interface ReportCard {
   synthetic: true
-  displayMarker: '[합성]'
+  displayMarker: string
   card_id: string
   case_id: string
   display_name: string
@@ -187,6 +240,7 @@ export interface CaseEscalation {
 
 export interface AssignmentProposalItem {
   status: 'proposed' | 'confirmed'
+  assignment_status: AssignmentStatus
   case_id: string
   display_name: string
   escalation?: CaseEscalation | null
@@ -201,22 +255,27 @@ export interface AssignmentProposalItem {
   district: string
   worker_id: string | null
   worker_display_name: string | null
+  confirmed_by?: string
+  confirmed_at?: string
   급성도_등급: string | null
   급성도_점수: number | null
-  grade_source: '세션 기록' | '미기록'
+  grade_source: '세션 기록' | '데모 사전 기록' | '미기록'
+  기록_출처?: 'demo_precontact_record' | null
+  프로필_버전?: 'demo-precontact-v1' | null
+  급성도_기여내역: AcuteContribution[]
   due_reasons: string[]
   earliest_due_date: string | null
+  selection_reason_labels: string[]
+  management_entry: ManagementEntry
   preferred_contact_method: 'phone' | 'visit'
   approved_visit: boolean
   adjustment_flags: string[]
   제안_근거: string[]
-  confirmed_by?: string
-  confirmed_at?: string
 }
 
 export interface AssignmentProposal {
   synthetic: true
-  displayMarker: '[합성]'
+  displayMarker: string
   batch_id: string
   reference_date: string
   dong_code: string
@@ -234,7 +293,7 @@ export interface AssignmentProposal {
 
 export interface CenterInbox {
   synthetic: true
-  displayMarker: '[합성]'
+  displayMarker: string
   audience: string
   reference_date: string
   dong_code: string
@@ -283,7 +342,7 @@ export interface DistrictAggregate {
   }
   operations: {
     synthetic: true
-    displayMarker: '[합성]'
+    displayMarker: string
     worker_count: number
     case_count: number
     due_count: number
@@ -318,7 +377,7 @@ export interface StaffingReview {
 
 export interface DistrictAggregates {
   synthetic: true
-  displayMarker: '[합성]'
+  displayMarker: string
   reference_date: string
   case_detail_access: string
   privacy_note: string
@@ -328,7 +387,7 @@ export interface DistrictAggregates {
 
 export interface DistrictAiSummary {
   synthetic: true
-  displayMarker: '[합성]'
+  displayMarker: string
   label: string
   generator: string
   district: string
@@ -416,8 +475,8 @@ export interface CityOperationsMapZone {
   }
   operations: {
     synthetic: true
-    displayMarker: '[합성]'
-    scenario_label: '[합성 시나리오]'
+    displayMarker: string
+    scenario_label: string
     scenario_reference_date: string
     acute_color_metric: number | null
     vulnerability_size_metric: number | null
@@ -436,7 +495,7 @@ export interface CityOperationsMapZone {
 
 export interface CityOperationsMap {
   synthetic: true
-  displayMarker: '[합성]'
+  displayMarker: string
   geometry_zone_count: number
   current_admin_dong_count: number
   case_detail_access: string
@@ -480,7 +539,7 @@ export interface VoiceCandidate {
 
 export interface VoiceCandidateResponse {
   synthetic: true
-  displayMarker: '[합성]'
+  displayMarker: string
   revision: number
   candidate: VoiceCandidate
 }

@@ -422,8 +422,14 @@ select:focus-visible,
 .assignment-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .assignment-row { border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 12px; display: grid; gap: 6px; }
 .assignment-row-main { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.assignment-status { display: inline-flex; width: fit-content; align-items: center; min-height: 30px; padding: 3px 10px; border-radius: 999px; background: #f3e2b0; color: #4a3a05; font-size: 15px; font-weight: 800; }
+.assignment-status[data-status="confirmed"] { background: #dfe8e3; color: var(--green-strong); }
 .assignment-worker { color: var(--muted); }
 .assignment-basis { margin: 0; font-size: 16px; color: var(--muted); }
+.assignment-due, .assignment-acute { margin: 0; font-size: 16px; font-weight: 700; }
+.selection-reasons { display: flex; flex-wrap: wrap; gap: 6px; }
+.selection-reasons > span { display: inline-flex; width: fit-content; padding: 4px 9px; border-radius: 999px; background: #eef2ec; color: var(--ink); font-size: 15px; font-weight: 700; }
+.visit-approved { display: flex; width: fit-content; align-items: center; gap: 5px; margin: 0; color: var(--green-strong); font-weight: 800; }
 .assignment-flags { margin: 0; font-size: 16px; color: #8a4d12; font-weight: 700; }
 .assignment-confirmed { display: flex; align-items: center; gap: 6px; color: var(--green-strong); font-weight: 700; margin: 0; }
 .confirm-one, .confirm-all { border: none; border-radius: var(--radius); background: var(--green-strong); color: #ffffff; font-weight: 800; padding: 0 18px; cursor: pointer; }
@@ -450,6 +456,7 @@ select:focus-visible,
 .visit-review-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .visit-review-list button { width: 100%; display: grid; gap: 4px; text-align: left; border: 1.5px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); padding: 10px 12px; cursor: pointer; }
 .visit-review-list button[aria-pressed="true"] { border-color: var(--green-strong); box-shadow: 0 0 0 2px rgba(22, 102, 92, 0.25); }
+.visit-review-contribution { color: var(--muted); font-size: 16px; }
 .center-side { display: grid; gap: 14px; }
 .center-map-widget { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 8px 12px; }
 .center-map-widget summary { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 700; }
@@ -464,12 +471,19 @@ select:focus-visible,
 .mobile-list h2, .mobile-case h2, .mobile-done h2 { margin-top: 10px; }
 .mobile-task-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
 .mobile-task { width: 100%; display: grid; gap: 6px; text-align: left; border: 1.5px solid var(--line-strong); border-radius: var(--radius-lg); background: var(--surface); padding: 14px; cursor: pointer; box-shadow: var(--shadow-sm); }
+.mobile-task-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.mobile-acute-summary { font-size: 18px; font-weight: 800; }
+.mobile-task-meta { color: var(--muted); font-size: 16px; }
 .mobile-back { display: inline-flex; align-items: center; gap: 4px; border: none; background: none; color: var(--green-strong); font-weight: 800; cursor: pointer; padding: 0 10px 0 0; }
 .mobile-case, .mobile-list, .mobile-done { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 16px; }
 .mobile-case-facts { display: grid; gap: 8px; margin: 0 0 10px; }
 .mobile-case-facts div { display: grid; grid-template-columns: 108px 1fr; gap: 8px; align-items: baseline; }
 .mobile-case-facts dt { color: var(--muted); }
 .mobile-case-facts dd { margin: 0; }
+.mobile-case-facts dd .grade-chip { margin-left: 7px; }
+.mobile-acute-contributions { margin: 10px 0 12px; padding: 12px; border-radius: var(--radius); background: #f6f1e2; }
+.mobile-acute-contributions h3 { margin-bottom: 6px; }
+.mobile-acute-contributions ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
 .mobile-address-note { color: var(--muted); font-size: 16px; background: #f2f4ef; border-radius: var(--radius-sm); padding: 10px 12px; }
 .mobile-dial { width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 56px; border: none; border-radius: var(--radius-lg); background: var(--green-strong); color: #ffffff; font-weight: 800; font-size: 20px; cursor: pointer; }
 .mobile-dial-note { color: var(--muted); font-size: 16px; margin: 6px 0 14px; }

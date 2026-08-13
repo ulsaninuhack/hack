@@ -92,9 +92,38 @@ export type TransferStatus =
   | 'transferred'
   | 'closed'
 
+export type ManagementIntakeChannel =
+  | 'self_request'
+  | 'family_request'
+  | 'partner_agency_referral'
+  | 'field_outreach'
+
+/**
+ * Synthetic workflow-entry evidence for the demo contact queue.
+ * This is not a welfare eligibility, recipient, or non-recipient judgment.
+ */
+export interface SyntheticManagementEntry {
+  synthetic: true
+  status: 'active_contact_management'
+  intake_channel: ManagementIntakeChannel
+  intake_recorded_date: string
+  ongoing_contact_permission: {
+    status: 'recorded'
+    recorded_date: string
+    basis: 'synthetic_demo_scenario'
+  }
+  duplicate_service_check: {
+    status: 'completed_no_overlapping_schedule'
+    checked_date: string
+    scope: 'regular_wellbeing_contact_or_home_visit'
+    interpretation: 'workflow_duplicate_check_not_welfare_eligibility'
+  }
+}
+
 export interface SyntheticHouseholdTask {
   id: string
   synthetic: true
+  management_entry: SyntheticManagementEntry
   location: SyntheticHouseholdLocation
   contact: {
     next_contact_date: string

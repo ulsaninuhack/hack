@@ -6,6 +6,7 @@ const CASE_NAME = '김영자 어르신'
 const API_ORIGIN = process.env.PLAYWRIGHT_API_URL ?? 'http://127.0.0.1:18082'
 const SESSION_STORAGE_KEY = 'care-ops-demo-session-id'
 const PUBLIC_STRUCTURAL_VULNERABILITY = 37.602737968418836
+const PUBLIC_STRUCTURAL_VULNERABILITY_DISPLAY = '37.6'
 
 type ContactMutation = {
   path: string
@@ -40,10 +41,17 @@ function trueObservationCount(mutation: ContactMutation) {
 }
 
 async function selectGoldenCase(page: Page) {
-  const option = page.getByRole('option', { name: new RegExp(CASE_NAME) })
+  const option = page.getByRole('listbox', { name: '오늘 연락업무 목록' })
+    .getByRole('option', { name: new RegExp(CASE_NAME) })
   await option.scrollIntoViewIfNeeded()
   await option.click()
   await expect(page.locator('.ops-detail .case-id')).toContainText(CASE_NAME)
+}
+
+function managerGoldenCase(page: Page) {
+  return page.getByRole('listbox', { name: '방문 권고 목록' }).getByRole('option')
+    .filter({ hasText: CASE_NAME }).filter({ hasText: '급성도 57' })
+    .filter({ hasText: `취약도 ${PUBLIC_STRUCTURAL_VULNERABILITY_DISPLAY}` })
 }
 
 async function expectSeparatedAxes(page: Page, acute: string) {
@@ -52,7 +60,7 @@ async function expectSeparatedAxes(page: Page, acute: string) {
   await expect(axes.nth(0)).toContainText('급성도')
   await expect(axes.nth(0).locator('strong')).toHaveText(acute)
   await expect(axes.nth(1)).toContainText('취약도')
-  await expect(axes.nth(1).locator('strong')).toHaveText(String(PUBLIC_STRUCTURAL_VULNERABILITY))
+  await expect(axes.nth(1).locator('strong')).toHaveText(PUBLIC_STRUCTURAL_VULNERABILITY_DISPLAY)
 }
 
 test('P4 golden: two real contact mutations raise acute score before manager-only approval', async ({ browser }) => {
@@ -104,10 +112,10 @@ test('P4 golden: two real contact mutations raise acute score before manager-onl
     await selectGoldenCase(page)
     await expect(page.getByRole('button', { name: /방문 권고 (승인|반려) 기록/ })).toHaveCount(0)
 
-    await page.getByLabel('통화 결과').selectOption({ label: '미응답' })
-    await page.getByRole('button', { name: '통화 결과 저장' }).click()
+    await page.getByLabel('통화(또는 방문) 결과').selectOption({ label: '미응답' })
+    await page.getByRole('button', { name: '통화(또는 방문) 결과 저장' }).click()
 
-    await expect(page.getByText('통화 결과를 저장하고 연락업무 순서를 다시 계산했습니다.')).toBeVisible()
+    await expect(page.getByText('통화(또는 방문) 결과를 저장하고 연락업무 순서를 다시 계산했습니다.')).toBeVisible()
     await expectSeparatedAxes(page, '25')
     await expect(page.locator('.ops-detail')).not.toContainText('방문 권고 · 담당자 승인 대기')
 
@@ -135,9 +143,9 @@ test('P4 golden: two real contact mutations raise acute score before manager-onl
   })
 
   await test.step('후속 실제 mutation에서 관찰 한 개만 추가해 방문 권고로 올린다', async () => {
-    await page.getByLabel('통화 결과').selectOption({ label: '미응답' })
+    await page.getByLabel('통화(또는 방문) 결과').selectOption({ label: '미응답' })
     await page.getByLabel('우편물·고지서 적체').check()
-    await page.getByRole('button', { name: '통화 결과 저장' }).click()
+    await page.getByRole('button', { name: '통화(또는 방문) 결과 저장' }).click()
 
     await expectSeparatedAxes(page, '57')
     await expect(page.locator('.ops-detail')).toContainText('방문 권고 · 담당자 승인 대기')
@@ -176,7 +184,9 @@ test('P4 golden: two real contact mutations raise acute score before manager-onl
     await page.setViewportSize({ width: 1440, height: 900 })
     await page.goto('/ops/manager')
     await expect(page.locator('main.ops-page')).not.toContainText('합성')
-    await expect(page.getByRole('option', { name: new RegExp(CASE_NAME) })).toBeVisible()
+    const target = managerGoldenCase(page)
+    await expect(target).toBeVisible()
+    await target.click()
     await expectSeparatedAxes(page, '57')
 
     await page.getByLabel('방문 권고 승인').check()
@@ -195,7 +205,7 @@ test('P4 golden: two real contact mutations raise acute score before manager-onl
   await test.step('승인 상태도 reload 후 같은 격리 세션에 남는다', async () => {
     await page.reload()
     await expect(page.locator('main.ops-page')).not.toContainText('합성')
-    await expect(page.getByText('현재 검토할 방문 권고가 없습니다.')).toBeVisible()
+    await expect(managerGoldenCase(page)).toHaveCount(0)
     const approvedAfterReload = await readCase(context, sessionId)
     expect(approvedAfterReload.household.workflow.visit_approval_status).toBe('approved')
   })

@@ -96,6 +96,19 @@ const reportCard: ReportCard = {
   escalation: null,
 }
 
+const managementEntry = {
+  synthetic: true as const,
+  status: 'active_contact_management' as const,
+  intake_channel: 'family_request' as const,
+  intake_recorded_date: '2026-07-21',
+  ongoing_contact_permission: { status: 'recorded' as const, recorded_date: '2026-07-22', basis: 'synthetic_demo_scenario' as const },
+  duplicate_service_check: {
+    status: 'completed_no_overlapping_schedule' as const, checked_date: '2026-07-23',
+    scope: 'regular_wellbeing_contact_or_home_visit' as const,
+    interpretation: 'workflow_duplicate_check_not_welfare_eligibility' as const,
+  },
+}
+
 const proposal: AssignmentProposal = {
   synthetic: true,
   displayMarker: '[합성]',
@@ -110,25 +123,30 @@ const proposal: AssignmentProposal = {
   max_daily_approved_visits: 2,
   lanes: {
     phone: [{
-      status: 'proposed', case_id: 'SYN-HH-2812551000-0001', display_name: '김영자',
+      status: 'proposed', assignment_status: 'proposed', case_id: 'SYN-HH-2812551000-0001', display_name: '김영자',
       road_address: '인천광역시 제물포구 답동로 7-2',
       last_contact: { date: '2026-08-11', result_label: '연락 안 됨' }, lane: 'phone',
       dong_code: '2812551000', dong_name: '신포동', district: '제물포구',
       worker_id: 'SYN-W-2812551000-01', worker_display_name: '연결단원 001',
       급성도_등급: '방문권고', 급성도_점수: 62, grade_source: '세션 기록',
+      급성도_기여내역: [{ 코드: '연속_미응답', 근거: '연속 미응답 2회', 가산점: 25 }],
       due_reasons: ['scheduled_contact'], earliest_due_date: '2026-08-12',
+      selection_reason_labels: ['오늘 정기 연락'], management_entry: managementEntry,
       preferred_contact_method: 'phone', approved_visit: false,
       adjustment_flags: [], 제안_근거: ['담당 동 일치 (신포동)'],
     }],
     visit: [{
-      status: 'proposed', case_id: 'SYN-HH-2812551000-0002', display_name: '이순자',
+      status: 'proposed', assignment_status: 'proposed', case_id: 'SYN-HH-2812551000-0002', display_name: '이순자',
       road_address: '인천광역시 제물포구 답동로 9',
       last_contact: { date: '2026-08-10', result_label: '안부 확인 완료' }, lane: 'visit',
       dong_code: '2812551000', dong_name: '신포동', district: '제물포구',
       worker_id: 'SYN-W-2812551000-01', worker_display_name: '연결단원 001',
-      급성도_등급: null, 급성도_점수: null, grade_source: '미기록',
+      급성도_등급: '방문권고', 급성도_점수: 62, grade_source: '데모 사전 기록',
+      기록_출처: 'demo_precontact_record', 프로필_버전: 'demo-precontact-v1',
+      급성도_기여내역: [{ 코드: '연속_미응답', 근거: '연속 미응답 2회', 가산점: 25 }],
       due_reasons: ['scheduled_contact'], earliest_due_date: '2026-08-12',
-      preferred_contact_method: 'visit', approved_visit: false,
+      selection_reason_labels: ['오늘 정기 연락'], management_entry: managementEntry,
+      preferred_contact_method: 'visit', approved_visit: true,
       adjustment_flags: ['time_window_mismatch'], 제안_근거: ['담당 동 일치 (신포동)', '선호 시간창과 연결단원 가용 시간창 불일치 — 조정 필요'],
     }],
   },
@@ -220,10 +238,18 @@ describe('CenterPage (동 행정복지센터)', () => {
     expect(within(phoneLane).getByText('마지막 연락')).toBeInTheDocument()
     expect(within(phoneLane).getByText('2026-08-11')).toBeInTheDocument()
     expect(within(phoneLane).getByText('연락 안 됨')).toBeInTheDocument()
+    expect(within(phoneLane).getByText('오늘 정기 연락')).toBeInTheDocument()
+    expect(within(phoneLane).getByText('연락 기한')).toBeInTheDocument()
+    expect(within(phoneLane).getByText('2026-08-12')).toBeInTheDocument()
+    expect(within(phoneLane).getByText('등록 근거')).toBeInTheDocument()
+    expect(within(phoneLane).getByText('가족 신청')).toBeInTheDocument()
+    expect(within(phoneLane).getByText('연락 동의 기록 · 기존 정기 안부확인 중복 없음')).toBeInTheDocument()
     expect(within(phoneLane).queryByText('이순자 어르신')).toBeNull()
     await user.click(screen.getByRole('tab', { name: /방문 \d/ }))
     const visitLane = await screen.findByLabelText('방문 레인 할당 제안')
     expect(within(visitLane).getByText('이순자 어르신')).toBeInTheDocument()
+    expect(within(visitLane).getByText('급성도 62점 · 방문권고')).toBeInTheDocument()
+    expect(within(visitLane).getByText('연속 미응답 2회 · +25점')).toBeInTheDocument()
     expect(within(visitLane).queryByText('김영자 어르신')).toBeNull()
     expect(within(visitLane).getAllByText(/시간창 불일치/).length).toBeGreaterThan(0)
   })

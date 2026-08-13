@@ -43,13 +43,27 @@ function household(id, overrides = {}) {
       visit_approval_status: null, transfer_status: 'not_required', visit_decision: null,
       ...overrides.workflow,
     },
+    management_entry: {
+      synthetic: true,
+      status: 'active_contact_management',
+      intake_channel: 'family_request',
+      intake_recorded_date: '2026-07-21',
+      ongoing_contact_permission: { status: 'recorded', recorded_date: '2026-07-22', basis: 'synthetic_demo_scenario' },
+      duplicate_service_check: {
+        status: 'completed_no_overlapping_schedule', checked_date: '2026-07-23',
+        scope: 'regular_wellbeing_contact_or_home_visit', interpretation: 'workflow_duplicate_check_not_welfare_eligibility',
+      },
+    },
     approved_visit_constraints: overrides.approved_visit_constraints ?? null,
   };
 }
 
 const households = [
   household('SYN-HH-2812551000-0001'),
-  household('SYN-HH-2812551000-0002', { contact: { preferred_contact_method: 'visit' } }),
+  household('SYN-HH-2812551000-0002', {
+    contact: { preferred_contact_method: 'visit' },
+    workflow: { visit_approval_status: 'approved' },
+  }),
   household('SYN-HH-2812551000-0003', { contact: { next_contact_date: '2026-08-20' } }),
   household('SYN-HH-2826051000-0001'),
 ];
@@ -176,7 +190,11 @@ describe('three-tier today lanes API', () => {
     const lanes = body.data.lanes;
     assert.deepEqual(lanes.phone.map((item) => item.case_id), ['SYN-HH-2812551000-0001']);
     assert.deepEqual(lanes.visit.map((item) => item.case_id), ['SYN-HH-2812551000-0002']);
-    assert.equal(body.data.lane_rule, '방문 레인에는 승인된 방문 또는 방문 선호 예정 업무만 포함');
+    assert.equal(body.data.lane_rule, '방문 레인에는 담당자가 승인하고 배치를 확인한 방문만 포함');
+    assert.equal(lanes.phone[0].assignment_status, 'confirmed');
+    assert.deepEqual(lanes.phone[0].selection_reason_labels, ['오늘 정기 연락']);
+    assert.equal(lanes.phone[0].management_entry.intake_channel, 'family_request');
+    assert.equal(lanes.visit[0].assignment_status, 'confirmed');
     for (const item of [...lanes.phone, ...lanes.visit]) {
       assert.match(item.virtual_phone.display_number, /^010-0000-\d{4}$/);
       assert.equal(item.virtual_phone.label, '[가상]');

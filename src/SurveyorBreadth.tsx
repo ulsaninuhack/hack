@@ -7,6 +7,7 @@ import {
 } from './SurveyorBreadthModel'
 import './SurveyorBreadth.css'
 import { caseDisplayName } from './caseDisplayName'
+import { formatScore } from './scoreFormat'
 
 export { summarizeSurveyorDay } from './SurveyorBreadthModel'
 
@@ -119,8 +120,8 @@ export function SurveyorBreadth({
                 >
                   <span className="surveyor-breadth__case">{caseDisplayName(task.item.household_id)} 어르신</span>
                   <span className="surveyor-breadth__axes">
-                    <b>급성도 {task.item.triage.급성도_점수}</b>
-                    <b>취약도 {task.item.triage.취약도_점수}</b>
+                    <b>급성도 {formatScore(task.item.triage.급성도_점수)}</b>
+                    <b>취약도 {formatScore(task.item.triage.취약도_점수)}</b>
                   </span>
                   <span className="surveyor-breadth__badges" aria-label="연락업무 상태">
                     {task.repeatedNoAnswerCount !== null && (

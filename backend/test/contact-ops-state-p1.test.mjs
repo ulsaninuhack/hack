@@ -32,6 +32,29 @@ function syntheticHousehold(overrides = {}) {
   };
 }
 
+function initialContactOpsRecord() {
+  return {
+    revision: 7,
+    household: syntheticHousehold({
+      contact: {
+        consecutive_no_answer_count: 4,
+      },
+      workflow: {
+        follow_up_status: 'pending',
+      },
+    }),
+    observations: {
+      관찰_6징후: { 연락_두절: true },
+      식사상태: '확인_필요',
+    },
+    triage: {
+      급성도_점수: 3,
+      취약도_점수: 5,
+    },
+    updated_at: '2026-08-13T00:00:00.000Z',
+  };
+}
+
 describe('P1 synthetic ContactOps memory state', () => {
   test('namespaces immutable synthetic seed state by opaque demo session and starts at revision zero', async () => {
     const state = createMemoryContactOpsState({ households: [syntheticHousehold()] });
@@ -40,10 +63,66 @@ describe('P1 synthetic ContactOps memory state', () => {
     const second = await state.get({ sessionId: 'demo-session-bravo', caseId: 'SYN-HH-2812551000-0001' });
 
     assert.equal(first.revision, 0);
+    assert.equal(first.triage, null);
     assert.equal(first.synthetic, true);
     assert.equal(second.revision, 0);
     assert.notStrictEqual(first.household, second.household);
     assert.equal(first.household.id, 'SYN-HH-2812551000-0001');
+  });
+
+  test('uses an initial record as the resettable baseline for every untouched session', async () => {
+    const baseline = initialContactOpsRecord();
+    const state = createMemoryContactOpsState({
+      households: [syntheticHousehold()],
+      initialRecords: [baseline],
+    });
+
+    const untouched = await state.get({
+      sessionId: 'memory-baseline-session',
+      caseId: baseline.household.id,
+    });
+    const listed = await state.list({ sessionId: 'memory-baseline-session' });
+
+    assert.equal(untouched.revision, baseline.revision);
+    assert.deepEqual(untouched.household, baseline.household);
+    assert.deepEqual(untouched.observations, baseline.observations);
+    assert.deepEqual(untouched.triage, baseline.triage);
+    assert.equal(untouched.updated_at, baseline.updated_at);
+    assert.equal(listed[0].revision, baseline.revision);
+    assert.deepEqual(listed[0].household, baseline.household);
+
+    const updated = await state.update(
+      {
+        sessionId: 'memory-baseline-session',
+        caseId: baseline.household.id,
+        expectedRevision: baseline.revision,
+      },
+      (current) => ({
+        ...current,
+        contact: {
+          ...current.contact,
+          consecutive_no_answer_count: current.contact.consecutive_no_answer_count + 1,
+        },
+      }),
+    );
+
+    assert.equal(updated.revision, baseline.revision + 1);
+    assert.equal(updated.household.contact.consecutive_no_answer_count, 5);
+    assert.deepEqual(updated.observations, baseline.observations);
+    assert.deepEqual(updated.triage, baseline.triage);
+
+    const reset = await state.resetSession({ sessionId: 'memory-baseline-session' });
+    const restored = await state.get({
+      sessionId: 'memory-baseline-session',
+      caseId: baseline.household.id,
+    });
+
+    assert.equal(reset.reset_override_count, 1);
+    assert.equal(restored.revision, baseline.revision);
+    assert.deepEqual(restored.household, baseline.household);
+    assert.deepEqual(restored.observations, baseline.observations);
+    assert.deepEqual(restored.triage, baseline.triage);
+    assert.equal(restored.updated_at, baseline.updated_at);
   });
 
   test('uses expected_revision to make duplicate mutation submissions conflict instead of double-applying', async () => {
