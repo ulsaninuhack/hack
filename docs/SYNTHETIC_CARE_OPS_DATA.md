@@ -161,7 +161,7 @@ task.approved_visit_constraints !== null
 
 ## LLM·음성 연결
 
-`voice/` 3a 단계는 동의받고 개인정보를 마스킹한 텍스트를 OpenAI Structured Outputs의 고정 JSON 계약으로 구조화하고, 3b는 검증된 WAV/MP3 입력을 같은 계약으로 연결한다. ContactOps 어댑터는 Planner와 별도 Critic 결과를 확인 후보로만 내보내며, 사용자가 명시 확인한 뒤에만 canonical 관찰값을 적용한다. Realtime/WebRTC는 아직 구현하지 않았다. 결정론적 규칙이 최종 상태 전환을 소유하며, LLM 연결은 다음 세 지점에만 붙인다.
+`voice/` 3a 단계는 동의받고 개인정보를 마스킹한 텍스트를 OpenAI Structured Outputs의 고정 JSON 계약으로 구조화하고, 3b는 검증된 WAV/MP3/M4A 입력을 같은 계약으로 연결한다. ContactOps 어댑터는 Planner와 별도 Critic 결과를 확인 후보로만 내보내며, 사용자가 명시 확인한 뒤에만 canonical 관찰값을 적용한다. Realtime/WebRTC는 연락 대상의 새 확정 발화가 들어오면 최신 누적 체크리스트와 다음 확인 질문 후보를 갱신하지만, 실기기 한국어 전화 음질과 지연시간은 사람 검증이 필요하다. 결정론적 규칙이 최종 상태 전환을 소유하며, LLM 연결은 다음 세 지점에만 붙인다.
 
 - 음성·텍스트 메모를 구조화된 연락결과로 변환
 - 이전 기록과 현재 발화의 모순·누락 탐지

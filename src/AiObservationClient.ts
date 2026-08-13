@@ -17,10 +17,11 @@ export interface AiObservationCritic {
   contradictions: string[]
   low_confidence_fields: string[]
   warnings: string[]
+  next_question: string | null
 }
 
 export interface AiObservationCandidate {
-  schema_version: 'contact-ops-observation-candidate/v1'
+  schema_version: 'contact-ops-observation-candidate/v2'
   synthetic: true
   marker: string
   case_id: string

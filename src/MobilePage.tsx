@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { AlertTriangle, CheckCircle2, ChevronLeft, MapPinned, Mic, Phone, RefreshCw, Send, Sparkles, X } from 'lucide-react'
 import MapView from './MapView'
@@ -132,6 +132,7 @@ export function MobilePage() {
   const [memoText, setMemoText] = useState('')
   const [candidateFreeText, setCandidateFreeText] = useState<string | null>(null)
   const [criticWarnings, setCriticWarnings] = useState<string[]>([])
+  const [nextQuestion, setNextQuestion] = useState<string | null>(null)
   const [chatIndex, setChatIndex] = useState(0)
   const [chatLog, setChatLog] = useState<Array<{ prompt: string; answer: string }>>([])
   const [showDial, setShowDial] = useState(false)
@@ -143,6 +144,12 @@ export function MobilePage() {
   const [mapData, setMapData] = useState<DataBundle | null>(null)
   const [liveCallCredentials, setLiveCallCredentials] = useState<LiveCallCredentials | null>(null)
   const [liveInviteUrl, setLiveInviteUrl] = useState<string | null>(null)
+  const [liveCandidate, setLiveCandidate] = useState<VoiceCandidate | null>(null)
+  const [liveCandidatePending, setLiveCandidatePending] = useState(false)
+  const [liveCandidateError, setLiveCandidateError] = useState<string | null>(null)
+  const liveCandidateRef = useRef<VoiceCandidate | null>(null)
+  const liveCandidateTimerRef = useRef<number | null>(null)
+  const liveCandidateGenerationRef = useRef(0)
 
   useEffect(() => {
     if (!visitMapOpen || mapData) return
@@ -167,6 +174,50 @@ export function MobilePage() {
 
   useEffect(() => { void refresh() }, [refresh])
 
+  const invalidateLiveCandidateWork = useCallback(() => {
+    liveCandidateGenerationRef.current += 1
+    if (liveCandidateTimerRef.current !== null) {
+      window.clearTimeout(liveCandidateTimerRef.current)
+      liveCandidateTimerRef.current = null
+    }
+  }, [])
+
+  useEffect(() => () => invalidateLiveCandidateWork(), [invalidateLiveCandidateWork])
+
+  const resetLiveCandidate = useCallback(() => {
+    invalidateLiveCandidateWork()
+    liveCandidateRef.current = null
+    setLiveCandidate(null)
+    setLiveCandidatePending(false)
+    setLiveCandidateError(null)
+  }, [invalidateLiveCandidateWork])
+
+  const scheduleLiveCandidate = useCallback((transcript: string) => {
+    if (!selected || !transcript.trim()) return
+    const generation = liveCandidateGenerationRef.current + 1
+    liveCandidateGenerationRef.current = generation
+    if (liveCandidateTimerRef.current !== null) window.clearTimeout(liveCandidateTimerRef.current)
+    setLiveCandidatePending(true)
+    setLiveCandidateError(null)
+    liveCandidateTimerRef.current = window.setTimeout(() => {
+      liveCandidateTimerRef.current = null
+      void createAiObservationCandidate({
+        caseId: selected.case_id,
+        revision: selected.revision,
+        source: { kind: 'text', text: transcript },
+      }).then((response) => {
+        if (generation !== liveCandidateGenerationRef.current) return
+        liveCandidateRef.current = response.candidate
+        setLiveCandidate(response.candidate)
+        setLiveCandidatePending(false)
+      }).catch(() => {
+        if (generation !== liveCandidateGenerationRef.current) return
+        setLiveCandidatePending(false)
+        setLiveCandidateError('체크리스트 후보를 갱신하지 못했습니다. 자막과 통화는 계속됩니다.')
+      })
+    }, 700)
+  }, [selected])
+
   const items = useMemo(() => lanesData?.lanes[lane] ?? [], [lanesData, lane])
 
   const openCase = (item: LaneItem) => {
@@ -180,11 +231,13 @@ export function MobilePage() {
     setCandidateFreeText(null)
     setMemoText('')
     setCriticWarnings([])
+    setNextQuestion(null)
     setChatIndex(0)
     setChatLog([])
     setShowDial(false)
     setLiveCallCredentials(null)
     setLiveInviteUrl(null)
+    resetLiveCandidate()
   }
 
   const applyCandidate = (
@@ -200,6 +253,7 @@ export function MobilePage() {
       ...candidate.critic.warnings,
       ...candidate.critic.missing_fields.map((field) => `누락 확인: ${field}`),
     ])
+    setNextQuestion(candidate.critic.next_question)
   }
 
   const startLiveCall = async () => {
@@ -208,6 +262,7 @@ export function MobilePage() {
       setBusy(true)
       setError(null)
       setInputPath('live')
+      resetLiveCandidate()
       const credentials = await createLiveCall({ caseId: selected.case_id, revision: selected.revision })
       setLiveCallCredentials(credentials)
       setLiveInviteUrl(buildGuestInviteUrl(credentials))
@@ -224,19 +279,25 @@ export function MobilePage() {
     try {
       setBusy(true)
       setError(null)
-      const response = await createAiObservationCandidate({
-        caseId: selected.case_id,
-        revision: selected.revision,
-        source: { kind: 'text', text: transcript },
-      })
+      invalidateLiveCandidateWork()
+      const current = liveCandidateRef.current
+      const candidate = current?.transcript === transcript
+        ? current
+        : (await createAiObservationCandidate({
+            caseId: selected.case_id,
+            revision: selected.revision,
+            source: { kind: 'text', text: transcript },
+          })).candidate
       applyCandidate(
-        response.candidate,
+        candidate,
         '실시간 통화에서 만든 후보입니다. 아래 체크리스트를 확인하고 고친 뒤 제출해 주세요.',
       )
       setLiveCallCredentials(null)
       setLiveInviteUrl(null)
+      resetLiveCandidate()
       setInputPath('manual')
     } catch (cause) {
+      setLiveCandidatePending(false)
       setError(errorText(cause, '통화 내용에서 체크리스트 후보를 만들지 못했습니다. 음성 파일이나 직접 입력을 사용할 수 있습니다.'))
     } finally {
       setBusy(false)
@@ -545,9 +606,14 @@ export function MobilePage() {
               join={liveHostJoin}
               inviteUrl={liveInviteUrl}
               onFinish={finishLiveCall}
+              onTranscriptUpdate={scheduleLiveCandidate}
+              liveCandidate={liveCandidate}
+              candidatePending={liveCandidatePending}
+              candidateError={liveCandidateError}
               onCancel={() => {
                 setLiveCallCredentials(null)
                 setLiveInviteUrl(null)
+                resetLiveCandidate()
                 setInputPath(null)
               }}
             />
@@ -615,6 +681,13 @@ export function MobilePage() {
                 <ul className="mobile-critic" aria-label="후보 검토 주의사항">
                   {criticWarnings.map((warning) => <li key={warning}>{warning}</li>)}
                 </ul>
+              )}
+              {nextQuestion && (
+                <section className="mobile-next-question" aria-labelledby="mobile-next-question-heading">
+                  <h3 id="mobile-next-question-heading">다음 확인 질문</h3>
+                  <p>{nextQuestion}</p>
+                  <span>답을 확인한 뒤 아래 체크리스트를 수정해 주세요.</span>
+                </section>
               )}
               <label>통화(또는 방문) 결과
                 <select value={resultLabel} onChange={(event) => setResultLabel(event.target.value as ContactResultLabel | '')} required>

@@ -23,6 +23,7 @@ export function appendCaption(captions: LiveCaption[], next: LiveCaption): LiveC
   const existingIndex = captions.findIndex((caption) => (
     caption.itemId === normalized.itemId && caption.role === normalized.role
   ))
+  if (existingIndex >= 0 && captions[existingIndex].final && !normalized.final) return captions
   const updated = existingIndex >= 0
     ? captions.map((caption, index) => index === existingIndex ? normalized : caption)
     : [...captions, normalized]

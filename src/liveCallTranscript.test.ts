@@ -27,6 +27,17 @@ describe('live call speaker and transcript contract', () => {
     ])
   })
 
+  it('never downgrades a finalized caption when a late interim delta arrives', () => {
+    const finalized: LiveCaption = {
+      itemId: 'turn-1', role: 'resident', text: '아침에는 죽을 조금 먹었어요.', final: true, receivedAt: 2,
+    }
+    const lateInterim: LiveCaption = {
+      itemId: 'turn-1', role: 'resident', text: '아침에는 죽을', final: false, receivedAt: 3,
+    }
+
+    expect(appendCaption([finalized], lateInterim)).toEqual([finalized])
+  })
+
   it('builds the AI candidate transcript from finalized resident turns only', () => {
     const captions: LiveCaption[] = [
       { itemId: 's1', role: 'surveyor', text: '오늘 식사는 하셨어요?', final: true, receivedAt: 1 },

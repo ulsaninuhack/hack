@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Copy, Mic, MicOff, PhoneCall, PhoneOff, Share2, Users } from 'lucide-react'
+import { AlertTriangle, Check, Copy, HelpCircle, Mic, MicOff, PhoneCall, PhoneOff, Share2, Users } from 'lucide-react'
 import QRCode from 'qrcode'
 
 import type { LiveCallJoin } from './liveCallClient'
 import { connectLiveCallSession, type LiveCallSession } from './liveCallSession'
 import { appendCaption, residentTranscript, type LiveCaption } from './liveCallTranscript'
+import { buildLiveEvidenceGraph, type LiveEvidenceGraph } from './liveEvidenceGraph'
+import type { VoiceCandidate } from './threeTierClient'
 
 type CallState = 'idle' | 'connecting' | 'connected' | 'finishing' | 'ended'
 
@@ -12,6 +14,10 @@ interface LiveCallPanelProps {
   join: LiveCallJoin
   inviteUrl?: string
   onFinish?: (residentTranscript: string) => Promise<void> | void
+  onTranscriptUpdate?: (residentTranscript: string) => void
+  liveCandidate?: Pick<VoiceCandidate, 'contact_result' | 'transcript' | 'observations' | 'critic'> | null
+  candidatePending?: boolean
+  candidateError?: string | null
   onCancel?: () => void
 }
 
@@ -28,7 +34,151 @@ function liveErrorText(cause: unknown) {
     : '실시간 통화를 연결하지 못했습니다. 음성 파일 또는 직접 입력을 사용해 주세요.'
 }
 
-export function LiveCallPanel({ join, inviteUrl, onFinish, onCancel }: LiveCallPanelProps) {
+const PREVIEW_SIGNS: Array<{
+  key: keyof VoiceCandidate['observations']['관찰_6징후']
+  label: string
+}> = [
+  { key: '우편물_고지서_적체', label: '우편물·고지서 적체' },
+  { key: '악취_벌레', label: '악취·벌레' },
+  { key: '쓰레기_술병', label: '쓰레기·술병' },
+  { key: '인기척_없이_TV_불', label: '인기척 없이 TV·불' },
+  { key: '외출_없음', label: '최근 외출 없음' },
+  { key: '연락_두절', label: '연락 두절' },
+]
+
+function LiveChecklistPreview({
+  candidate,
+  captions,
+  pending,
+  error,
+}: {
+  candidate?: Pick<VoiceCandidate, 'contact_result' | 'transcript' | 'observations' | 'critic'> | null
+  captions: LiveCaption[]
+  pending: boolean
+  error?: string | null
+}) {
+  const evidenceGraph = candidate ? buildLiveEvidenceGraph(captions, candidate) : null
+  const statusRows = candidate ? [
+    { label: '식사 상태', value: candidate.observations.식사상태 },
+    { label: '위생 상태', value: candidate.observations.위생상태 },
+    { label: '도움 관계망', value: candidate.observations.관계망_유무 },
+    {
+      label: '건강·마음 괴로움',
+      value: candidate.observations.최근_건강_정신_괴로움 === null
+        ? null
+        : candidate.observations.최근_건강_정신_괴로움 ? '관찰됨' : '해당 없음',
+    },
+  ] : []
+
+  return <section className="live-checklist-preview" aria-label="통화 중 체크리스트 후보">
+    <header>
+      <div>
+        <h3>통화 중 확인된 항목</h3>
+        <span>AI 후보 · 미확정</span>
+      </div>
+      {pending && <p role="status">새 발화를 확인하는 중</p>}
+    </header>
+    {error && <p className="live-candidate-error" role="status">{error}</p>}
+    {!candidate ? (
+      <p className="live-candidate-empty">연락 대상의 확정 발화가 들어오면 후보 항목이 표시됩니다.</p>
+    ) : <>
+      <ul className="live-candidate-grid">
+        {PREVIEW_SIGNS.map((sign) => {
+          const checked = candidate.observations.관찰_6징후[sign.key]
+          return <li key={sign.key} data-candidate={checked || undefined}>
+            {checked ? <Check aria-hidden="true" /> : <span aria-hidden="true">—</span>}
+            <strong>{sign.label}</strong>
+            <em>{checked ? '후보' : '미확인'}</em>
+          </li>
+        })}
+        {statusRows.map((row) => <li key={row.label} data-candidate={row.value !== null ? true : undefined}>
+          {row.value !== null ? <Check aria-hidden="true" /> : <span aria-hidden="true">—</span>}
+          <strong>{row.label}</strong>
+          <em>{row.value === null ? '미확인' : `${row.value} · 후보`}</em>
+        </li>)}
+      </ul>
+      {evidenceGraph && evidenceGraph.turns.length > 0 && (
+        <LiveEvidenceLedger graph={evidenceGraph} />
+      )}
+      {evidenceGraph?.contradictions.map((contradiction) => (
+        <section
+          className="live-contradiction-card"
+          aria-label="추가 확인이 필요한 상충 정보"
+          key={`${contradiction.field}-${contradiction.evidenceItemIds.join('-')}`}
+        >
+          <AlertTriangle aria-hidden="true" />
+          <div>
+            <h4>{contradiction.label}</h4>
+            <ul>{contradiction.evidenceItemIds.map((itemId) => {
+              const turn = evidenceGraph.turns.find((entry) => entry.itemId === itemId)
+              return turn && <li key={itemId}><strong>발화 {turn.sequence}</strong> · {turn.text}</li>
+            })}</ul>
+            {contradiction.nextQuestion && <p><strong>확인 질문</strong> · {contradiction.nextQuestion}</p>}
+          </div>
+        </section>
+      ))}
+      {candidate.critic.next_question && evidenceGraph?.contradictions.length === 0 && (
+        <section className="live-next-question" aria-labelledby="live-next-question-heading">
+          <HelpCircle aria-hidden="true" />
+          <div>
+            <h4 id="live-next-question-heading">다음 확인 질문</h4>
+            <p>{candidate.critic.next_question}</p>
+          </div>
+        </section>
+      )}
+    </>}
+    <p className="live-candidate-boundary">통화 종료 후 조사원이 확인해야 기록과 점수 계산에 반영됩니다.</p>
+  </section>
+}
+
+function LiveEvidenceLedger({ graph }: { graph: LiveEvidenceGraph }) {
+  const linkedEntries = [
+    ...graph.facts.map((fact) => ({
+      key: `fact-${fact.field}`,
+      state: fact.state === 'clarification_needed' ? '추가 확인' : 'AI 후보',
+      label: `${fact.label} · ${fact.value}`,
+      itemIds: fact.evidenceItemIds,
+    })),
+    ...graph.contradictions.map((entry) => ({
+      key: `contradiction-${entry.field}`,
+      state: '추가 확인',
+      label: entry.label,
+      itemIds: entry.evidenceItemIds,
+    })),
+  ]
+  return <section className="live-evidence-ledger" aria-label="통화 근거 원장">
+    <header>
+      <div>
+        <h4>조사원 확인 전 근거</h4>
+        <p>체크 항목과 실제 발화를 함께 확인합니다.</p>
+      </div>
+      <span>{graph.turns.length}개 발화</span>
+    </header>
+    {linkedEntries.length > 0
+      ? <ul>{linkedEntries.map((entry) => {
+          const sequences = entry.itemIds
+            .map((itemId) => graph.turns.find((turn) => turn.itemId === itemId)?.sequence)
+            .filter((value): value is number => value !== undefined)
+          return <li key={entry.key}>
+            <span>{entry.state}</span>
+            <strong>{entry.label}</strong>
+            <em>근거 발화 {sequences.join(', ')}</em>
+          </li>
+        })}</ul>
+      : <p className="live-evidence-empty">후보와 직접 연결할 수 있는 발화를 확인하는 중입니다.</p>}
+  </section>
+}
+
+export function LiveCallPanel({
+  join,
+  inviteUrl,
+  onFinish,
+  onTranscriptUpdate,
+  liveCandidate,
+  candidatePending = false,
+  candidateError,
+  onCancel,
+}: LiveCallPanelProps) {
   const canShare = typeof navigator.share === 'function'
   const [callState, setCallState] = useState<CallState>('idle')
   const [captions, setCaptions] = useState<LiveCaption[]>([])
@@ -64,11 +214,14 @@ export function LiveCallPanel({ join, inviteUrl, onFinish, onCancel }: LiveCallP
   }, [])
 
   const receiveCaption = (caption: LiveCaption) => {
-    setCaptions((current) => {
-      const next = appendCaption(current, caption)
-      captionsRef.current = next
-      return next
-    })
+    const previousResidentTranscript = residentTranscript(captionsRef.current)
+    const next = appendCaption(captionsRef.current, caption)
+    captionsRef.current = next
+    setCaptions(next)
+    if (caption.role === 'resident' && caption.final) {
+      const transcript = residentTranscript(next)
+      if (transcript && transcript !== previousResidentTranscript) onTranscriptUpdate?.(transcript)
+    }
   }
 
   const connect = async () => {
@@ -197,6 +350,15 @@ export function LiveCallPanel({ join, inviteUrl, onFinish, onCancel }: LiveCallP
                   </li>
                 ))}</ol>}
           </section>
+
+          {join.role === 'surveyor' && (
+            <LiveChecklistPreview
+              candidate={liveCandidate}
+              captions={captions}
+              pending={candidatePending}
+              error={candidateError}
+            />
+          )}
 
           <div className="live-call-controls">
             <button type="button" className="live-call-secondary" onClick={() => void toggleMuted()} disabled={callState === 'finishing'}>

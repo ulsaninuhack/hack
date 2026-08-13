@@ -38,9 +38,15 @@ vi.mock('./AiObservationClient', () => ({
   createAiObservationCandidate: mocks.createAiObservationCandidate,
 }))
 vi.mock('./LiveCallPanel', () => ({
-  LiveCallPanel: ({ onFinish }: { onFinish: (transcript: string) => Promise<void> }) => (
+  LiveCallPanel: ({ onFinish, onTranscriptUpdate, liveCandidate }: {
+    onFinish: (transcript: string) => Promise<void>
+    onTranscriptUpdate: (transcript: string) => void
+    liveCandidate?: { critic: { next_question: string | null } } | null
+  }) => (
     <section aria-label="실시간 통화 테스트">
-      <button type="button" onClick={() => void onFinish('밥을 안 먹고 누워만 있었고 사람도 안 만났어요.')}>통화 종료 테스트</button>
+      <button type="button" onClick={() => onTranscriptUpdate('밥을 잘 못 먹어요.')}>실시간 발화 테스트</button>
+      {liveCandidate?.critic.next_question && <p>{liveCandidate.critic.next_question}</p>}
+      <button type="button" onClick={() => void onFinish('밥을 잘 못 먹어요.')}>통화 종료 테스트</button>
     </section>
   ),
 }))
@@ -272,7 +278,7 @@ describe('MobilePage (조사원 /m)', () => {
         },
         transcript: '[마스킹] 통화 내용',
         free_text: '최근 약 복용을 자주 빠뜨린다고 말함',
-        critic: { missing_fields: ['관계망_유무'], contradictions: [], low_confidence_fields: [], warnings: ['악취 관련 후보 확인 필요'] },
+        critic: { missing_fields: ['관계망_유무'], contradictions: [], low_confidence_fields: [], warnings: ['악취 관련 후보 확인 필요'], next_question: null },
         requires_user_confirmation: true,
       },
     })
@@ -306,7 +312,7 @@ describe('MobilePage (조사원 /m)', () => {
         },
         transcript: '[마스킹] 메모 내용',
         free_text: '우편함에 고지서가 쌓여 있었음',
-        critic: { missing_fields: ['식사상태'], contradictions: [], low_confidence_fields: [], warnings: [] },
+        critic: { missing_fields: ['식사상태'], contradictions: [], low_confidence_fields: [], warnings: [], next_question: '오늘 식사를 한 끼도 하지 못한 건가요, 아니면 평소보다 양이 줄어든 건가요?' },
         requires_user_confirmation: true,
       },
     })
@@ -323,6 +329,8 @@ describe('MobilePage (조사원 /m)', () => {
     expect(request.source).toEqual({ kind: 'text', text: '전화를 안 받으시고 우편함에 고지서가 쌓여 있었어요' })
     expect(await screen.findByText(/메모에서 만든 AI 후보입니다/)).toBeInTheDocument()
     expect(screen.getByText('누락 확인: 식사상태')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '다음 확인 질문' })).toBeInTheDocument()
+    expect(screen.getByText('오늘 식사를 한 끼도 하지 못한 건가요, 아니면 평소보다 양이 줄어든 건가요?')).toBeInTheDocument()
     expect(screen.getByLabelText('통화(또는 방문) 결과')).toHaveValue('미응답')
     expect(screen.getByRole('checkbox', { name: '우편물·고지서 적체' })).toBeChecked()
     expect(screen.getByRole('region', { name: '기타 특이사항 확인' })).toHaveTextContent('우편함에 고지서가 쌓여 있었음')
@@ -346,12 +354,12 @@ describe('MobilePage (조사원 /m)', () => {
         contact_result: voiceCandidateConcernResult,
         observations: {
           관찰_6징후: { 우편물_고지서_적체: false, 악취_벌레: false, 쓰레기_술병: false, 인기척_없이_TV_불: false, 외출_없음: true, 연락_두절: false },
-          식사상태: '심각', 위생상태: null, 공과금_2개월_이상_체납: null,
+          식사상태: null, 위생상태: null, 공과금_2개월_이상_체납: null,
           최근_건강_정신_괴로움: true, 관계망_유무: '없음', 연락_빈도: null,
         },
-        transcript: '밥을 안 먹고 누워만 있었고 사람도 안 만났어요.',
+        transcript: '밥을 잘 못 먹어요.',
         free_text: '',
-        critic: { missing_fields: [], contradictions: [], low_confidence_fields: [], warnings: [] },
+        critic: { missing_fields: [], contradictions: [], low_confidence_fields: [], warnings: [], next_question: '오늘 식사를 한 끼도 하지 못한 건가요, 아니면 평소보다 양이 줄어든 건가요?' },
         requires_user_confirmation: true,
       },
     })
@@ -362,14 +370,16 @@ describe('MobilePage (조사원 /m)', () => {
     await waitFor(() => expect(mocks.createLiveCall).toHaveBeenCalledWith({
       caseId: 'SYN-HH-2812551000-0001', revision: 0,
     }))
+    await user.click(screen.getByRole('button', { name: '실시간 발화 테스트' }))
+    expect(await screen.findByText('오늘 식사를 한 끼도 하지 못한 건가요, 아니면 평소보다 양이 줄어든 건가요?', {}, { timeout: 2_000 })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '통화 종료 테스트' }))
     await waitFor(() => expect(mocks.createAiObservationCandidate).toHaveBeenCalledWith({
       caseId: 'SYN-HH-2812551000-0001',
       revision: 0,
-      source: { kind: 'text', text: '밥을 안 먹고 누워만 있었고 사람도 안 만났어요.' },
+      source: { kind: 'text', text: '밥을 잘 못 먹어요.' },
     }))
     expect(await screen.findByText(/실시간 통화에서 만든 후보입니다/)).toBeInTheDocument()
-    expect(screen.getByLabelText('식사 상태')).toHaveValue('심각')
+    expect(screen.getByLabelText('식사 상태')).toHaveValue('')
     expect(screen.getByRole('checkbox', { name: '최근 외출 없음' })).toBeChecked()
     expect(mocks.submitContact).not.toHaveBeenCalled()
   })

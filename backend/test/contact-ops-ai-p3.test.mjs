@@ -60,6 +60,7 @@ const candidate = {
     contradictions: [],
     low_confidence_fields: [],
     warnings: [],
+    next_question: null,
   },
   stripped_server_owned_fields: ['risk_score', 'visit_recommended'],
   requires_user_confirmation: true,

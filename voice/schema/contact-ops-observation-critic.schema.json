@@ -5,7 +5,8 @@
     "missing_fields",
     "contradictions",
     "low_confidence_fields",
-    "warnings"
+    "warnings",
+    "next_question"
   ],
   "properties": {
     "missing_fields": {
@@ -23,6 +24,12 @@
     "warnings": {
       "type": "array",
       "items": { "type": "string", "minLength": 1 }
+    },
+    "next_question": {
+      "type": ["string", "null"],
+      "minLength": 2,
+      "maxLength": 160,
+      "pattern": "^[^\\r\\n?]{1,159}\\?$"
     }
   }
 }

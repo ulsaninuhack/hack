@@ -21,7 +21,7 @@ vi.mock('./AiObservationClient', async (importOriginal) => {
 import { AiObservationPanel } from './AiObservationPanel'
 
 const candidate = {
-  schema_version: 'contact-ops-observation-candidate/v1' as const,
+  schema_version: 'contact-ops-observation-candidate/v2' as const,
   synthetic: true as const,
   marker: '[합성]' as const,
   case_id: 'SYN-HH-2812551000-0001',
@@ -51,6 +51,7 @@ const candidate = {
     contradictions: ['미응답과 연락 두절 아님을 함께 확인해야 함'],
     low_confidence_fields: ['위생상태'],
     warnings: [],
+    next_question: '오늘 식사를 한 끼도 하지 못한 건가요, 아니면 평소보다 양이 줄어든 건가요?',
   },
   stripped_server_owned_fields: [
     'contact_result.risk_score',
@@ -126,6 +127,8 @@ describe('P3 Planner-Critic surveyor review', () => {
     await user.click(screen.getByRole('button', { name: 'AI 관찰 후보 만들기' }))
 
     expect(await screen.findByText('누락 필드')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '다음 확인 질문' })).toBeInTheDocument()
+    expect(screen.getByText(candidate.critic.next_question)).toBeInTheDocument()
     expect(screen.getByText('식사상태')).toBeInTheDocument()
     expect(screen.getByText('모순 확인')).toBeInTheDocument()
     expect(screen.getByText('낮은 확신 필드')).toBeInTheDocument()

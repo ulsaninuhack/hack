@@ -88,9 +88,10 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
     await page.goto('/city')
     await expect(page.getByRole('heading', { name: /시·구 배치 브리핑/ })).toBeVisible()
     await page.getByLabel('브리핑할 구 선택').selectOption('제물포구')
-    await expect(page.getByLabel('제물포구 구 단위 브리핑')).toBeVisible()
-    await expect(page.getByRole('table')).toContainText('부하 순위')
-    await expect(page.getByRole('table')).toContainText('구조 순위')
+    const districtBrief = page.getByLabel('제물포구 구 단위 브리핑')
+    await expect(districtBrief).toBeVisible()
+    await expect(districtBrief.getByLabel('구 단위 관측 수치')).toContainText('오늘 예정')
+    await expect(districtBrief.getByLabel('구조 맥락 비율 지표')).toContainText('노인 인구 비율')
     await page.getByRole('button', { name: '구 단위 요약 읽기' }).click()
     // #46이 라벨 칩을 제거했다 — 요약 카드 내용만 검증한다.
     await expect(page.getByLabel('제물포구 AI 요약')).toContainText('관측 집계에서')

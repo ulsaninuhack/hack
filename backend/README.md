@@ -73,7 +73,9 @@ LiveKit participant token in browser history, share previews, or Vercel request 
 
 Operations mutations require `X-Demo-Session-ID` (16–128 opaque alphanumeric, `_`, or
 `-` characters) and optimistic `expected_revision`. The AI endpoint first produces a
-non-authoritative candidate with Critic arrays; candidate generation does not mutate state.
+non-authoritative candidate with Critic arrays and one nullable next-confirmation question;
+candidate generation does not mutate state. Ambiguous meal wording cannot become a meal grade until
+the field worker confirms a concrete answer.
 Only an explicit confirmation request can feed the validated canonical observations into
 the existing deterministic rules. It cannot approve a visit or complete an institution
 transfer.
