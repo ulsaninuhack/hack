@@ -10,6 +10,8 @@ const mocks = vi.hoisted(() => ({
   createAiObservationCandidate: vi.fn(),
   submitContact: vi.fn(),
   loadData: vi.fn(),
+  createLiveCall: vi.fn(),
+  buildGuestInviteUrl: vi.fn(),
 }))
 
 vi.mock('./data', () => ({ loadData: mocks.loadData }))
@@ -28,7 +30,20 @@ vi.mock('./contactOpsClient', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./contactOpsClient')>()
   return { ...actual, submitContact: mocks.submitContact }
 })
-vi.mock('./AiObservationClient', () => ({ createAiObservationCandidate: mocks.createAiObservationCandidate }))
+vi.mock('./liveCallClient', () => ({
+  createLiveCall: mocks.createLiveCall,
+  buildGuestInviteUrl: mocks.buildGuestInviteUrl,
+}))
+vi.mock('./AiObservationClient', () => ({
+  createAiObservationCandidate: mocks.createAiObservationCandidate,
+}))
+vi.mock('./LiveCallPanel', () => ({
+  LiveCallPanel: ({ onFinish }: { onFinish: (transcript: string) => Promise<void> }) => (
+    <section aria-label="실시간 통화 테스트">
+      <button type="button" onClick={() => void onFinish('밥을 안 먹고 누워만 있었고 사람도 안 만났어요.')}>통화 종료 테스트</button>
+    </section>
+  ),
+}))
 
 import { MobilePage } from './MobilePage'
 import { phoneLaneItem as phoneItem, todayLanesFixture as lanes, voiceCandidateConcernResult } from './threeTierTestFixtures'
@@ -311,6 +326,51 @@ describe('MobilePage (조사원 /m)', () => {
     expect(screen.getByLabelText('통화(또는 방문) 결과')).toHaveValue('미응답')
     expect(screen.getByRole('checkbox', { name: '우편물·고지서 적체' })).toBeChecked()
     expect(screen.getByRole('region', { name: '기타 특이사항 확인' })).toHaveTextContent('우편함에 고지서가 쌓여 있었음')
+    expect(mocks.submitContact).not.toHaveBeenCalled()
+  })
+
+  it('live call uses resident speech to fill a candidate without auto-submitting (INV14)', async () => {
+    arrange()
+    mocks.createLiveCall.mockResolvedValue({
+      provider: 'livekit', call_id: 'call123', room_name: 'care-call-call123',
+      server_url: 'wss://example.livekit.cloud', expires_at: '2030-08-13T12:00:00.000Z',
+      transcription: { provider: 'openai', model: 'gpt-live-transcribe', language: 'ko' },
+      host: { role: 'surveyor', participant_token: 'host.token.signature' },
+      guest: { role: 'resident', participant_token: 'guest.token.signature' },
+    })
+    mocks.buildGuestInviteUrl.mockReturnValue('https://demo.example/call#join=guest')
+    mocks.createAiObservationCandidate.mockResolvedValue({
+      revision: 0,
+      candidate: {
+        case_id: 'SYN-HH-2812551000-0001',
+        contact_result: voiceCandidateConcernResult,
+        observations: {
+          관찰_6징후: { 우편물_고지서_적체: false, 악취_벌레: false, 쓰레기_술병: false, 인기척_없이_TV_불: false, 외출_없음: true, 연락_두절: false },
+          식사상태: '심각', 위생상태: null, 공과금_2개월_이상_체납: null,
+          최근_건강_정신_괴로움: true, 관계망_유무: '없음', 연락_빈도: null,
+        },
+        transcript: '밥을 안 먹고 누워만 있었고 사람도 안 만났어요.',
+        free_text: '',
+        critic: { missing_fields: [], contradictions: [], low_confidence_fields: [], warnings: [] },
+        requires_user_confirmation: true,
+      },
+    })
+    const user = userEvent.setup()
+    render(<MobilePage />)
+    await user.click(await screen.findByText('김영자 어르신'))
+    await user.click(screen.getByRole('button', { name: '실시간 통화 시작' }))
+    await waitFor(() => expect(mocks.createLiveCall).toHaveBeenCalledWith({
+      caseId: 'SYN-HH-2812551000-0001', revision: 0,
+    }))
+    await user.click(screen.getByRole('button', { name: '통화 종료 테스트' }))
+    await waitFor(() => expect(mocks.createAiObservationCandidate).toHaveBeenCalledWith({
+      caseId: 'SYN-HH-2812551000-0001',
+      revision: 0,
+      source: { kind: 'text', text: '밥을 안 먹고 누워만 있었고 사람도 안 만났어요.' },
+    }))
+    expect(await screen.findByText(/실시간 통화에서 만든 후보입니다/)).toBeInTheDocument()
+    expect(screen.getByLabelText('식사 상태')).toHaveValue('심각')
+    expect(screen.getByRole('checkbox', { name: '최근 외출 없음' })).toBeChecked()
     expect(mocks.submitContact).not.toHaveBeenCalled()
   })
 })

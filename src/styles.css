@@ -944,3 +944,115 @@ select:focus-visible,
 .center-page .report-actions .report-escalate { background: #fef2f2; color: #d31530; border: 1px solid #f5c2c7; }
 .center-page .report-actions .report-escalate:hover { background: #fde3e5; }
 .center-page .report-actions .assignment-escalated { font-size: 14px; }
+
+/* 브라우저 실시간 안부 통화 — 발화자 라벨과 명시적 종료/후보 생성 */
+.mobile-page .mobile-live-call-start {
+  background: var(--t-blue);
+  border-color: var(--t-blue);
+  color: #ffffff;
+}
+.mobile-page .mobile-live-call-start:hover { background: var(--t-blue-dark); color: #ffffff; }
+
+.live-call-panel {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  margin-top: 12px;
+  color: #191b1e;
+  font-size: 18px;
+}
+.live-call-panel button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 52px;
+  border-radius: 12px;
+  padding: 10px 16px;
+  font: 700 18px/1.35 inherit;
+  cursor: pointer;
+}
+.live-call-panel button:disabled { cursor: wait; opacity: .55; }
+.live-call-invite {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid #d7dfea;
+  border-radius: 16px;
+  background: #f7f9fc;
+}
+.live-call-invite h3 { margin: 0 0 6px; font-size: 19px; }
+.live-call-invite p { margin: 0 0 12px; color: #41454a; }
+.live-call-invite img { display: block; width: 160px; height: 160px; border: 8px solid #ffffff; border-radius: 12px; }
+.live-call-share, .live-call-primary {
+  border: 1px solid #5a42ee;
+  background: #5a42ee;
+  color: #ffffff;
+}
+.live-call-share-status { margin: 8px 0 0 !important; color: #047a4e !important; font-weight: 700; }
+.live-call-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 1px solid #d7dfea;
+  border-radius: 12px;
+  background: #ffffff;
+}
+.live-call-status > span:first-child { width: 12px; height: 12px; border-radius: 50%; background: #8b95a1; }
+.live-call-status > span:first-child[data-state="connected"] { background: #047a4e; box-shadow: 0 0 0 5px #e6f6ef; }
+.live-call-status > span:first-child[data-state="connecting"] { background: #c77700; }
+.live-call-status > span:last-child { display: inline-flex; align-items: center; gap: 5px; margin-left: auto; color: #41454a; }
+.live-call-status svg { width: 20px; height: 20px; }
+.live-call-error { margin: 0; padding: 14px; border: 1px solid #f4b7bd; border-radius: 12px; background: #fef2f2; color: #a91429; font-weight: 700; }
+.live-call-wait, .live-call-ended { margin: 0; padding: 16px; border-radius: 12px; background: #edf2f8; color: #41454a; }
+.live-call-start-actions, .live-call-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.live-call-start-actions:has(.live-call-primary:only-child) { grid-template-columns: 1fr; }
+.live-call-secondary { border: 1px solid #bdc8d7; background: #ffffff; color: #333d4b; }
+.live-call-end { border: 1px solid #d31530; background: #d31530; color: #ffffff; }
+.live-call-captions {
+  min-width: 0;
+  border: 1px solid #d7dfea;
+  border-radius: 16px;
+  background: #ffffff;
+  overflow: hidden;
+}
+.live-call-captions > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-bottom: 1px solid #d7dfea; }
+.live-call-captions h3 { margin: 0; font-size: 19px; }
+.live-call-captions header span { color: #656b75; font-size: 16px; }
+.live-call-captions ol { display: grid; gap: 12px; max-height: 360px; margin: 0; padding: 16px; overflow-y: auto; list-style: none; }
+.live-call-captions li { width: min(88%, 520px); padding: 12px 14px; border: 1px solid #bdc8d7; border-radius: 4px 14px 14px; background: #f7f9fc; }
+.live-call-captions li[data-role="resident"] { margin-left: auto; border-color: #bdb4f7; border-radius: 14px 4px 14px 14px; background: #f0f0fc; }
+.live-call-captions li strong { display: block; margin-bottom: 4px; color: #333d4b; font-size: 16px; }
+.live-call-captions li[data-role="resident"] strong { color: #452aea; }
+.live-call-captions li p { margin: 0; overflow-wrap: anywhere; color: #191b1e; }
+.live-call-captions li > span { display: block; margin-top: 5px; color: #656b75; font-size: 15px; }
+.live-call-caption-empty { margin: 0; padding: 28px 16px; color: #656b75; text-align: center; }
+
+.guest-call-page {
+  min-height: 100dvh;
+  padding: 24px max(18px, calc((100vw - 620px) / 2)) 48px;
+  overflow-x: hidden;
+  background: #f1f5fa;
+  color: #191b1e;
+  font: 18px/1.55 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, 'Noto Sans KR', sans-serif;
+}
+.guest-call-page > header { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
+.guest-call-page > header p { margin: 0; color: #656b75; font-weight: 700; }
+.guest-call-page h1 { margin: 0; font-size: 28px; line-height: 1.25; }
+.guest-call-mark { display: grid; place-items: center; width: 52px; height: 52px; flex: 0 0 52px; border-radius: 14px; background: #5a42ee; color: #ffffff; }
+.guest-call-guide, .guest-call-invalid { margin: 0 0 16px; padding: 16px; border: 1px solid #d7dfea; border-radius: 16px; background: #ffffff; }
+.guest-call-invalid h2 { margin: 0 0 8px; font-size: 22px; }
+.guest-call-invalid p { margin: 0; }
+
+@media (max-width: 520px) {
+  .live-call-invite { grid-template-columns: 1fr; }
+  .live-call-invite img { justify-self: center; }
+  .live-call-start-actions, .live-call-controls { grid-template-columns: 1fr; }
+  .live-call-captions > header { align-items: flex-start; flex-direction: column; }
+  .guest-call-page { padding-top: 18px; font-size: 18px; }
+  .guest-call-page h1 { font-size: 25px; }
+}
