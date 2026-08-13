@@ -8,7 +8,11 @@ const mocks = vi.hoisted(() => ({
   loadReportCard: vi.fn(),
   uploadVoiceObservationAudio: vi.fn(),
   submitContact: vi.fn(),
+  loadData: vi.fn(),
 }))
+
+vi.mock('./data', () => ({ loadData: mocks.loadData }))
+vi.mock('./MapView', () => ({ default: () => <div role="region" aria-label="[합성] 방문 위치 참고 지도" /> }))
 
 vi.mock('./threeTierClient', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./threeTierClient')>()
@@ -51,6 +55,7 @@ function arrange() {
   mocks.loadTodayLanes.mockResolvedValue(structuredClone(lanes))
   mocks.loadReportCard.mockResolvedValue({ report_card: structuredClone(reportCard), destination: '동 행정복지센터 인박스' })
   mocks.submitContact.mockResolvedValue({ revision: 1 })
+  mocks.loadData.mockResolvedValue({ dongs: { features: [] }, summary: {} })
 }
 
 afterEach(() => {
@@ -71,6 +76,22 @@ describe('MobilePage (조사원 /m)', () => {
     expect(within(visitList).queryByText(/SYN-HH-2812551000-0001/)).toBeNull()
     expect(within(visitList).getByText(/선호 시간 10:00~13:00/)).toBeInTheDocument()
     expect(within(visitList).getByText(/공무원 동행 필요/)).toBeInTheDocument()
+  })
+
+  it('visit cases carry a collapsed map widget; phone cases do not (P3 지도)', async () => {
+    arrange()
+    const user = userEvent.setup()
+    render(<MobilePage />)
+    await user.click(await screen.findByRole('tab', { name: /방문 1건/ }))
+    await user.click(await screen.findByText(/SYN-HH-2812551000-0002/))
+    const mapSummary = screen.getByText('방문 위치 지도 열기')
+    expect(mapSummary).toBeInTheDocument()
+    await user.click(mapSummary)
+    expect(await screen.findByRole('region', { name: '[합성] 방문 위치 참고 지도' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '오늘 목록으로' }))
+    await user.click(screen.getByRole('tab', { name: /전화 1건/ }))
+    await user.click(await screen.findByText(/SYN-HH-2812551000-0001/))
+    expect(screen.queryByText('방문 위치 지도 열기')).toBeNull()
   })
 
   it('shows the virtual phone dial mock without any real call (INV15)', async () => {

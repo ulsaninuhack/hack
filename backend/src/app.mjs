@@ -536,6 +536,10 @@ async function routeThreeTier(request, url, threeTierService) {
       if (!CASE_ID_PATTERN.test(caseId)) throw new ApiError(400, 'INVALID_PATH', 'caseId must be a synthetic case ID');
       return threeTierService.getReportCard({ sessionId: readSession(), caseId });
     }
+    if (url.pathname === `${THREE_TIER_PREFIX}city-operations-map`) {
+      assertKnownQuery(url.searchParams, new Set());
+      return threeTierService.getCityOperationsMap({ sessionId: readSession() });
+    }
     if (url.pathname === `${THREE_TIER_PREFIX}district-aggregates`) {
       assertKnownQuery(url.searchParams, new Set(['referenceDate']));
       return threeTierService.getDistrictAggregates({ sessionId: readSession(), referenceDate: readIsoDate('referenceDate') });

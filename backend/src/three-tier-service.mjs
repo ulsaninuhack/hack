@@ -79,6 +79,7 @@ function laneItem(record, proposal, referenceDate) {
       district: household.location.current_district_name_20260701,
       latitude: household.location.latitude,
       longitude: household.location.longitude,
+      geometry_zone_id: household.location.geometry_zone_id,
       // #25 이후 픽스처는 공공 주거용 건물의 도로명 주소 참조를 갖는다.
       // 실제 거주자와 연결되지 않는다(not_real_resident).
       road_address: household.location.road_address ?? null,
@@ -144,6 +145,7 @@ export function createThreeTierService({
   structuralContext = null,
   workers,
   aiSummaryAdapter = null,
+  operationsMapProvider = null,
   now = () => new Date().toISOString(),
 }) {
   if (!state || typeof state.list !== 'function' || typeof state.get !== 'function') {
@@ -331,6 +333,25 @@ export function createThreeTierService({
         synthetic: true,
         displayMarker: '[합성]',
         assignment_proposal: applyConfirmation(batch, memory),
+      };
+    },
+
+    // INV17을 API 계층에서 강제한다: 시·구 화면이 쓰는 운영 지도 응답에서
+    // 구역 최대값의 케이스 ID를 제거해, 개별 케이스 식별자가 시·구 클라이언트에
+    // 네트워크로도 도달하지 않게 한다.
+    async getCityOperationsMap({ sessionId }) {
+      if (typeof operationsMapProvider !== 'function') {
+        throw new TypeError('city operations map provider is unavailable');
+      }
+      const operationsMap = structuredClone(await operationsMapProvider({ sessionId }));
+      for (const zone of operationsMap.zones ?? []) {
+        delete zone.operations.acute_max_case_id;
+        delete zone.operations.vulnerability_max_case_id;
+      }
+      return {
+        ...operationsMap,
+        case_detail_access: 'none_district_rollup_only',
+        privacy_note: '시·구 화면용 응답 — 구역 최대값의 케이스 ID를 포함하지 않습니다.',
       };
     },
 

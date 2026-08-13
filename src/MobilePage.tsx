@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ChangeEvent } from 'react'
-import { AlertTriangle, CheckCircle2, ChevronLeft, Mic, Phone, RefreshCw, Send } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, ChevronLeft, MapPinned, Mic, Phone, RefreshCw, Send } from 'lucide-react'
+import MapView from './MapView'
+import { loadData } from './data'
+import type { DataBundle } from './types'
 import {
   CONTACT_OPS_REFERENCE_DATE,
   ContactOpsClientError,
@@ -109,6 +112,17 @@ export function MobilePage() {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [visitMapOpen, setVisitMapOpen] = useState(false)
+  const [mapData, setMapData] = useState<DataBundle | null>(null)
+
+  useEffect(() => {
+    if (!visitMapOpen || mapData) return
+    let active = true
+    void loadData().then((bundle) => { if (active) setMapData(bundle) }).catch(() => {
+      // 지도는 방문 보조 수단이다. 실패해도 주소·목록 흐름은 계속된다.
+    })
+    return () => { active = false }
+  }, [visitMapOpen, mapData])
 
   const refresh = useCallback(async () => {
     try {
@@ -129,6 +143,7 @@ export function MobilePage() {
   const openCase = (item: LaneItem) => {
     setSelected(item)
     setStep('case')
+    setVisitMapOpen(false)
     setInputPath(null)
     setResultLabel('')
     setObservations(emptyObservations())
@@ -301,6 +316,31 @@ export function MobilePage() {
             )}
           </dl>
           <p className="mobile-address-note">{selected.location.address_note}</p>
+          {selected.lane === 'visit' && (
+            <details className="mobile-map-widget" onToggle={(event) => setVisitMapOpen((event.target as HTMLDetailsElement).open)}>
+              <summary><MapPinned aria-hidden="true" size={18} /> 방문 위치 지도 열기</summary>
+              <div className="mobile-map-frame">
+                {visitMapOpen && mapData ? (
+                  <MapView
+                    data={mapData}
+                    metric="age_65_plus_one_person_share_of_age_65_plus_population"
+                    showFacilities={false}
+                    showTransit={false}
+                    showBubbles={false}
+                    facilityCategory="전체"
+                    selectedZoneId={selected.location.geometry_zone_id}
+                    syntheticPoint={{
+                      caseId: selected.case_id,
+                      longitude: selected.location.longitude,
+                      latitude: selected.location.latitude,
+                    }}
+                    ariaLabel="[합성] 방문 위치 참고 지도"
+                    onSelectDong={() => {}}
+                  />
+                ) : <p role="status">지도를 열면 방문 위치를 확인할 수 있습니다.</p>}
+              </div>
+            </details>
+          )}
           <button className="mobile-dial" onClick={() => setShowDial(true)}>
             <Phone aria-hidden="true" /> {selected.virtual_phone.label} {selected.virtual_phone.display_number}
           </button>

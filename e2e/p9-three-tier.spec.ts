@@ -43,10 +43,12 @@ async function expectTierMobileMeasurements(page: Page) {
     })
     return {
       minFont: Math.min(...fontSizes),
+      measuredTextCount: fontSizes.length,
       targetFailures,
       horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     }
   })
+  expect(measurements.measuredTextCount).toBeGreaterThan(0)
   expect(measurements.minFont).toBeGreaterThanOrEqual(18)
   expect(measurements.targetFailures).toEqual([])
   expect(measurements.horizontalOverflow).toBe(0)
@@ -65,11 +67,15 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
   page.on('console', (message) => {
     if (message.type() !== 'error') return
     const text = message.text()
-    // Sandboxed runners cannot reach the external basemap/glyph hosts; those
-    // fetch failures are environment noise, not app errors. App-origin
-    // resources bypass the sandbox proxy, so this cannot hide app failures.
-    const externalNoise = ['tile.openstreetmap.org', 'demotiles.maplibre.org',
-      'net::ERR_TUNNEL_CONNECTION_FAILED', 'net::ERR_PROXY_CONNECTION_FAILED']
+    // Sandbox-only (PLAYWRIGHT_CHROMIUM_EXECUTABLE set): offline runners cannot
+    // reach the external basemap/glyph hosts, so those fetch failures are
+    // environment noise there. In CI the env is unset and NOTHING is filtered,
+    // exactly as before.
+    const sandboxOffline = Boolean(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE)
+    const externalNoise = sandboxOffline
+      ? ['tile.openstreetmap.org', 'demotiles.maplibre.org',
+        'net::ERR_TUNNEL_CONNECTION_FAILED', 'net::ERR_PROXY_CONNECTION_FAILED']
+      : []
     if (!externalNoise.some((marker) => text.includes(marker))) consoleErrors.push(text)
   })
   page.on('pageerror', (error) => pageErrors.push(error.message))
@@ -87,9 +93,9 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
     await page.getByRole('button', { name: '구 단위 요약 읽기' }).click()
     await expect(page.getByText('[AI 생성 · 관측 집계 해석 · 개인 예측 아님]')).toBeVisible()
     await expect(page.getByLabel('제물포구 AI 요약')).toContainText('관측 집계에서')
-    const cityText = await page.locator('body').innerText()
-    expect(cityText).not.toMatch(/SYN-HH-/)
-    expect(cityText).not.toContain(['위험', '군'].join(''))
+    const cityHtml = await page.content()
+    expect(cityHtml).not.toMatch(/SYN-HH-/)
+    expect(cityHtml).not.toContain(['위험', '군'].join(''))
     await page.screenshot({ path: `${SCREENSHOT_DIR}/p9-city-before-desktop.png` })
   })
 
@@ -144,7 +150,7 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
 
     await expect(page.getByRole('heading', { name: '동 행정복지센터에 보고됨' })).toBeVisible()
     await expect(page.getByText('방문권고', { exact: true })).toBeVisible()
-    await expect(page.getByText('62')).toBeVisible()
+    await expect(page.locator('.mobile-done-summary')).toContainText('62')
     await expect(page.getByLabel('권고 기관 미리보기')).toContainText('보건소·의료 연계')
     await page.screenshot({ path: `${SCREENSHOT_DIR}/p9-mobile-done.png` })
     expect(mutationPaths).toContain(`/api/v1/contact-ops/cases/${CASE_ID}/contact-results`)
@@ -214,7 +220,7 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
     await expect(page.getByRole('heading', { name: /시·구 배치 브리핑/ })).toBeVisible()
     await page.getByLabel('브리핑할 구 선택').selectOption('제물포구')
     await expect(page.getByLabel('제물포구 구 단위 브리핑')).toBeVisible()
-    expect(await page.locator('body').innerText()).not.toMatch(/SYN-HH-/)
+    expect(await page.content()).not.toMatch(/SYN-HH-/)
     await page.screenshot({ path: `${SCREENSHOT_DIR}/p9-city-after-desktop.png` })
     await expectNoSeriousAxeViolations(page)
   })

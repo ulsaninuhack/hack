@@ -3,8 +3,8 @@ import { AlertTriangle, Building2, RefreshCw, Sparkles, UsersRound } from 'lucid
 import MapView from './MapView'
 import { loadData } from './data'
 import type { DataBundle, DongProperties } from './types'
-import { loadOperationsMap } from './contactOpsClient'
-import type { OperationsMap, OperationsMapZone } from './contactOpsClient'
+import { loadCityOperationsMap } from './threeTierClient'
+import type { CityOperationsMap, CityOperationsMapZone } from './threeTierClient'
 import { loadStructuralContext } from './structuralContext'
 import type { StructuralContext } from './structuralContext'
 import { loadDistrictAggregates, loadDistrictAiSummary } from './threeTierClient'
@@ -18,7 +18,7 @@ function formatPct(value: number | null) {
 
 // INV17: 시·구 화면은 동 단위 롤업까지만 보여준다. 케이스 ID·개별 상세는
 // 이 컴포넌트에 절대 렌더하지 않는다(케이스 ID 필드는 의도적으로 미사용).
-function CityZoneRollup({ zone, dong }: { zone: OperationsMapZone | null; dong: DongProperties | null }) {
+function CityZoneRollup({ zone, dong }: { zone: CityOperationsMapZone | null; dong: DongProperties | null }) {
   if (!zone || !dong) {
     return <p className="ops-empty">지도에서 동을 선택하면 동 단위 롤업이 나옵니다.</p>
   }
@@ -110,7 +110,7 @@ function DistrictBrief({
 
 export function CityPage() {
   const [mapData, setMapData] = useState<DataBundle | null>(null)
-  const [operationsMap, setOperationsMap] = useState<OperationsMap | null>(null)
+  const [operationsMap, setOperationsMap] = useState<CityOperationsMap | null>(null)
   const [structuralContext, setStructuralContext] = useState<StructuralContext | null>(null)
   const [aggregates, setAggregates] = useState<DistrictAggregates | null>(null)
   const [selectedDong, setSelectedDong] = useState<DongProperties | null>(null)
@@ -121,7 +121,7 @@ export function CityPage() {
 
   useEffect(() => {
     let active = true
-    void Promise.all([loadData(), loadOperationsMap(), loadStructuralContext(), loadDistrictAggregates()])
+    void Promise.all([loadData(), loadCityOperationsMap(), loadStructuralContext(), loadDistrictAggregates()])
       .then(([bundle, operations, structural, districtAggregates]) => {
         if (!active) return
         setMapData(bundle)
