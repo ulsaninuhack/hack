@@ -22,10 +22,7 @@ export function LiveCallPage() {
       </header>
 
       {join
-        ? <>
-            <p className="guest-call-guide">아래 버튼을 누르고 마이크 권한을 허용해 주세요. 별도 앱 설치 없이 브라우저에서 연결됩니다.</p>
-            <LiveCallPanel join={join} />
-          </>
+        ? <LiveCallPanel join={join} />
         : <section className="guest-call-invalid" role="alert">
             <h2>참여 링크를 다시 받아 주세요</h2>
             <p>링크가 만료되었거나 올바르지 않습니다. 연결단원에게 새 참여 링크를 요청해 주세요.</p>

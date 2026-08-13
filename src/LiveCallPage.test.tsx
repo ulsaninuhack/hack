@@ -41,6 +41,7 @@ describe('LiveCallPage', () => {
 
     expect(screen.getByRole('heading', { name: '안부 통화 참여' })).toBeInTheDocument()
     expect(screen.getByTestId('live-call-panel')).toHaveTextContent('resident:call123')
+    expect(screen.queryByText(/별도 앱 설치/)).toBeNull()
     await waitFor(() => expect(window.location.pathname).toBe('/call'))
     expect(window.location.hash).toBe('')
     expect(document.body.textContent).not.toContain('guest.token.signature')

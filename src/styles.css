@@ -1102,7 +1102,7 @@ select:focus-visible,
 .guest-call-page > header p { margin: 0; color: #656b75; font-weight: 700; }
 .guest-call-page h1 { margin: 0; font-size: 28px; line-height: 1.25; }
 .guest-call-mark { display: grid; place-items: center; width: 52px; height: 52px; flex: 0 0 52px; border-radius: 14px; background: #5a42ee; color: #ffffff; }
-.guest-call-guide, .guest-call-invalid { margin: 0 0 16px; padding: 16px; border: 1px solid #d7dfea; border-radius: 16px; background: #ffffff; }
+.guest-call-invalid { margin: 0 0 16px; padding: 16px; border: 1px solid #d7dfea; border-radius: 16px; background: #ffffff; }
 .guest-call-invalid h2 { margin: 0 0 8px; font-size: 22px; }
 .guest-call-invalid p { margin: 0; }
 
