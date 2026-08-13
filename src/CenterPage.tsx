@@ -12,6 +12,7 @@ import {
 } from './contactOpsClient'
 import type { CaseDetail } from './contactOpsClient'
 import {
+  ATTENTION_CONTACT_LABELS,
   DEMO_CENTER_DONG_CODE,
   acknowledgeReport,
   confirmAssignment,
@@ -22,7 +23,6 @@ import type { AssignmentProposalItem, CenterInbox, ReportCard } from './threeTie
 import { caseDisplayName } from './caseDisplayName'
 
 const CENTER_ACTOR = '동센터 담당자'
-const ATTENTION_CONTACT_LABELS = new Set(['연락 안 됨', '연락 거부', '연락처 확인 필요', '우려 사항 있음'])
 const TRANSFER_TRACK_MESSAGE = '안부확인 트랙에서 사례관리·전문기관 트랙으로 전환하는 권고입니다. 전환 확정은 별도 행정 절차로 진행합니다.'
 
 function errorText(cause: unknown, fallback: string) {

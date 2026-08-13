@@ -5,13 +5,13 @@ import MapView from './MapView'
 import { loadData } from './data'
 import type { DataBundle } from './types'
 import {
-  CONTACT_OPS_REFERENCE_DATE,
   ContactOpsClientError,
   emptyObservations,
   submitContact,
 } from './contactOpsClient'
 import type { CanonicalObservations, ContactResultLabel } from './contactOpsClient'
 import {
+  ATTENTION_CONTACT_LABELS,
   contactResultLabelFromCode,
   loadReportCard,
   loadTodayLanes,
@@ -238,7 +238,10 @@ export function MobilePage() {
       <header className="tier-header mobile-header">
         <div>
           <h1>조사원 화면 · {lanesData?.worker_display_name ?? '연결단원 001'}</h1>
-          <p className="tier-audience">{lanesData?.dong_name ?? '신포동'} · 기준일 {CONTACT_OPS_REFERENCE_DATE}</p>
+          <p className="tier-audience">
+            {lanesData?.dong_name ?? '신포동'}
+            <span className="live-indicator"><span className="live-dot" aria-hidden="true" />실시간</span>
+          </p>
         </div>
         <nav aria-label="3계층 화면 이동">
           <a href="/center">동 센터</a>
@@ -265,7 +268,6 @@ export function MobilePage() {
               방문 {lanesData?.lanes.visit.length ?? 0}건
             </button>
           </div>
-          <p className="lane-rule">방문 목록에는 승인된 방문과 방문 선호 예정 업무만 나옵니다.</p>
           {loading && !lanesData ? <p className="ops-state" role="status">오늘 목록을 불러오는 중입니다.</p> : (
             <ul className="mobile-task-list" aria-label={lane === 'phone' ? '오늘 전화 목록' : '오늘 방문 목록'}>
               {items.length === 0 ? (
@@ -278,21 +280,39 @@ export function MobilePage() {
                 : items.map((item) => (
                   <li key={item.case_id}>
                     <button className="mobile-task" onClick={() => openCase(item)}>
-                      <span className="case-id">{item.display_name} 어르신</span>
-                      <LaneBadge item={item} />
-                      <span className="mobile-task-meta">
-                        {item.location.dong_name} · 마지막 연락 {item.last_contact.date ?? '기록 없음'} · {item.last_contact.result_label}
+                      <span className="mobile-task-top">
+                        <span className="case-id">{item.display_name} 어르신</span>
+                        <LaneBadge item={item} />
                       </span>
-                      {item.lane === 'visit' && item.visit_context && (
-                        <span className="mobile-task-meta">
-                          선호 시간 {item.visit_context.preferred_visit_time_window.start}~{item.visit_context.preferred_visit_time_window.end}
-                          {item.visit_context.requires_public_official_companion ? ' · 공무원 동행 필요' : ''}
-                          {item.visit_context.requires_two_person_team ? ' · 2인 1조' : ''}
+                      <span className="mobile-task-address">
+                        {item.lane === 'visit' && item.location.road_address
+                          ? `${item.location.road_address}${item.location.building_name ? ` (${item.location.building_name})` : ''}`
+                          : item.location.dong_name}
+                      </span>
+                      <span className="mobile-task-facts">
+                        <span className="mobile-task-fact">
+                          <span className="fact-label">마지막 연락</span>
+                          <span className="fact-value">
+                            {item.last_contact.date ?? '기록 없음'}
+                            <span
+                              className="fact-status"
+                              data-attention={ATTENTION_CONTACT_LABELS.has(item.last_contact.result_label) || undefined}
+                            >
+                              {item.last_contact.result_label}
+                            </span>
+                          </span>
                         </span>
-                      )}
-                      {item.lane === 'visit' && item.location.road_address && (
-                        <span className="mobile-task-meta">{item.location.road_address}{item.location.building_name ? ` (${item.location.building_name})` : ''}</span>
-                      )}
+                        {item.lane === 'visit' && item.visit_context && (
+                          <span className="mobile-task-fact">
+                            <span className="fact-label">선호 시간</span>
+                            <span className="fact-value">
+                              {item.visit_context.preferred_visit_time_window.start}~{item.visit_context.preferred_visit_time_window.end}
+                              {item.visit_context.requires_public_official_companion ? ' · 공무원 동행 필요' : ''}
+                              {item.visit_context.requires_two_person_team ? ' · 2인 1조' : ''}
+                            </span>
+                          </span>
+                        )}
+                      </span>
                     </button>
                   </li>
                 ))}
