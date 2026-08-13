@@ -37,6 +37,37 @@ function CityZoneRollup({ zone, dong }: { zone: CityOperationsMapZone | null; do
   )
 }
 
+function StatBar({ label, value }: { label: string; value: number | null }) {
+  return (
+    <div className="city-stat-bar">
+      <div className="city-stat-bar-head"><span>{label}</span><strong>{formatPct(value)}</strong></div>
+      <div className="city-stat-bar-track"><div className="city-stat-bar-fill" style={{ width: `${value === null ? 0 : Math.min(value, 100)}%` }} /></div>
+    </div>
+  )
+}
+
+function PriorityActions({ operations }: { operations: DistrictAggregate['operations'] }) {
+  const items = [
+    { label: '기한 경과 확인', detail: `${operations.overdue_count}건` },
+    { label: '방문승인 대기 검토', detail: `${operations.pending_visit_approval_count}건` },
+    { label: '이관 권고 검토', detail: `${operations.transfer_recommended_count}건` },
+  ]
+  return (
+    <div className="city-priority-actions" aria-label="우선 조치 권고">
+      <h4>우선 조치 권고</h4>
+      <ol>
+        {items.map((item, index) => (
+          <li key={item.label}>
+            <span className="city-priority-index">{index + 1}</span>
+            <span className="city-priority-body"><strong>{item.label}</strong><small>{item.detail}</small></span>
+          </li>
+        ))}
+      </ol>
+      <p className="city-privacy-note">케이스 단위 정보 없이 구·동 집계만 사용합니다.</p>
+    </div>
+  )
+}
+
 function DistrictBrief({
   aggregate,
   summary,
@@ -53,34 +84,26 @@ function DistrictBrief({
   return (
     <section className="city-district-brief" aria-label={`${aggregate.district} 구 단위 브리핑`}>
       <h3>{aggregate.district} 구 단위 브리핑</h3>
-      <div className="city-brief-grid">
-        <article aria-label="구조 맥락">
-          <h4><UsersRound aria-hidden="true" size={17} /> 구조 맥락 (공개 집계)</h4>
-          <ul>
-            <li>노인 인구 비율 <strong>{formatPct(structure.elderly_share_pct)}</strong></li>
-            <li>일인가구 비율 <strong>{formatPct(structure.one_person_household_share_pct)}</strong></li>
-            <li>65세 이상 일인세대 <strong>{structure.one_person_households_age_65_plus.toLocaleString()}세대</strong></li>
-            <li>기초수급 밀도(참고) <strong>{formatPct(structure.basic_livelihood.density_pct)}</strong></li>
-            <li>복지시설 <strong>{structure.welfare_facility_count.toLocaleString()}곳</strong></li>
-          </ul>
-          <p className="mixed-snapshot-note">{structure.mixed_snapshot_warning}</p>
-          <p className="mixed-snapshot-note">{structure.basic_livelihood.mixed_snapshot_warning}</p>
-        </article>
-        <article aria-label="운영 부하">
-          <h4><Building2 aria-hidden="true" size={17} /> 운영 부하</h4>
-          <ul>
-            <li>연결단원 <strong>{operations.worker_count}명</strong></li>
-            <li>오늘 예정 <strong>{operations.due_count}건</strong> · 연결단원당 {operations.per_worker.due ?? '자료 없음'}건</li>
-            <li>기한 경과 <strong>{operations.overdue_count}건</strong></li>
-            <li>방문승인 대기 <strong>{operations.pending_visit_approval_count}건</strong></li>
-            <li>이관 권고 <strong>{operations.transfer_recommended_count}건</strong></li>
-          </ul>
-          <p className="city-privacy-note">케이스 단위 정보 없이 구·동 집계만 사용합니다.</p>
-        </article>
+
+      <div className="city-stat-bars" aria-label="구조 맥락 비율 지표">
+        <StatBar label="노인 인구 비율" value={structure.elderly_share_pct} />
+        <StatBar label="일인가구 비율" value={structure.one_person_household_share_pct} />
+        <StatBar label="기초수급 밀도(참고)" value={structure.basic_livelihood.density_pct} />
       </div>
+      <p className="mixed-snapshot-note">{structure.mixed_snapshot_warning}</p>
+      <p className="mixed-snapshot-note">{structure.basic_livelihood.mixed_snapshot_warning}</p>
+
+      <div className="city-fact-chips" aria-label="구 단위 관측 수치">
+        <span><UsersRound aria-hidden="true" size={15} /> 65세 이상 일인세대 <strong>{structure.one_person_households_age_65_plus.toLocaleString()}</strong>세대</span>
+        <span><Building2 aria-hidden="true" size={15} /> 복지시설 <strong>{structure.welfare_facility_count.toLocaleString()}</strong>곳</span>
+        <span>연결단원 <strong>{operations.worker_count}</strong>명</span>
+        <span>오늘 예정 <strong>{operations.due_count}</strong>건 · 인당 {operations.per_worker.due ?? '자료 없음'}건</span>
+      </div>
+
       <div className="city-ai-summary">
+        <h4><Sparkles aria-hidden="true" size={16} /> AI 인사이트</h4>
         <button disabled={summaryBusy} onClick={onRequestSummary}>
-          <Sparkles aria-hidden="true" size={17} /> {summaryBusy ? '요약 생성 중' : '구 단위 요약 읽기'}
+          {summaryBusy ? '요약 생성 중' : '구 단위 요약 읽기'}
         </button>
         {summary && summary.district === aggregate.district && (
           <article className="city-ai-summary-card" aria-label={`${aggregate.district} AI 요약`}>
@@ -100,6 +123,8 @@ function DistrictBrief({
           </article>
         )}
       </div>
+
+      <PriorityActions operations={operations} />
     </section>
   )
 }
@@ -173,7 +198,7 @@ export function CityPage() {
       <div className="city-columns">
         <aside className="city-panel">
           <section className="city-section" aria-labelledby="city-district-heading">
-            <h2 id="city-district-heading">구 단위 분석 확인</h2>
+            <h2 id="city-district-heading">구 단위 AI 브리핑</h2>
             <label className="city-district-select">브리핑할 구 선택
               <select value={selectedDistrict} onChange={(event) => { setSelectedDistrict(event.target.value); setSummary(null) }}>
                 {aggregates?.districts.map((item) => <option key={item.district}>{item.district}</option>)}
