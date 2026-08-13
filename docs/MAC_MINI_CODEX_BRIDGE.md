@@ -85,13 +85,14 @@ gcloud run services update incheon-care-api \
 
 If `codex-bridge-token` does not yet exist, first create it with automatic replication and grant
 the existing Cloud Run runtime service account Secret Manager accessor only for this secret. Keep
-`OPENAI_API_KEY` while file transcription is enabled; it is no longer used for text Planner/Critic
-when `CONTACT_OPS_CODEX_BRIDGE_URL` is present.
+`OPENAI_API_KEY` while file transcription is enabled. When both transports are configured, text
+Planner/Critic retries through that same key only for bridge network errors, timeouts, or HTTP
+503/504. Authentication, rate-limit, model-output, and malformed-response failures stay closed.
 
 Production reads `CONTACT_OPS_CODEX_BRIDGE_URL` from the repository variable and maps
 `CONTACT_OPS_CODEX_BRIDGE_TOKEN` directly from `codex-bridge-token` in Secret Manager. When
-reprovisioning, verify both mappings only after the Funnel request smoke passes, because bridge
-configuration is deliberately fail-closed.
+reprovisioning, verify both mappings only after the Funnel request smoke passes. The OpenAI fallback
+does not hide bridge credential or response-contract mistakes.
 
 ## 5. End-to-end smoke
 

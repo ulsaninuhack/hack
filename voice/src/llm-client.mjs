@@ -19,6 +19,8 @@ export class CodexBridgeError extends Error {
   }
 }
 
+class CodexBridgeAvailabilityError extends CodexBridgeError {}
+
 function parseTimeout(value) {
   const parsed = Number(value || DEFAULT_TIMEOUT_MS);
   if (!Number.isSafeInteger(parsed) || parsed < 1_000 || parsed > 60_000) {
@@ -102,10 +104,14 @@ function bridgeClient({ baseUrl, token, timeoutMs, fetchImpl }) {
             signal: AbortSignal.timeout(timeoutMs),
           });
         } catch {
-          throw new CodexBridgeError('The Codex bridge is temporarily unavailable.');
+          throw new CodexBridgeAvailabilityError('The Codex bridge is temporarily unavailable.');
         }
         if (!response.ok) {
+          const availabilityFailure = response.status === 503 || response.status === 504;
           await response.body?.cancel().catch(() => {});
+          if (availabilityFailure) {
+            throw new CodexBridgeAvailabilityError('The Codex bridge is temporarily unavailable.');
+          }
           throw new CodexBridgeError('The Codex bridge is temporarily unavailable.');
         }
         if (!String(response.headers.get('content-type') || '').toLowerCase().startsWith('application/json')) {
@@ -137,6 +143,23 @@ function bridgeClient({ baseUrl, token, timeoutMs, fetchImpl }) {
   });
 }
 
+function clientWithAvailabilityFallback({ primary, apiKey, openAiFactory }) {
+  let fallback;
+  return Object.freeze({
+    responses: Object.freeze({
+      async create(request) {
+        try {
+          return await primary.responses.create(request);
+        } catch (error) {
+          if (!(error instanceof CodexBridgeAvailabilityError)) throw error;
+          fallback ??= openAiFactory(apiKey);
+          return fallback.responses.create(request);
+        }
+      },
+    }),
+  });
+}
+
 export function createTextLlmClient({
   env = process.env,
   fetchImpl = globalThis.fetch,
@@ -147,12 +170,16 @@ export function createTextLlmClient({
     if (typeof fetchImpl !== 'function') {
       throw new LlmClientConfigurationError('A fetch implementation is required for the Codex bridge.');
     }
-    return bridgeClient({
+    const primary = bridgeClient({
       baseUrl: normalizeBridgeUrl(bridgeUrl),
       token: loadToken(env),
       timeoutMs: parseTimeout(env.CONTACT_OPS_CODEX_BRIDGE_TIMEOUT_MS),
       fetchImpl,
     });
+    const apiKey = String(env.OPENAI_API_KEY || '').trim();
+    return apiKey
+      ? clientWithAvailabilityFallback({ primary, apiKey, openAiFactory })
+      : primary;
   }
 
   const apiKey = String(env.OPENAI_API_KEY || '').trim();

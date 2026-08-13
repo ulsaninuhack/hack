@@ -69,8 +69,10 @@ transfer.
 
 Live Planner/Critic calls are fail-closed unless `ENABLE_LIVE_CONTACT_OPS_AI=1` and one text
 transport is configured: either the authenticated `CONTACT_OPS_CODEX_BRIDGE_URL` plus bearer
-token, or `OPENAI_API_KEY`. Bridge configuration takes precedence and does not silently fall back
-when the Mac mini is unavailable. `OPENAI_API_KEY` remains required for WAV/MP3/M4A transcription.
+token, or `OPENAI_API_KEY`. Bridge configuration takes precedence. When both are configured,
+network errors, timeouts, and HTTP 503/504 retry through the same `OPENAI_API_KEY` already used for
+WAV/MP3/M4A transcription. Authentication, rate-limit, model-output, and response-contract failures
+remain closed rather than being masked by fallback.
 CI proves the graph and bridge boundaries with deterministic clients; it does not prove live-model
 quality or home-network availability. Secrets belong in Google Secret Manager and public exposure
 must stay bounded by the configured request limit.
