@@ -153,7 +153,7 @@ test('Critic exposes missing and low-confidence fields instead of silently conve
   assert.equal(result.critic.next_question, null);
 });
 
-test('Critic proposes one information-gain question for an ambiguous meal statement', async () => {
+test('reduced-meal speech becomes a poor-meal candidate and keeps one severity question', async () => {
   const transcript = '요즘 밥을 잘 못 먹어요.';
   const result = await planContactOpsObservation(
     { kind: 'text', text: transcript, surveyorId: SURVEYOR_ID, caseId: ROUTE_CASE_ID },
@@ -168,14 +168,121 @@ test('Critic proposes one information-gain question for an ambiguous meal statem
     },
   );
 
-  assert.equal(result.observations.식사상태, null);
-  assert.ok(result.critic.warnings.includes('모호한 식사 표현은 등급 후보로 확정하지 않음'));
+  assert.equal(result.observations.식사상태, '불량');
+  assert.ok(!result.critic.missing_fields.includes('식사상태'));
+  assert.ok(result.critic.warnings.includes('직접적인 결식 발화는 불량 후보로 두고 지속 정도를 추가 확인함'));
   assert.equal(
     result.critic.next_question,
     '오늘 식사를 한 끼도 하지 못한 건가요, 아니면 평소보다 양이 줄어든 건가요?',
   );
   assert.equal(result.requires_user_confirmation, true);
   assert.equal(result.confirmed, false);
+});
+
+test('explicit repeated no-meal speech becomes at least a poor-meal candidate even when Planner misses it', async () => {
+  const transcript = [
+    '어, 나 밥도 못 먹고 친구도 없어. 나가지도 않고 씻지도 않았고.',
+    '어, 나 밥 안 먹고 요새 안 먹고 있어.',
+    '요새 나 밥 안 먹는다고.',
+  ].join(' ');
+  const result = await planContactOpsObservation(
+    { kind: 'text', text: transcript, surveyorId: SURVEYOR_ID, caseId: ROUTE_CASE_ID },
+    {
+      plannerClient: mockPlanner(plannerOutput({
+        transcript,
+        caseId: null,
+        observation: { meal_status: null, hygiene: '불량', no_outing: true },
+        riskSignals: ['관계망 없음'],
+        freeText: '',
+      })),
+    },
+  );
+
+  assert.equal(result.observations.식사상태, '불량');
+  assert.ok(!result.critic.missing_fields.includes('식사상태'));
+  assert.equal(
+    result.critic.next_question,
+    '오늘 식사를 한 끼도 하지 못한 건가요, 아니면 평소보다 양이 줄어든 건가요?',
+  );
+  assert.equal(result.requires_user_confirmation, true);
+  assert.equal(result.confirmed, false);
+});
+
+test('explicit all-day or multi-day no-meal speech becomes serious even when Planner misses it', async () => {
+  for (const transcript of ['오늘 한 끼도 못 먹었어요.', '이틀째 밥을 안 먹었어요.']) {
+    const result = await planContactOpsObservation(
+      { kind: 'text', text: transcript, surveyorId: SURVEYOR_ID, caseId: ROUTE_CASE_ID },
+      {
+        plannerClient: mockPlanner(plannerOutput({
+          transcript,
+          caseId: null,
+          observation: { meal_status: null, hygiene: null },
+          riskSignals: [],
+          freeText: '',
+        })),
+      },
+    );
+
+    assert.equal(result.observations.식사상태, '심각', transcript);
+    assert.ok(!result.critic.missing_fields.includes('식사상태'), transcript);
+    assert.equal(result.critic.next_question, null, transcript);
+  }
+});
+
+test('cooking-only speech does not become a meal-status candidate', async () => {
+  const transcript = '요새 돈까스 같은 것도 안 해요.';
+  const result = await planContactOpsObservation(
+    { kind: 'text', text: transcript, surveyorId: SURVEYOR_ID, caseId: ROUTE_CASE_ID },
+    {
+      plannerClient: mockPlanner(plannerOutput({
+        transcript,
+        caseId: null,
+        observation: { meal_status: null, hygiene: null },
+        riskSignals: [],
+        freeText: '',
+      })),
+    },
+  );
+
+  assert.equal(result.observations.식사상태, null);
+});
+
+test('a direct no-meal phrase immediately corrected by the speaker is not deterministically overridden', async () => {
+  const transcript = '밥을 안 먹은 건 아니고 아침에는 죽을 조금 먹었어요.';
+  const result = await planContactOpsObservation(
+    { kind: 'text', text: transcript, surveyorId: SURVEYOR_ID, caseId: ROUTE_CASE_ID },
+    {
+      plannerClient: mockPlanner(plannerOutput({
+        transcript,
+        caseId: null,
+        observation: { meal_status: '양호', hygiene: null },
+        riskSignals: [],
+        freeText: '',
+      })),
+    },
+  );
+
+  assert.equal(result.observations.식사상태, '양호');
+  assert.equal(result.critic.next_question, null);
+});
+
+test('a negated starving phrase is not deterministically upgraded to serious', async () => {
+  const transcript = '굶는 건 아니고 아침에는 죽을 먹었어요.';
+  const result = await planContactOpsObservation(
+    { kind: 'text', text: transcript, surveyorId: SURVEYOR_ID, caseId: ROUTE_CASE_ID },
+    {
+      plannerClient: mockPlanner(plannerOutput({
+        transcript,
+        caseId: null,
+        observation: { meal_status: '양호', hygiene: null },
+        riskSignals: [],
+        freeText: '',
+      })),
+    },
+  );
+
+  assert.equal(result.observations.식사상태, '양호');
+  assert.equal(result.critic.next_question, null);
 });
 
 test('Critic does not ask a redundant question when the meal severity is explicit', async () => {
@@ -299,7 +406,7 @@ test('selected-case memo context maps AI social-isolation signals into the canon
   assert.equal(result.case_id, ROUTE_CASE_ID);
   assert.equal(result.contact_result, 'connected_concern');
   assert.equal(result.observations.관찰_6징후.외출_없음, true);
-  assert.equal(result.observations.식사상태, null);
+  assert.equal(result.observations.식사상태, '불량');
   assert.equal(result.critic.next_question, '오늘 식사를 한 끼도 하지 못한 건가요, 아니면 평소보다 양이 줄어든 건가요?');
   assert.equal(result.observations.공과금_2개월_이상_체납, true);
   assert.equal(result.observations.최근_건강_정신_괴로움, true);

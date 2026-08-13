@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { AlertTriangle, Check, Copy, HelpCircle, Mic, MicOff, PhoneCall, PhoneOff, Share2, Users } from 'lucide-react'
+import { Check, Copy, HelpCircle, LoaderCircle, Mic, MicOff, PhoneCall, PhoneOff, Share2, Users } from 'lucide-react'
 import QRCode from 'qrcode'
 
 import type { LiveCallJoin } from './liveCallClient'
 import { connectLiveCallSession, type LiveCallSession } from './liveCallSession'
 import { appendCaption, residentTranscript, type LiveCaption } from './liveCallTranscript'
-import { buildLiveEvidenceGraph, type LiveEvidenceGraph } from './liveEvidenceGraph'
 import type { VoiceCandidate } from './threeTierClient'
 
 type CallState = 'idle' | 'connecting' | 'connected' | 'finishing' | 'ended'
@@ -13,6 +12,7 @@ type CallState = 'idle' | 'connecting' | 'connected' | 'finishing' | 'ended'
 interface LiveCallPanelProps {
   join: LiveCallJoin
   inviteUrl?: string
+  targetDisplayName?: string
   onFinish?: (residentTranscript: string) => Promise<void> | void
   onTranscriptUpdate?: (residentTranscript: string) => void
   liveCandidate?: Pick<VoiceCandidate, 'contact_result' | 'transcript' | 'observations' | 'critic'> | null
@@ -21,8 +21,8 @@ interface LiveCallPanelProps {
   onCancel?: () => void
 }
 
-function speakerLabel(role: LiveCaption['role']) {
-  return role === 'surveyor' ? '연결단원' : '연락 대상'
+function speakerLabel(role: LiveCaption['role'], targetDisplayName?: string) {
+  return role === 'surveyor' ? '연결단원' : (targetDisplayName ?? '상대방')
 }
 
 function liveErrorText(cause: unknown) {
@@ -43,16 +43,13 @@ const LIVE_PREVIEW_SIGNS: Array<{
 
 function LiveChecklistPreview({
   candidate,
-  captions,
   pending,
   error,
 }: {
   candidate?: Pick<VoiceCandidate, 'contact_result' | 'transcript' | 'observations' | 'critic'> | null
-  captions: LiveCaption[]
   pending: boolean
   error?: string | null
 }) {
-  const evidenceGraph = candidate ? buildLiveEvidenceGraph(captions, candidate) : null
   const statusRows = candidate ? [
     { label: '식사 상태', value: candidate.observations.식사상태 },
     { label: '위생 상태', value: candidate.observations.위생상태 },
@@ -70,106 +67,52 @@ function LiveChecklistPreview({
         : candidate.observations.공과금_2개월_이상_체납 ? '체납 있음' : '체납 없음',
     },
   ] : []
+  const visibleSigns = candidate
+    ? LIVE_PREVIEW_SIGNS.filter((sign) => candidate.observations.관찰_6징후[sign.key])
+    : []
+  const visibleStatusRows = statusRows.filter((row) => row.value !== null)
+  const hasItems = visibleSigns.length > 0 || visibleStatusRows.length > 0
 
-  return <section className="live-checklist-preview" aria-label="통화 중 체크리스트 후보">
+  return <section className="live-checklist-preview" aria-label="통화 중 확인된 항목">
     <header>
-      <div>
-        <h3>통화 중 확인된 항목</h3>
-        <span>AI 후보 · 미확정</span>
-      </div>
-      {pending && <p role="status">새 발화를 확인하는 중</p>}
+      <h3>통화 중 확인된 항목</h3>
+      {pending && <p role="status">항목 갱신 중</p>}
     </header>
     {error && <p className="live-candidate-error" role="status">{error}</p>}
-    {!candidate ? (
+    {!candidate || !hasItems ? (
       <p className="live-candidate-empty">대기 중</p>
     ) : <>
       <ul className="live-candidate-grid">
-        {LIVE_PREVIEW_SIGNS.map((sign) => {
-          const checked = candidate.observations.관찰_6징후[sign.key]
-          return <li key={sign.key} data-candidate={checked || undefined}>
-            {checked ? <Check aria-hidden="true" /> : <span aria-hidden="true">—</span>}
+        {visibleSigns.map((sign) => (
+          <li key={sign.key} data-candidate="true">
+            <Check aria-hidden="true" />
             <strong>{sign.label}</strong>
-            <em>{checked ? '후보' : '미확인'}</em>
           </li>
-        })}
-        {statusRows.map((row) => <li key={row.label} data-candidate={row.value !== null ? true : undefined}>
-          {row.value !== null ? <Check aria-hidden="true" /> : <span aria-hidden="true">—</span>}
+        ))}
+        {visibleStatusRows.map((row) => <li key={row.label} data-candidate="true">
+          <Check aria-hidden="true" />
           <strong>{row.label}</strong>
-          <em>{row.value === null ? '미확인' : `${row.value} · 후보`}</em>
+          <em>{row.value}</em>
         </li>)}
       </ul>
-      {evidenceGraph && evidenceGraph.turns.length > 0 && (
-        <LiveEvidenceLedger graph={evidenceGraph} />
-      )}
-      {evidenceGraph?.contradictions.map((contradiction) => (
-        <section
-          className="live-contradiction-card"
-          aria-label="추가 확인이 필요한 상충 정보"
-          key={`${contradiction.field}-${contradiction.evidenceItemIds.join('-')}`}
-        >
-          <AlertTriangle aria-hidden="true" />
-          <div>
-            <h4>{contradiction.label}</h4>
-            <ul>{contradiction.evidenceItemIds.map((itemId) => {
-              const turn = evidenceGraph.turns.find((entry) => entry.itemId === itemId)
-              return turn && <li key={itemId}><strong>발화 {turn.sequence}</strong> · {turn.text}</li>
-            })}</ul>
-            {contradiction.nextQuestion && <p><strong>확인 질문</strong> · {contradiction.nextQuestion}</p>}
-          </div>
-        </section>
-      ))}
-      {candidate.critic.next_question && evidenceGraph?.contradictions.length === 0 && (
-        <section className="live-next-question" aria-labelledby="live-next-question-heading">
-          <HelpCircle aria-hidden="true" />
-          <div>
-            <h4 id="live-next-question-heading">다음 확인 질문</h4>
-            <p>{candidate.critic.next_question}</p>
-          </div>
-        </section>
-      )}
     </>}
   </section>
 }
 
-function LiveEvidenceLedger({ graph }: { graph: LiveEvidenceGraph }) {
-  const linkedEntries = [
-    ...graph.facts.map((fact) => ({
-      key: `fact-${fact.field}`,
-      state: fact.state === 'clarification_needed' ? '추가 확인' : 'AI 후보',
-      label: `${fact.label} · ${fact.value}`,
-      itemIds: fact.evidenceItemIds,
-    })),
-    ...graph.contradictions.map((entry) => ({
-      key: `contradiction-${entry.field}`,
-      state: '추가 확인',
-      label: entry.label,
-      itemIds: entry.evidenceItemIds,
-    })),
-  ]
-  if (linkedEntries.length === 0) return null
-  return <section className="live-evidence-ledger" aria-label="통화 근거 원장">
-    <header>
-      <div>
-        <h4>근거 발화</h4>
-      </div>
-      <span>{graph.turns.length}개 발화</span>
-    </header>
-    <ul>{linkedEntries.map((entry) => {
-      const sequences = entry.itemIds
-        .map((itemId) => graph.turns.find((turn) => turn.itemId === itemId)?.sequence)
-        .filter((value): value is number => value !== undefined)
-      return <li key={entry.key}>
-        <span>{entry.state}</span>
-        <strong>{entry.label}</strong>
-        <em>발화 {sequences.join(', ')}</em>
-      </li>
-    })}</ul>
+function LiveNextQuestion({ question, pending }: { question: string; pending: boolean }) {
+  return <section className="live-next-question" aria-labelledby="live-next-question-heading" aria-busy={pending}>
+    <HelpCircle aria-hidden="true" />
+    <div>
+      <h4 id="live-next-question-heading">다음 확인 질문</h4>
+      <p>{question}</p>
+    </div>
   </section>
 }
 
 export function LiveCallPanel({
   join,
   inviteUrl,
+  targetDisplayName,
   onFinish,
   onTranscriptUpdate,
   liveCandidate,
@@ -230,7 +173,7 @@ export function LiveCallPanel({
   }, [])
 
   useEffect(() => {
-    if (callState !== 'connected' || captions.length === 0) return
+    if (!['connected', 'finishing'].includes(callState) || captions.length === 0) return
     const frame = window.requestAnimationFrame(() => {
       const list = captionsListRef.current
       if (list) list.scrollTop = list.scrollHeight
@@ -321,7 +264,7 @@ export function LiveCallPanel({
   }
 
   return (
-    <section className="live-call-panel" aria-label="실시간 통화">
+    <section className="live-call-panel" aria-label="실시간 통화" aria-busy={callState === 'finishing'}>
       <div ref={audioRef} aria-hidden="true" />
 
       {inviteUrl && callState === 'idle' && (
@@ -346,7 +289,7 @@ export function LiveCallPanel({
 
       <div className="live-call-status" role="status">
         <span data-state={callState} aria-hidden="true" />
-        <strong>{callState === 'connected' ? '통화 중' : callState === 'connecting' ? '연결 중' : callState === 'ended' ? '통화 종료' : '연결 전'}</strong>
+        <strong>{callState === 'connected' ? '통화 중' : callState === 'finishing' ? '통화 종료 중' : callState === 'connecting' ? '연결 중' : callState === 'ended' ? '통화 종료' : '연결 전'}</strong>
         <span><Users aria-hidden="true" /> {participantCount}명 참여</span>
       </div>
 
@@ -374,17 +317,20 @@ export function LiveCallPanel({
               ? <p className="live-call-caption-empty">자막 대기 중</p>
               : <ol ref={captionsListRef}>{captions.map((caption) => (
                   <li key={`${caption.role}-${caption.itemId}`} data-role={caption.role} data-final={caption.final}>
-                    <strong>{speakerLabel(caption.role)}</strong>
+                    <strong>{speakerLabel(caption.role, targetDisplayName)}</strong>
                     <p>{caption.text}</p>
                     {!caption.final && <span>듣는 중</span>}
                   </li>
                 ))}</ol>}
           </section>
 
+          {join.role === 'surveyor' && liveCandidate?.critic.next_question && (
+            <LiveNextQuestion question={liveCandidate.critic.next_question} pending={candidatePending} />
+          )}
+
           {join.role === 'surveyor' && (
             <LiveChecklistPreview
               candidate={liveCandidate}
-              captions={captions}
               pending={candidatePending}
               error={candidateError}
             />
@@ -396,8 +342,9 @@ export function LiveCallPanel({
               {muted ? '마이크 켜기' : '마이크 끄기'}
             </button>
             <button type="button" className="live-call-end" onClick={() => void finish()} disabled={callState === 'finishing'}>
-              <PhoneOff aria-hidden="true" />
-              {join.role === 'surveyor' ? '통화 종료하고 체크리스트 만들기' : '통화 종료'}
+              {callState === 'finishing'
+                ? <><LoaderCircle className="live-call-spinner" aria-hidden="true" /> 마지막 대화 정리 중</>
+                : <><PhoneOff aria-hidden="true" /> 통화 종료</>}
             </button>
           </div>
         </>
