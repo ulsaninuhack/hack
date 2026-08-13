@@ -101,29 +101,28 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
     await page.screenshot({ path: `${SCREENSHOT_DIR}/p9-city-before-desktop.png` })
   })
 
-  await test.step('동 센터가 오늘 배치안을 명시적으로 확인한다 (INV14)', async () => {
+  await test.step('동 센터: 전화는 자동 배정, 방문은 명시적 확인으로 처리한다 (INV14)', async () => {
     await page.goto('/center')
     await expect(page.getByRole('heading', { name: /신포동 행정복지센터/ })).toBeVisible()
-    await expect(page.getByLabel('전화 레인 할당 제안')).toContainText(CASE_NAME)
+    const phoneLane = page.getByLabel('전화 레인 할당 제안')
+    await expect(phoneLane).toContainText(CASE_NAME)
+    await expect(phoneLane).toContainText('자동 배정됨')
     expect(mutationPaths.filter((path) => path.endsWith('/assignment-confirmations'))).toEqual([])
     await page.getByRole('tab', { name: /^방문 \d+$/ }).click()
     await expect(page.getByLabel('방문 레인 할당 제안')).not.toContainText(CASE_NAME)
-    await page.getByRole('tab', { name: /^전화 \d+$/ }).click()
+    await expect(page.getByLabel('방문 레인 할당 제안').getByRole('button', { name: '신고' }).first()).toBeVisible()
     await page.screenshot({ path: `${SCREENSHOT_DIR}/p9-center-assignment-desktop.png` })
-    await page.getByRole('button', { name: '오늘 배치 일괄 확인' }).click()
-    await expect(page.getByText('오늘 배치안을 일괄 확인했습니다.')).toBeVisible()
-    await expect(page.getByText('오늘 배치안이 모두 확인되었습니다.')).toBeVisible()
+    await page.getByRole('button', { name: '오늘 방문 일괄 확인' }).click()
+    await expect(page.getByText('오늘 방문을 일괄 확인했습니다. 조사원 방문 목록에 반영됩니다.')).toBeVisible()
+    await expect(page.getByText('오늘 방문이 모두 처리되었습니다. 확인된 방문은 조사원 목록에 반영됩니다.')).toBeVisible()
     expect(mutationPaths.filter((path) => path.endsWith('/assignment-confirmations'))).toEqual([
       '/api/v1/contact-ops/three-tier/assignment-confirmations',
     ])
-    const pipelineLink = page.getByRole('link', { name: /조사원 화면에서 확인된 배치 진행하기/ })
-    await expect(pipelineLink).toBeVisible()
-    await expect(pipelineLink).toHaveAttribute('href', '/m')
+    await page.getByRole('tab', { name: /^전화 \d+$/ }).click()
   })
 
   await test.step('조사원이 모바일에서 가상 전화·수동 체크리스트로 제출한다 (INV14/15/16)', async () => {
     await page.setViewportSize({ width: 390, height: 844 })
-    // 센터의 파이프라인 링크와 같은 경로로 진입한다 (같은 세션이 그대로 이어진다)
     await page.goto('/m')
     await expect(page.getByRole('heading', { name: /조사원 화면/ })).toBeVisible()
     await expect(page.getByLabel('오늘 전화 목록')).toContainText(CASE_NAME)

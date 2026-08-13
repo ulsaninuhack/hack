@@ -115,6 +115,8 @@ export interface TodayLanes {
   dong_code: string
   dong_name: string
   lane_rule: string
+  assignment_rule: string
+  pending_confirmation: { phone: number; visit: number }
   lanes: { phone: LaneItem[]; visit: LaneItem[] }
 }
 
@@ -166,10 +168,18 @@ export interface ReportCard {
   acknowledgement: ReportAcknowledgement
 }
 
+export interface CaseEscalation {
+  status: '신고됨'
+  agency: string
+  reported_by: string
+  reported_at: string
+}
+
 export interface AssignmentProposalItem {
   status: 'proposed' | 'confirmed'
   case_id: string
   display_name: string
+  escalation?: CaseEscalation | null
   road_address: string | null
   last_contact: {
     date: string | null
@@ -369,6 +379,17 @@ export async function confirmAssignment(input: {
       confirmed_by: input.confirmedBy,
       case_ids: input.caseIds,
     }),
+  })
+}
+
+export async function escalateCase(input: {
+  caseId: string
+  reportedBy: string
+}): Promise<{ case_id: string; escalation: CaseEscalation }> {
+  return request('/api/v1/contact-ops/three-tier/escalations', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ case_id: input.caseId, reported_by: input.reportedBy }),
   })
 }
 
