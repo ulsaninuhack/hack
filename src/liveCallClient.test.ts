@@ -4,7 +4,8 @@ import {
   buildGuestInviteUrl,
   createLiveCall,
   exchangeRealtimeSdp,
-  parseGuestJoinFragment,
+  parseGuestInviteCode,
+  redeemGuestInvite,
 } from './liveCallClient'
 import type { LiveCallCredentials } from './liveCallClient'
 
@@ -28,7 +29,7 @@ const credentials = {
   expires_at: '2026-08-13T01:30:00.000Z',
   transcription: { provider: 'openai' as const, model: 'gpt-live-transcribe', language: 'ko' as const },
   host: { role: 'surveyor' as const, participant_token: 'host-token' },
-  guest: { role: 'resident' as const, participant_token: 'guest-token' },
+  guest: { role: 'resident' as const, invite_code: 'invitecode0123456789abcdef012345' },
 } satisfies LiveCallCredentials
 
 describe('live call HTTP client', () => {
@@ -53,22 +54,37 @@ describe('live call HTTP client', () => {
     expect(String(init?.body)).not.toContain('confirm')
   })
 
-  it('keeps the short-lived guest token in a URL fragment and round-trips it locally', () => {
+  it('builds a short share-safe invite URL without participant credentials', () => {
     const url = buildGuestInviteUrl(credentials, 'https://care.example/m')
     const parsed = new URL(url)
 
     expect(parsed.origin).toBe('https://care.example')
     expect(parsed.pathname).toBe('/call')
-    expect(parsed.search).toBe('')
-    expect(parsed.hash).not.toBe('')
-    expect(url).not.toContain('?')
-    expect(parseGuestJoinFragment(parsed.hash, new Date('2026-08-13T01:00:00.000Z'))).toEqual({
-      callId: 'fixed',
-      serverUrl: 'wss://care-test.livekit.cloud',
-      participantToken: 'guest-token',
-      expiresAt: '2026-08-13T01:30:00.000Z',
-      role: 'resident',
+    expect(parsed.search).toBe('?invite=invitecode0123456789abcdef012345')
+    expect(parsed.hash).toBe('')
+    expect(url.length).toBeLessThan(100)
+    expect(url).not.toContain('host-token')
+    expect(url).not.toContain('participant')
+    expect(parseGuestInviteCode(parsed.search)).toBe('invitecode0123456789abcdef012345')
+  })
+
+  it('exchanges the opaque invite code for resident-only join credentials', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({
+      provider: 'livekit', call_id: 'fixed', server_url: 'wss://care-test.livekit.cloud',
+      expires_at: '2026-08-13T01:30:00.000Z',
+      participant: { role: 'resident', participant_token: 'guest-token' },
+    }))
+
+    const join = await redeemGuestInvite('invitecode0123456789abcdef012345')
+
+    expect(join).toEqual({
+      callId: 'fixed', serverUrl: 'wss://care-test.livekit.cloud', participantToken: 'guest-token',
+      expiresAt: '2026-08-13T01:30:00.000Z', role: 'resident',
     })
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/api/v1/contact-ops/live-calls/invites/invitecode0123456789abcdef012345'),
+      { method: 'POST', headers: { Accept: 'application/json' } },
+    )
   })
 
   it('posts SDP with only the short-lived participant bearer token', async () => {
@@ -94,13 +110,15 @@ describe('live call HTTP client', () => {
     })
   })
 
-  it('rejects malformed or expired guest fragments without network access', () => {
-    expect(parseGuestJoinFragment('')).toBeNull()
-    expect(parseGuestJoinFragment('#join=not-base64')).toBeNull()
-    const expired = buildGuestInviteUrl({
-      ...credentials,
-      expires_at: '2020-01-01T00:00:00.000Z',
-    }, 'https://care.example')
-    expect(parseGuestJoinFragment(new URL(expired).hash, new Date('2026-08-13T00:00:00.000Z'))).toBeNull()
+  it('rejects malformed invite queries and invalid exchange responses', async () => {
+    expect(parseGuestInviteCode('')).toBeNull()
+    expect(parseGuestInviteCode('?invite=short')).toBeNull()
+    expect(parseGuestInviteCode('?invite=invitecode0123456789abcdef012345&extra=1')).toBeNull()
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({
+      provider: 'livekit', call_id: '../bad', server_url: 'https://wrong.example',
+      expires_at: 'not-a-date', participant: { role: 'surveyor', participant_token: 'short' },
+    }))
+    await expect(redeemGuestInvite('invitecode0123456789abcdef012345')).rejects.toThrow(/참여 링크/)
   })
 })

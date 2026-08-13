@@ -336,9 +336,9 @@ describe('MobilePage (조사원 /m)', () => {
       server_url: 'wss://example.livekit.cloud', expires_at: '2030-08-13T12:00:00.000Z',
       transcription: { provider: 'openai', model: 'gpt-live-transcribe', language: 'ko' },
       host: { role: 'surveyor', participant_token: 'host.token.signature' },
-      guest: { role: 'resident', participant_token: 'guest.token.signature' },
+      guest: { role: 'resident', invite_code: 'invitecode0123456789abcdef012345' },
     })
-    mocks.buildGuestInviteUrl.mockReturnValue('https://demo.example/call#join=guest')
+    mocks.buildGuestInviteUrl.mockReturnValue('https://demo.example/call?invite=invitecode0123456789abcdef012345')
     mocks.createAiObservationCandidate.mockResolvedValue({
       revision: 0,
       candidate: {

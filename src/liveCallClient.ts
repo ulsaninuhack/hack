@@ -5,6 +5,7 @@ const SESSION_KEY = 'care-ops-demo-session-id'
 const SHARED_DEMO_SESSION_ID = 'incheon-care-shared-demo-floor'
 const CALL_ID_PATTERN = /^[A-Za-z0-9_-]{3,80}$/
 const TOKEN_PATTERN = /^[A-Za-z0-9._~-]{8,4096}$/
+const INVITE_CODE_PATTERN = /^[A-Za-z0-9_-]{24,80}$/
 
 export interface LiveCallCredentials {
   provider: 'livekit'
@@ -18,7 +19,7 @@ export interface LiveCallCredentials {
     language: 'ko'
   }
   host: { role: 'surveyor'; participant_token: string }
-  guest: { role: 'resident'; participant_token: string }
+  guest: { role: 'resident'; invite_code: string }
 }
 
 export interface LiveCallJoin {
@@ -34,15 +35,6 @@ function demoSessionId(): string {
   if (existing) return existing
   sessionStorage.setItem(SESSION_KEY, SHARED_DEMO_SESSION_ID)
   return SHARED_DEMO_SESSION_ID
-}
-
-function base64UrlEncode(value: string): string {
-  return btoa(value).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '')
-}
-
-function base64UrlDecode(value: string): string {
-  const standard = value.replaceAll('-', '+').replaceAll('_', '/')
-  return atob(standard.padEnd(Math.ceil(standard.length / 4) * 4, '='))
 }
 
 function validServerUrl(value: unknown): value is string {
@@ -83,34 +75,58 @@ export async function createLiveCall(input: {
 
 export function buildGuestInviteUrl(credentials: LiveCallCredentials, currentUrl: string = window.location.href): string {
   const url = new URL('/call', currentUrl)
-  const join: LiveCallJoin = {
-    callId: credentials.call_id,
-    serverUrl: credentials.server_url,
-    participantToken: credentials.guest.participant_token,
-    expiresAt: credentials.expires_at,
-    role: 'resident',
-  }
-  url.hash = `join=${base64UrlEncode(JSON.stringify(join))}`
+  url.searchParams.set('invite', credentials.guest.invite_code)
   return url.toString()
 }
 
-export function parseGuestJoinFragment(fragment: string, now: Date = new Date()): LiveCallJoin | null {
-  if (typeof fragment !== 'string' || fragment.length === 0 || fragment.length > 8_192) return null
-  try {
-    const params = new URLSearchParams(fragment.replace(/^#/, ''))
-    const encoded = params.get('join')
-    if (!encoded) return null
-    const value = JSON.parse(base64UrlDecode(encoded)) as Partial<LiveCallJoin>
-    const expires = Date.parse(value.expiresAt || '')
-    if (!CALL_ID_PATTERN.test(value.callId || '')
-        || !validServerUrl(value.serverUrl)
-        || !TOKEN_PATTERN.test(value.participantToken || '')
-        || value.role !== 'resident'
-        || !Number.isFinite(expires)
-        || expires <= now.getTime()) return null
-    return value as LiveCallJoin
-  } catch {
-    return null
+export function parseGuestInviteCode(search: string): string | null {
+  if (typeof search !== 'string' || search.length === 0 || search.length > 256) return null
+  const params = new URLSearchParams(search.replace(/^\?/, ''))
+  const inviteCode = params.get('invite')
+  if ([...params.keys()].some((key) => key !== 'invite') || params.getAll('invite').length !== 1) return null
+  return INVITE_CODE_PATTERN.test(inviteCode || '') ? inviteCode : null
+}
+
+export async function redeemGuestInvite(inviteCode: string): Promise<LiveCallJoin> {
+  if (!INVITE_CODE_PATTERN.test(inviteCode)) {
+    throw new ContactOpsClientError('INVALID_INVITE', '통화 참여 링크가 올바르지 않습니다.')
+  }
+  const response = await fetch(`${API_BASE_URL}/api/v1/contact-ops/live-calls/invites/${encodeURIComponent(inviteCode)}`, {
+    method: 'POST',
+    headers: { Accept: 'application/json' },
+  })
+  const envelope = await response.json().catch(() => ({})) as {
+    data?: {
+      provider?: string
+      call_id?: string
+      server_url?: string
+      expires_at?: string
+      participant?: { role?: string; participant_token?: string }
+    }
+    error?: { code?: string }
+  }
+  const data = envelope.data
+  if (!response.ok || !data
+      || data.provider !== 'livekit'
+      || typeof data.call_id !== 'string'
+      || !CALL_ID_PATTERN.test(data.call_id)
+      || !validServerUrl(data.server_url)
+      || typeof data.expires_at !== 'string'
+      || !Number.isFinite(Date.parse(data.expires_at))
+      || data.participant?.role !== 'resident'
+      || typeof data.participant.participant_token !== 'string'
+      || !TOKEN_PATTERN.test(data.participant.participant_token)) {
+    throw new ContactOpsClientError(
+      envelope.error?.code ?? 'INVALID_INVITE',
+      '통화 참여 링크가 만료되었거나 올바르지 않습니다.',
+    )
+  }
+  return {
+    callId: data.call_id,
+    serverUrl: data.server_url,
+    participantToken: data.participant.participant_token,
+    expiresAt: data.expires_at,
+    role: 'resident',
   }
 }
 

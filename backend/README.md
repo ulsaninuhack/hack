@@ -43,6 +43,12 @@ Synthetic ContactOps routes:
   M4A/WAV/MP3 file plus `expected_revision`, `contact_date`, `surveyor_id`, and the fixed
   `consent_basis=verbal_in_recording`; the temporary random-named file is deleted after
   candidate generation and the response uses the same confirmation-required candidate
+- `POST /api/v1/contact-ops/cases/:caseId/live-calls` — creates the surveyor room token and
+  a 32-character guest invite code; the guest LiveKit token is never returned in this response
+- `POST /api/v1/contact-ops/live-calls/invites/:inviteCode` — bodyless exchange of an active
+  invite code for a short-lived resident participant token; responses are always `no-store`
+- `POST /api/v1/contact-ops/live-calls/realtime-sdp` — exchanges authenticated participant
+  SDP for the OpenAI Realtime transcription peer
 
 `bbox` uses `minLongitude,minLatitude,maxLongitude,maxLatitude` and is limited to a five-degree span. List endpoints cap `limit` at 500 (`zones` at 200) and `offset` at 100,000. Invalid, duplicate, and unknown query parameters return a versioned JSON error.
 
@@ -59,6 +65,11 @@ npm run test:coverage
 The backend package contains the deterministic contact-first vertical slice. Queue,
 scoring, follow-up, and manager decisions do not depend on an LLM or route optimizer.
 Local state is memory-backed and production synthetic-session overrides use Firestore.
+Live-call invite codes use the same backend choice: production stores only a SHA-256 code hash
+and non-personal room metadata in `LIVE_CALL_INVITE_COLLECTION` (default
+`synthetic_live_call_invites`), while local tests use memory. The public `/call?invite=...` URL
+therefore stays short and works across the two configured Cloud Run instances without putting a
+LiveKit participant token in browser history, share previews, or Vercel request logs.
 
 Operations mutations require `X-Demo-Session-ID` (16–128 opaque alphanumeric, `_`, or
 `-` characters) and optimistic `expected_revision`. The AI endpoint first produces a

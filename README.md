@@ -165,6 +165,8 @@ npm run validate:data
 - `POST /api/v1/contact-ops/cases/:caseId/triage/recalculate`
 - `POST /api/v1/contact-ops/cases/:caseId/visit-decisions`
 - `POST /api/v1/contact-ops/cases/:caseId/ai-observations`
+- `POST /api/v1/contact-ops/cases/:caseId/live-calls` — 조사원 토큰과 짧은 참여 코드 생성
+- `POST /api/v1/contact-ops/live-calls/invites/:inviteCode` — 참여 코드를 대상자 토큰으로 교환
 
 API 테스트와 생산 이미지를 로컬에서 같은 계약으로 검증할 수 있다.
 

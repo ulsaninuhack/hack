@@ -1,15 +1,28 @@
 import { useEffect, useState } from 'react'
 import { PhoneCall } from 'lucide-react'
 
-import { parseGuestJoinFragment, type LiveCallJoin } from './liveCallClient'
+import { parseGuestInviteCode, redeemGuestInvite, type LiveCallJoin } from './liveCallClient'
 import { LiveCallPanel } from './LiveCallPanel'
 
 export function LiveCallPage() {
-  const [join] = useState<LiveCallJoin | null>(() => parseGuestJoinFragment(window.location.hash))
+  const [inviteCode] = useState(() => parseGuestInviteCode(window.location.search))
+  const [join, setJoin] = useState<LiveCallJoin | null>(null)
+  const [status, setStatus] = useState<'loading' | 'invalid' | 'ready'>(() => inviteCode ? 'loading' : 'invalid')
 
   useEffect(() => {
-    window.history.replaceState(null, '', '/call')
-  }, [])
+    if (!inviteCode) return undefined
+    let active = true
+    redeemGuestInvite(inviteCode)
+      .then((value) => {
+        if (!active) return
+        setJoin(value)
+        setStatus('ready')
+      })
+      .catch(() => {
+        if (active) setStatus('invalid')
+      })
+    return () => { active = false }
+  }, [inviteCode])
 
   return (
     <main className="guest-call-page">
@@ -21,9 +34,13 @@ export function LiveCallPage() {
         </div>
       </header>
 
-      {join
+      {status === 'ready' && join
         ? <LiveCallPanel join={join} />
-        : <section className="guest-call-invalid" role="alert">
+        : status === 'loading'
+          ? <section className="guest-call-invalid" aria-live="polite">
+              <h2>통화 참여 정보를 확인하고 있습니다</h2>
+            </section>
+          : <section className="guest-call-invalid" role="alert">
             <h2>참여 링크를 다시 받아 주세요</h2>
             <p>링크가 만료되었거나 올바르지 않습니다. 연결단원에게 새 참여 링크를 요청해 주세요.</p>
           </section>}
