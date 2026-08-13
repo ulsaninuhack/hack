@@ -171,6 +171,9 @@ export interface CompletedContact {
   display_name: string
   결과_라벨: string
   급성도_등급: string | null
+  급성도_점수?: number | null
+  취약도_점수?: number | null
+  연속_미응답?: number | null
   완료_시각: string
 }
 
@@ -191,7 +194,7 @@ export interface TodayLanes {
 
 // 표시용 심각도. 엔진의 급성도·취약도 점수는 분리 저장·서빙을 유지하고,
 // 화면에서만 두 점수의 최댓값에 연락 실패 가산을 더해 하나의 심각도로
-// 보여준다. 등급 임계값은 contact-triage-scoring.mjs와 동일(75/50/30).
+// 보여준다. 등급 임계값은 contact-triage-scoring.mjs gradeAcuity와 동일(75/55/30).
 export interface DisplaySeverity {
   점수: number | null
   등급: string | null
@@ -206,7 +209,7 @@ const SEVERITY_CONTACT_BUMPS: Array<{ labels: string[]; perCount: boolean; point
 
 function severityGrade(score: number): string {
   if (score >= 75) return '방문권고-우선'
-  if (score >= 50) return '방문권고'
+  if (score >= 55) return '방문권고'
   if (score >= 30) return '주시'
   return '정상'
 }
@@ -217,6 +220,15 @@ export function caseDetailDisplaySeverity(item: CaseDetail): DisplaySeverity {
     취약도_점수: item.triage?.취약도_점수 ?? null,
     결과_라벨: contactResultLabelFromCode(String(item.household.contact.last_contact_result ?? '')),
     연속_미응답: Number(item.household.contact.consecutive_no_answer_count ?? 0),
+  })
+}
+
+export function completedContactDisplaySeverity(entry: CompletedContact): DisplaySeverity {
+  return displaySeverity({
+    급성도_점수: entry.급성도_점수 ?? null,
+    취약도_점수: entry.취약도_점수 ?? null,
+    결과_라벨: entry.결과_라벨,
+    연속_미응답: entry.연속_미응답 ?? null,
   })
 }
 

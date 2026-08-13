@@ -1042,6 +1042,7 @@ ul.mobile-acute-contributions { list-style: none; display: grid; gap: 6px; }
 .center-page .center-refresh { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border: 1px solid var(--t-line); border-radius: 12px; background: var(--t-card); color: var(--t-sub); font-weight: 600; font-size: 14px; cursor: pointer; transition: background .15s var(--ease), color .15s var(--ease); }
 .center-page .center-refresh:hover:not(:disabled) { background: var(--t-blue-soft); color: var(--t-blue); }
 .center-page .center-refresh:disabled { opacity: 0.5; cursor: default; }
+.center-page .center-review-worker { margin: 0; font-size: 15px; color: var(--t-sub); }
 .center-page .center-toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 40; margin: 0; padding: 12px 20px; border-radius: 999px; background: var(--t-ink); color: #ffffff; font-size: 14px; font-weight: 600; box-shadow: 0 8px 24px rgba(25, 27, 30, 0.25); pointer-events: none; animation: center-rise .3s var(--ease); }
 .center-page .vuln-chip, .mobile-page .vuln-chip { display: inline-flex; align-items: center; font-size: 13px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: #fff4e0; color: #b25b00; white-space: nowrap; }
 .mobile-page .mobile-completed { border: 1px solid var(--t-line); border-radius: 12px; background: var(--t-card); padding: 14px 16px; display: grid; gap: 6px; }

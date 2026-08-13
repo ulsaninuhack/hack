@@ -229,6 +229,9 @@ export function createThreeTierService({
           display_name: deriveCaseDisplayName(record.household.id),
           결과_라벨: contactResultLabel(record.household.contact.last_contact_result),
           급성도_등급: record.triage.급성도_등급 ?? null,
+          급성도_점수: record.triage.급성도_점수 ?? null,
+          취약도_점수: record.triage.취약도_점수 ?? null,
+          연속_미응답: record.household.contact.consecutive_no_answer_count ?? 0,
           완료_시각: record.updated_at,
         }))
         .toSorted((left, right) => right.완료_시각.localeCompare(left.완료_시각)
