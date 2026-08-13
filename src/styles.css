@@ -560,6 +560,19 @@ select:focus-visible,
 .city-section, .city-zone-rollup { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 16px; }
 .city-map { position: sticky; top: 10px; height: calc(100dvh - 170px); border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--line); }
 .city-map .map { height: 100%; }
+.city-dong-overlay { position: absolute; z-index: 4; top: 18px; right: 18px; width: min(320px, calc(100% - 36px)); padding: 16px; border: 1px solid var(--gg-violet-200); border-radius: 18px; background: rgba(255,255,255,.96); box-shadow: 0 18px 44px rgba(28,10,136,.2); backdrop-filter: blur(12px); animation: gg-fade-in-y .25s var(--ease) both; }
+.city-dong-overlay-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.city-dong-overlay-head small { color: var(--muted); font-weight: 700; }
+.city-dong-overlay-head h2 { margin: 2px 0 0; color: var(--dark); }
+.city-dong-overlay-head button { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: var(--gg-violet-100); color: var(--gg-violet-800); cursor: pointer; }
+.city-dong-picker { margin-top: 12px; }
+.city-dong-overlay-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 0 0; }
+.city-dong-overlay-metrics div { min-width: 0; padding: 10px; border-radius: 12px; background: var(--gg-violet-100); }
+.city-dong-overlay-metrics dt { color: var(--muted); font-size: 12px; font-weight: 700; }
+.city-dong-overlay-metrics dd { margin: 5px 0 0; color: var(--gg-violet-800); font-size: 18px; font-weight: 900; }
+.city-dong-overlay-metrics .city-dong-load { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; background: linear-gradient(120deg, var(--gg-violet-700), var(--gg-violet-900)); }
+.city-dong-overlay-metrics .city-dong-load dt, .city-dong-overlay-metrics .city-dong-load dd { color: #fff; }
+.city-dong-overlay-note { margin: 10px 2px 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
 .city-district-select { margin-bottom: 12px; }
 .city-stat-bars { display: grid; gap: 12px; margin-bottom: 4px; }
 .city-stat-bar-head { display: flex; align-items: baseline; justify-content: space-between; font-size: 15px; font-weight: 700; margin-bottom: 5px; }
@@ -671,6 +684,7 @@ select:focus-visible,
   .center-summary { grid-template-columns: 1fr; }
   .report-scores, .mobile-done-summary { flex-wrap: wrap; }
   .city-map { height: 340px; }
+  .city-dong-overlay { top: 10px; right: 10px; width: min(300px, calc(100% - 20px)); padding: 12px; }
 }
 
 /* ---------------------------------------------------------------------------

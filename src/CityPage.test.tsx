@@ -132,6 +132,11 @@ const operationsMap = {
   public_context_label: '[MODEL OUTPUT — UNVALIDATED]',
   scenario_label: '[합성 시나리오]', scenario_reference_date: '2026-08-12',
   scenario_method: 'one_deterministic_example_per_current_admin_dong',
+  dong_rollups: [{
+    dong_code: '2812551000', dong_name: '신포동', district: '제물포구',
+    geometry_zone_id: 'vworld_sgis_20250630:23010530', worker_count: 1,
+    contact_target_count: 3, approved_visit_target_count: 1, contact_targets_per_worker: 3,
+  }],
   zones: [{
     geometry_zone_id: 'vworld_sgis_20250630:23010530',
     public_structural_context: {
@@ -193,6 +198,22 @@ describe('CityPage (시·구 /city)', () => {
     const rollup = await screen.findByLabelText('선택한 동 단위 롤업')
     expect(within(rollup).getByText(/급성도 최대\(구역\)/)).toBeInTheDocument()
     expect(document.documentElement.outerHTML).not.toMatch(/SYN-HH-/)
+  })
+
+  it('shows a case-free dong workload overlay after selecting the map zone', async () => {
+    arrange()
+    const user = userEvent.setup()
+    render(<CityPage />)
+    await screen.findByLabelText('제물포구 구 단위 브리핑')
+    await user.click(screen.getByRole('button', { name: '지도 동 선택' }))
+    const overlay = await screen.findByLabelText('신포동 운영 현황')
+    expect(within(overlay).getByRole('heading', { name: '신포동' })).toBeInTheDocument()
+    expect(overlay).toHaveTextContent('연결단원1명')
+    expect(overlay).toHaveTextContent('연락 대상3명')
+    expect(overlay).toHaveTextContent('방문 대상1명')
+    expect(overlay).toHaveTextContent('연결단원 1명당 담당 대상3명')
+    await user.click(within(overlay).getByRole('button', { name: '동 운영 현황 닫기' }))
+    expect(screen.queryByLabelText('신포동 운영 현황')).not.toBeInTheDocument()
   })
 
   it('serves the district AI summary with the required label and injected metrics (INV19)', async () => {

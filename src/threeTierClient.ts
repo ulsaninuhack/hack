@@ -556,6 +556,16 @@ export interface CityOperationsMap {
   case_detail_access: string
   privacy_note: string
   zones: CityOperationsMapZone[]
+  dong_rollups?: Array<{
+    dong_code: string
+    dong_name: string
+    district: string
+    geometry_zone_id: string
+    worker_count: number
+    contact_target_count: number
+    approved_visit_target_count: number
+    contact_targets_per_worker: number | null
+  }>
 }
 
 export async function loadCityOperationsMap(): Promise<CityOperationsMap> {
