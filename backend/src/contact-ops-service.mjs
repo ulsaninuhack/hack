@@ -14,6 +14,7 @@ import {
 
 const OBSERVATION_KEYS = ['관찰_6징후', '식사상태', '위생상태', '공과금_2개월_이상_체납', '최근_건강_정신_괴로움', '관계망_유무', '연락_빈도'];
 const SIGN_KEYS = ['우편물_고지서_적체', '악취_벌레', '쓰레기_술병', '인기척_없이_TV_불', '외출_없음', '연락_두절'];
+const DEFAULT_APPROVED_VISIT_DISTANCE_KM = 2;
 
 function assertExactObservation(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)
@@ -82,7 +83,8 @@ function decisionPayload(input) {
     note: input.note,
     ...(input.decision === 'approved' ? {
       assigned_worker_ids: input.assignedWorkerIds,
-      max_route_distance_km: input.maxRouteDistanceKm,
+      // 거리 정책은 건별 승인 입력이 아니라 서버 소유 배차 기본값이다.
+      max_route_distance_km: DEFAULT_APPROVED_VISIT_DISTANCE_KM,
     } : {}),
   };
 }

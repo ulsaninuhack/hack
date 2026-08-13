@@ -357,7 +357,6 @@ export function ManagerPage() {
   const [feedback, setFeedback] = useState('')
   const [decision, setDecision] = useState<'approved' | 'rejected' | null>(null)
   const [note, setNote] = useState('')
-  const [distance, setDistance] = useState('2')
   const [saving, setSaving] = useState(false)
 
   const selected = items.find((item) => item.household.id === selectedId) ?? null
@@ -424,8 +423,6 @@ export function ManagerPage() {
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     if (!selected || !decision || !note.trim()) return
-    const numericDistance = Number(distance)
-    if (decision === 'approved' && (!Number.isFinite(numericDistance) || numericDistance <= 0)) return
     try {
       setSaving(true)
       setError(null)
@@ -434,7 +431,7 @@ export function ManagerPage() {
         revision: selected.revision,
         decision,
         note: note.trim(),
-        ...(decision === 'approved' ? { workerIds: [workerId], distance: numericDistance } : {}),
+        ...(decision === 'approved' ? { workerIds: [workerId] } : {}),
       })
       setFeedback(decision === 'approved' ? '담당자 승인을 기록했습니다.' : '담당자 반려를 기록했습니다.')
       setDecision(null)
@@ -515,9 +512,6 @@ export function ManagerPage() {
                   {decision === 'approved' && <>
                     <label>연결단원 배정
                       <select value={workerId} onChange={() => {}}><option value={workerId}>연결단원 001</option></select>
-                    </label>
-                    <label>승인된 방문 거리 제한 (km)
-                      <input min="0.1" max="50" step="0.1" type="number" value={distance} onChange={(event) => setDistance(event.target.value)} required />
                     </label>
                   </>}
                   <label>결정 사유

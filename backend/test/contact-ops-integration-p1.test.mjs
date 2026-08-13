@@ -154,7 +154,6 @@ describe('P1 real HTTP → service → memory-state vertical slice', () => {
         decided_at: '2026-08-12T09:00:00Z',
         note: '합성 시나리오 담당자 승인',
         assigned_worker_ids: [WORKER_ID],
-        max_route_distance_km: 4,
       },
     });
     assert.equal(approved.response.status, 200);
@@ -208,7 +207,6 @@ describe('P1 real HTTP → service → memory-state vertical slice', () => {
         decided_at: '2026-08-12T09:00:00Z',
         note: '시급 방문 승인',
         assigned_worker_ids: [WORKER_ID],
-        max_route_distance_km: 4,
       },
     });
     assert.equal(approved.response.status, 200);

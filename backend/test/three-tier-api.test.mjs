@@ -386,7 +386,7 @@ describe('three-tier center inbox and explicit confirmations (INV14)', () => {
     const approved = await post('/api/v1/contact-ops/cases/SYN-HH-2812551000-0003/visit-decisions', {
       expected_revision: 1, decision: 'approved', decided_by: 'synthetic-manager',
       decided_at: `${REFERENCE_DATE}T09:00:00Z`, note: '합성 검증',
-      assigned_worker_ids: ['SYN-W-2812551000-01'], max_route_distance_km: 2,
+      assigned_worker_ids: ['SYN-W-2812551000-01'],
     }, late);
     assert.equal(approved.response.status, 200);
 

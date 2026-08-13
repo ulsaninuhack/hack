@@ -17,11 +17,11 @@ describe('ContactOps API client', () => {
       .mockResolvedValueOnce(response({ synthetic: true, displayMarker: '[합성]', revision: 4, household: {}, observations: {}, triage: null }))
       .mockResolvedValueOnce(response({ synthetic: true, displayMarker: '[합성]', revision: 4, household: {}, observations: {}, triage: null }))
     await submitContact({ caseId: 'SYN-HH-2812551000-0001', revision: 3, resultLabel: '미응답', observations: emptyObservations() })
-    await submitDecision({ caseId: 'SYN-HH-2812551000-0001', revision: 4, decision: 'approved', note: '합성 사유', workerIds: ['SYN-W-2812551000-01'], distance: 2 })
+    await submitDecision({ caseId: 'SYN-HH-2812551000-0001', revision: 4, decision: 'approved', note: '합성 사유', workerIds: ['SYN-W-2812551000-01'] })
     expect(fetchMock.mock.calls[0][0]).toContain('/contact-results')
     expect(String(fetchMock.mock.calls[0][1]?.body)).toContain('no_answer')
     expect(fetchMock.mock.calls[1][0]).toContain('/visit-decisions')
-    expect(String(fetchMock.mock.calls[1][1]?.body)).toContain('max_route_distance_km')
+    expect(String(fetchMock.mock.calls[1][1]?.body)).not.toContain('max_route_distance_km')
   })
 
   it('maps the combined refusal label to the canonical refused result', async () => {

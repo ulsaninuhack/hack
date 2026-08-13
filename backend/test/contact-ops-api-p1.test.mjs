@@ -136,6 +136,18 @@ describe('P1 frozen ContactOps HTTP contract', () => {
       assert.equal(result.response.status, 200);
       assert.equal(result.body.data.synthetic, true);
     }
+    const approved = await mutation('/api/v1/contact-ops/cases/SYN-HH-2812551000-0001/visit-decisions', {
+      ...base, decision: 'approved', decided_by: 'manager', decided_at: '2026-08-12T09:00:00Z', note: 'demo',
+      assigned_worker_ids: ['SYN-W-2812551000-01'],
+    });
+    assert.equal(approved.response.status, 200);
+    assert.equal(calls.at(-1)[1].maxRouteDistanceKm, undefined);
+
+    const clientOwnedDistance = await mutation('/api/v1/contact-ops/cases/SYN-HH-2812551000-0001/visit-decisions', {
+      ...base, decision: 'approved', decided_by: 'manager', decided_at: '2026-08-12T09:00:00Z', note: 'demo',
+      assigned_worker_ids: ['SYN-W-2812551000-01'], max_route_distance_km: 2,
+    });
+    assert.equal(clientOwnedDistance.response.status, 400);
     const ai = await mutation('/api/v1/contact-ops/cases/SYN-HH-2812551000-0001/ai-observations', {
       ...base,
       mode: 'candidate',

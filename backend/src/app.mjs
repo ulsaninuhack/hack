@@ -705,9 +705,9 @@ async function routeContactOps(request, url, service, {
   if (url.pathname.endsWith('/visit-decisions')) {
     const approved = body?.decision === 'approved';
     exactBody(body, approved
-      ? ['expected_revision', 'decision', 'decided_by', 'decided_at', 'note', 'assigned_worker_ids', 'max_route_distance_km']
+      ? ['expected_revision', 'decision', 'decided_by', 'decided_at', 'note', 'assigned_worker_ids']
       : ['expected_revision', 'decision', 'decided_by', 'decided_at', 'note']);
-    return service.recordVisitDecision({ sessionId, caseId: caseIdFrom(url.pathname, '/visit-decisions'), expectedRevision: body.expected_revision, decision: body.decision, decidedBy: body.decided_by, decidedAt: body.decided_at, note: body.note, assignedWorkerIds: body.assigned_worker_ids, maxRouteDistanceKm: body.max_route_distance_km });
+    return service.recordVisitDecision({ sessionId, caseId: caseIdFrom(url.pathname, '/visit-decisions'), expectedRevision: body.expected_revision, decision: body.decision, decidedBy: body.decided_by, decidedAt: body.decided_at, note: body.note, assignedWorkerIds: body.assigned_worker_ids });
   }
   throw new ApiError(404, 'NOT_FOUND', 'Route not found');
 }

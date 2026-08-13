@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { CanonicalObservations } from './contactOpsClient'
@@ -239,6 +239,8 @@ function arrange() {
 }
 
 afterEach(() => {
+  vi.useRealTimers()
+  Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })
   vi.clearAllMocks()
 })
 
@@ -253,11 +255,56 @@ describe('CenterPage (동 행정복지센터)', () => {
     expect(within(summary).getByText('방문 확인 대기')).toBeInTheDocument()
     expect(within(summary).getByText('방문 승격 대기')).toBeInTheDocument()
     const card = await screen.findByLabelText('김영자 어르신 보고 카드')
+    const accordion = card.closest('details') as HTMLElement
     expect(within(card).getByText('인천광역시 제물포구 답동로 7-2')).toBeInTheDocument()
-    expect(within(card).getByText('방문권고')).toBeInTheDocument()
+    expect(within(accordion).getByText('방문권고')).toBeInTheDocument()
     expect(within(card).getByText('보건소·의료 연계')).toBeInTheDocument()
     expect(within(card).getByText('행정복지센터 이관 권고')).toBeInTheDocument()
+    expect(screen.queryByText(/조사원이 전화 결과를 제출하면 바로 나타납니다/)).toBeNull()
     expect(document.body.textContent).not.toContain(BANNED_GROUP_WORD)
+  })
+
+  it('polls for new reports every five seconds only while the center tab is visible', async () => {
+    arrange()
+    vi.useFakeTimers()
+    render(<CenterPage />)
+
+    await act(async () => {})
+    expect(mocks.loadCenterInbox).toHaveBeenCalledTimes(1)
+
+    await act(async () => { await vi.advanceTimersByTimeAsync(5_000) })
+    expect(mocks.loadCenterInbox).toHaveBeenCalledTimes(2)
+
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' })
+    await act(async () => { await vi.advanceTimersByTimeAsync(5_000) })
+    expect(mocks.loadCenterInbox).toHaveBeenCalledTimes(2)
+
+    Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'visible' })
+    await act(async () => { document.dispatchEvent(new Event('visibilitychange')) })
+    expect(mocks.loadCenterInbox).toHaveBeenCalledTimes(3)
+
+    await act(async () => { window.dispatchEvent(new Event('focus')) })
+    expect(mocks.loadCenterInbox).toHaveBeenCalledTimes(4)
+  })
+
+  it('shows each phone report as a collapsed accordion and opens its details on demand', async () => {
+    arrange()
+    const user = userEvent.setup()
+    render(<CenterPage />)
+
+    const card = await screen.findByLabelText('김영자 어르신 보고 카드')
+    const accordion = card.closest('details')
+    expect(accordion).not.toBeNull()
+    expect(accordion).not.toHaveAttribute('open')
+    expect(card).not.toBeVisible()
+
+    await user.click(within(accordion!).getByText('김영자 어르신'))
+    expect(accordion).toHaveAttribute('open')
+    expect(card).toBeVisible()
+    expect(within(card).getByRole('link', { name: '방문 승격 검토' })).toHaveAttribute(
+      'href',
+      '/center/visit-review/SYN-HH-2812551000-0001',
+    )
   })
 
   it('separates phone and visit lanes without mixing (INV16)', async () => {
@@ -364,18 +411,21 @@ describe('CenterPage (동 행정복지센터)', () => {
     }))
   })
 
-  it('reuses the manager visit-decision API for approval with worker and distance', async () => {
+  it('opens a dedicated visit-review page with evidence and records a decision without a distance input', async () => {
     arrange()
     const user = userEvent.setup()
-    render(<CenterPage />)
-    const review = await screen.findByLabelText('방문 권고 대기 목록')
-    await user.click(within(review).getByRole('button', { name: /김영자 어르신/ }))
+    render(<CenterPage reviewCaseId="SYN-HH-2812551000-0001" />)
+    expect(await screen.findByRole('heading', { name: '방문 승격 검토' })).toBeInTheDocument()
+    expect(screen.getByText('인천광역시 제물포구 답동로 7-2')).toBeInTheDocument()
+    expect(screen.getAllByText('연속 미응답 2회').length).toBeGreaterThan(0)
+    expect(screen.getByRole('link', { name: '센터 업무로 돌아가기' })).toHaveAttribute('href', '/center')
+    expect(screen.queryByLabelText('승인된 방문 거리 제한 (km)')).toBeNull()
     await user.click(screen.getByRole('radio', { name: '방문 권고 승인' }))
     await user.type(screen.getByLabelText('결정 사유'), '합성 승인 사유')
     await user.click(screen.getByRole('button', { name: '방문 권고 승인 기록' }))
     await waitFor(() => expect(mocks.submitDecision).toHaveBeenCalledWith({
       caseId: 'SYN-HH-2812551000-0001', revision: 1, decision: 'approved',
-      note: '합성 승인 사유', workerIds: ['SYN-W-2812551000-01'], distance: 2,
+      note: '합성 승인 사유', workerIds: ['SYN-W-2812551000-01'],
     }))
   })
 
