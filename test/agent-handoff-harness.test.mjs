@@ -57,5 +57,5 @@ test('production voice AI uses Secret Manager behind a live gate and finite requ
 
   const rateLimit = workflow.match(/RATE_LIMIT_PER_MINUTE=([0-9]+)/)
   assert.ok(rateLimit, 'production request limit must be explicit')
-  assert.ok(Number(rateLimit[1]) > 0, 'production request limit must not disable throttling')
+  assert.equal(Number(rateLimit[1]), 350, 'production demo limit must match the deployed capacity contract')
 })
