@@ -718,7 +718,13 @@ select:focus-visible,
 
 /* /center v5 — 가명·주소 중심 행, 지도 격리·페이지 스크롤 픽스와 함께 */
 .center-page .assignment-name, .center-page .report-name { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
-.center-page .assignment-meta { margin: 0; font-size: 14px; color: var(--t-faint); }
+.center-page .assignment-address { margin: 0; font-size: 14px; color: var(--t-faint); }
+.center-page .assignment-facts { margin: 4px 0 0; display: flex; flex-wrap: wrap; column-gap: 24px; row-gap: 4px; }
+.center-page .assignment-fact { display: flex; align-items: center; gap: 8px; }
+.center-page .assignment-fact dt { font-size: 14px; color: var(--t-faint); font-weight: 500; }
+.center-page .assignment-fact dd { margin: 0; display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--t-sub); font-weight: 600; font-variant-numeric: tabular-nums; }
+.center-page .fact-status { font-size: 13px; font-weight: 600; border-radius: 6px; padding: 2px 7px; background: var(--t-track); color: var(--t-sub); }
+.center-page .fact-status[data-attention] { background: var(--t-red-soft); color: #c22f2f; }
 .center-page .assignment-row-main .assignment-confirmed { margin-left: 0; }
 .center-page .assignment-row-main .confirm-one, .center-page .assignment-row-main .assignment-confirmed { margin-left: 12px; }
 .center-page .assignment-worker { margin-left: auto; }

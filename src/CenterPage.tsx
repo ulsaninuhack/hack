@@ -21,6 +21,7 @@ import type { AssignmentProposalItem, CenterInbox, ReportCard } from './threeTie
 import { caseDisplayName } from './caseDisplayName'
 
 const CENTER_ACTOR = '동센터 담당자'
+const ATTENTION_CONTACT_LABELS = new Set(['연락 안 됨', '연락 거부', '연락처 확인 필요', '우려 사항 있음'])
 const TRANSFER_TRACK_MESSAGE = '안부확인 트랙에서 사례관리·전문기관 트랙으로 전환하는 권고입니다. 전환 확정은 별도 행정 절차로 진행합니다.'
 
 function errorText(cause: unknown, fallback: string) {
@@ -51,12 +52,31 @@ function ProposalRow({
         <GradeChip grade={item.급성도_등급} />
         <span className="assignment-worker">{item.worker_display_name ?? '담당 미배정'}</span>
       </div>
-      <p className="assignment-meta">
-        {item.road_address ?? '주소 정보 없음'}
-        {' · 마지막 연락 '}
-        {item.last_contact.date === null ? '기록 없음' : `${item.last_contact.date} (${item.last_contact.result_label})`}
-        {item.earliest_due_date !== null && ` · 예정 ${item.earliest_due_date}`}
-      </p>
+      <p className="assignment-address">{item.road_address ?? '주소 정보 없음'}</p>
+      <dl className="assignment-facts">
+        <div className="assignment-fact">
+          <dt>마지막 연락</dt>
+          <dd>
+            {item.last_contact.date === null ? '기록 없음' : (
+              <>
+                {item.last_contact.date}
+                <span
+                  className="fact-status"
+                  data-attention={ATTENTION_CONTACT_LABELS.has(item.last_contact.result_label) || undefined}
+                >
+                  {item.last_contact.result_label}
+                </span>
+              </>
+            )}
+          </dd>
+        </div>
+        {item.earliest_due_date !== null && (
+          <div className="assignment-fact">
+            <dt>다음 예정</dt>
+            <dd>{item.earliest_due_date}</dd>
+          </div>
+        )}
+      </dl>
       {item.adjustment_flags.length > 0 && (
         <p className="assignment-flags" role="note">조정 필요: {item.adjustment_flags.map((flag) => ({
           no_worker_for_dong: '담당 연결단원 없음',
