@@ -67,13 +67,13 @@ Only an explicit confirmation request can feed the validated canonical observati
 the existing deterministic rules. It cannot approve a visit or complete an institution
 transfer.
 
-Live Planner/Critic calls are fail-closed unless `ENABLE_LIVE_CONTACT_OPS_AI=1` and an
-`OPENAI_API_KEY` are configured. CI proves the graph with deterministic injected clients;
-it does not prove live-model quality. The demo production deployment injects the key from
-Google Secret Manager and uses a finite global request limit; the plaintext key is never a
-workflow value. The mobile upload route still requires a live synthetic-audio rehearsal,
-and public exposure must stay bounded by the configured request limit and OpenAI project
-budget.
+Live Planner/Critic calls are fail-closed unless `ENABLE_LIVE_CONTACT_OPS_AI=1` and one text
+transport is configured: either the authenticated `CONTACT_OPS_CODEX_BRIDGE_URL` plus bearer
+token, or `OPENAI_API_KEY`. Bridge configuration takes precedence and does not silently fall back
+when the Mac mini is unavailable. `OPENAI_API_KEY` remains required for WAV/MP3/M4A transcription.
+CI proves the graph and bridge boundaries with deterministic clients; it does not prove live-model
+quality or home-network availability. Secrets belong in Google Secret Manager and public exposure
+must stay bounded by the configured request limit.
 
 From the repository root:
 

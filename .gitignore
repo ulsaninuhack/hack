@@ -24,3 +24,4 @@ data/.deps/
 *.py[cod]
 .vercel
 .env*
+!macmini-llm-bridge/.env.example

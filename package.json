@@ -30,6 +30,7 @@
     "validate:synthetic-data": "python3 scripts/generate_synthetic_care_ops.py --check && npm run validate:synthetic-schema",
     "test:synthetic-data": "python3 -m unittest scripts.test_generate_synthetic_care_ops",
     "test:contact-triage-schema": "node --test scripts/test_contact_triage_schemas.mjs",
+    "test:macmini-llm-bridge": "npm --prefix macmini-llm-bridge test",
     "test:agent-handoff": "node --test test/agent-handoff-harness.test.mjs"
   },
   "dependencies": {

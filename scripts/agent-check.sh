@@ -39,6 +39,8 @@ grep -q 'npm run build' .github/workflows/ci-deploy.yml || fail "workflow must b
 grep -q 'npm run check:ui-copy' .github/workflows/ci-deploy.yml || fail "workflow must enforce UI copy invariants"
 grep -q 'npm --prefix backend ci' .github/workflows/ci-deploy.yml || fail "workflow must install backend dependencies"
 grep -q 'npm --prefix backend run test:coverage' .github/workflows/ci-deploy.yml || fail "workflow must run backend coverage gate"
+grep -q 'npm --prefix macmini-llm-bridge ci' .github/workflows/ci-deploy.yml || fail "workflow must install Mac mini bridge dependencies"
+grep -q 'npm --prefix macmini-llm-bridge test' .github/workflows/ci-deploy.yml || fail "workflow must test Mac mini bridge boundaries"
 grep -q 'docker build --file backend/Dockerfile' .github/workflows/ci-deploy.yml || fail "workflow must build backend container in validation"
 grep -q '^  deploy-frontend-production:' .github/workflows/ci-deploy.yml || fail "missing frontend production deploy job"
 grep -q '^  deploy-backend-production:' .github/workflows/ci-deploy.yml || fail "missing backend production deploy job"
@@ -137,6 +139,12 @@ fi
 if [ -d voice ]; then
   npm --prefix voice test
   ok "voice text/file and Planner-Critic contracts pass"
+fi
+
+if [ -d macmini-llm-bridge ]; then
+  [ -f macmini-llm-bridge/package-lock.json ] || fail "Mac mini bridge lockfile is missing"
+  npm --prefix macmini-llm-bridge test
+  ok "Mac mini Codex bridge authentication, schema, queue, and sandbox contracts pass"
 fi
 
 large_files=$(find data/raw data/processed -type f \( -size +50M \) -print 2>/dev/null | sed -n '1,20p' || true)

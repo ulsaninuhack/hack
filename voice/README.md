@@ -51,7 +51,13 @@ npm run audio -- \
   --surveyor-id '연결단원 001'
 ```
 
-`OPENAI_VOICE_TEXT_MODEL`로 Structured Outputs 지원 모델을 바꿀 수 있다. 기본값은 `gpt-4o-mini`다.
+텍스트 Planner/Critic은 기본적으로 `OPENAI_API_KEY`를 쓰지만,
+`CONTACT_OPS_CODEX_BRIDGE_URL`과 32자 이상의 `CONTACT_OPS_CODEX_BRIDGE_TOKEN`을 설정하면
+인증된 Mac mini Codex 브리지를 우선 사용한다. 외부 브리지 URL은 HTTPS만 허용하며 장애 시
+OpenAI로 조용히 우회하지 않는다. 운영 방법은
+[`../docs/MAC_MINI_CODEX_BRIDGE.md`](../docs/MAC_MINI_CODEX_BRIDGE.md)를 따른다.
+`OPENAI_VOICE_TEXT_MODEL`은 OpenAI text transport의 Structured Outputs 모델을 바꾼다.
+브리지 사용 시 실제 모델은 Mac mini의 `CODEX_BRIDGE_MODEL`이 결정한다.
 
 파일 전사 모델은 `OPENAI_VOICE_TRANSCRIPTION_MODEL`로 바꾼다. 기본값은 `gpt-4o-mini-transcribe`이며 `whisper-1`, `gpt-4o-transcribe` 계열로 교체할 수 있다. 입력 언어 힌트는 `OPENAI_VOICE_TRANSCRIPTION_LANGUAGE`이고 기본값은 `ko`다. 이 어댑터는 제품 범위에 맞춰 WAV/MP3/M4A 정규 파일만 받으며, OpenAI 파일 전사 제한에 맞춰 25MB 이하만 허용한다. 구현은 OpenAI의 [파일 전사 가이드](https://developers.openai.com/api/docs/guides/speech-to-text)처럼 `audio.transcriptions.create`에 파일 스트림을 전달한다.
 
@@ -122,7 +128,7 @@ npm run test:live
 
 `RUN_LIVE_WHISPER=1`이 설정된 이 명령만 실제 전사 API와 3a API를 호출한다. 전사 결과의 문구 일치는 단언하지 않고, 비어 있지 않은 마스킹 전사와 최종 계약 통과만 확인한다. `.env`, 원시 전사, 오디오 경로는 커밋하거나 로그로 남기지 않는다.
 
-ContactOps 실제 Planner–Critic 그래프는 `ENABLE_LIVE_CONTACT_OPS_AI=1`이 명시된 경우에만 열린다. Planner 호출 후 두 번째 Structured Outputs Critic 호출이 실행되며, Critic은 `missing_fields`, `contradictions`, `low_confidence_fields`, `warnings` 배열만 반환할 수 있다. 기본값 `0`에서는 외부 호출을 막고 주입된 모킹 Planner/Critic만 실행한다.
+ContactOps 실제 Planner–Critic 그래프는 `ENABLE_LIVE_CONTACT_OPS_AI=1`이 명시되고 OpenAI 또는 Mac mini text transport가 설정된 경우에만 열린다. Planner 호출 후 두 번째 Structured Outputs Critic 호출이 실행되며, Critic은 `missing_fields`, `contradictions`, `low_confidence_fields`, `warnings` 배열만 반환할 수 있다. 기본값 `0`에서는 외부 호출을 막고 주입된 모킹 Planner/Critic만 실행한다. 오디오 파일 전사는 브리지 대상이 아니므로 계속 `OPENAI_API_KEY`가 필요하다.
 
 폴백 순서는 3c 실시간 입력 실패 시 3b 파일 업로드, 3b 실패 시 3a 텍스트 직접 입력이다. 3c는 아직 구현하지 않았다.
 

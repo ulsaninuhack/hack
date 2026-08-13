@@ -1,5 +1,3 @@
-import OpenAI from 'openai';
-
 import {
   VOICE_OUTPUT_JSON_SCHEMA,
   VoiceContractError,
@@ -7,6 +5,7 @@ import {
 } from './contract.mjs';
 import { maskPii, maskPiiDeep } from './privacy.mjs';
 import { VOICE_EXTRACTION_INSTRUCTIONS } from './prompt.mjs';
+import { createTextLlmClient } from './llm-client.mjs';
 
 const DEFAULT_MODEL = 'gpt-4o-mini';
 const SURVEYOR_ID_PATTERN = /^연결단원 [0-9]{3}$/;
@@ -65,13 +64,13 @@ function normalizeContactContext(context) {
 }
 
 function createClient() {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
+  try {
+    return createTextLlmClient();
+  } catch {
     throw new VoiceInputError(
-      'OPENAI_API_KEY is required in voice/.env unless a test client is injected.',
+      'A configured text LLM transport is required unless a test client is injected.',
     );
   }
-  return new OpenAI({ apiKey });
 }
 
 function parseModelOutput(response) {

@@ -14,7 +14,8 @@
 - Backend local source: Node 24 API for curated read-only `public/data/` routes plus session-isolated synthetic ContactOps operations, with `src/`, tests, coverage gate, Dockerfile, `.dockerignore`, and README.
 - Backend production: `https://incheon-care-api-vy3v2ludma-du.a.run.app/health` is live. Match the successful `main` run, revision commit label, and image digest before claiming an exact commit is deployed.
 - Backend health convention: `/health` is canonical externally. `/healthz` exists in source/tests, but Cloud Run's frontend intercepts that path and returns its own 404, so external smoke tests use `/health`.
-- Voice input: `voice/` stage 3a converts consented, PII-masked text into the fixed JSON contract. Stage 3b validates WAV/MP3/M4A files, calls an injectable OpenAI transcription adapter, masks the raw transcript immediately, and reuses 3a. The backend now accepts a bounded multipart mobile upload, uses a random temporary filename, and deletes it after candidate generation. Its deterministic goldens mock transcription; actual-device audio accuracy and Realtime/WebRTC remain unverified or unimplemented.
+- Voice input: `voice/` stage 3a converts consented, PII-masked text into the fixed JSON contract through OpenAI or the authenticated Mac mini Codex bridge. Stage 3b validates WAV/MP3/M4A files, calls an injectable OpenAI transcription adapter, masks the raw transcript immediately, and reuses 3a. The backend accepts a bounded multipart mobile upload, uses a random temporary filename, and deletes it after candidate generation. Its deterministic goldens mock transcription; actual-device audio accuracy and Realtime/WebRTC remain unverified or unimplemented.
+- Mac mini LLM bridge: `macmini-llm-bridge/` implements the Capston-style persistent `codex app-server` transport behind a localhost-only authenticated schema allowlist and Tailscale Funnel. Unit tests and a local live Codex smoke pass. Mac mini installation, Funnel smoke, Secret Manager wiring, and Cloud Run activation remain pending; do not claim this branch is production-connected. See `docs/MAC_MINI_CODEX_BRIDGE.md`.
 - Cloud Run CD status: the merged workflow validates pull requests and runs sibling Vercel and Cloud Run deploy jobs after successful `main` validation.
 - GCP auth: use Workload Identity Federation only. Do not add JSON service-account keys.
 - GCP DB: Firestore Standard Native `(default)` is provisioned in `asia-northeast3`; the runtime service account has `roles/datastore.user`. P1 uses it only for synthetic, session-isolated ContactOps overrides. Static health/map/facility/transit/summary routes remain independent of Firestore, and browser-direct access is prohibited.
@@ -81,7 +82,8 @@ The primary continuation seams are:
 | Frontend/API integration | `src/contactOpsClient.ts`, `src/AiObservationClient.ts` | session header, revision conflicts, explicit AI confirmation |
 | ContactOps backend | `backend/src/app.mjs`, `backend/src/contact-ops-service.mjs`, `backend/src/contact-ops-state.mjs` | synthetic-only Firestore state, no browser-direct database access |
 | Deterministic scoring | `backend/src/contact-triage-scoring.mjs`, `docs/CONTACT_TRIAGE_SCORING.md` | acute and vulnerability remain separate with contribution traces |
-| Voice/LLM adapter | `voice/src/contact-ops-adapter.mjs`, `voice/README.md` | candidate-only Planner-Critic output; manager remains decision owner |
+| Voice/LLM adapter | `voice/src/contact-ops-adapter.mjs`, `voice/src/llm-client.mjs`, `voice/README.md` | OpenAI or Mac mini text transport; candidate-only output |
+| Mac mini bridge | `macmini-llm-bridge/`, `docs/MAC_MINI_CODEX_BRIDGE.md` | localhost Codex app-server, bearer/TLS edge, schema allowlist, no tools |
 | Deploy and live proof | `.github/workflows/ci-deploy.yml`, `docs/DEPLOYMENT.md` | PR validates only; `main` deploys with WIF and digest-pinned image |
 
 ### Last independently verified production baseline
@@ -115,6 +117,7 @@ This is historical delivery evidence, not permission to assume a later commit is
 | CI/CD workflow | `.github/workflows/ci-deploy.yml` |
 | Backend API contract | `backend/README.md`, `backend/test/api.test.mjs` |
 | Voice input contract and stage status | `voice/README.md`, `voice/schema/voice-output.schema.json` |
+| Mac mini Codex bridge operations | `docs/MAC_MINI_CODEX_BRIDGE.md`, `macmini-llm-bridge/README.md` |
 | Agent rules | `AGENTS.md` |
 | UI/UX review contract and preview log | `docs/UI_UX_REVIEW_RUBRIC.md`, `docs/PROGRESS.md` |
 
@@ -168,9 +171,10 @@ Expected CI path:
 3. Frontend: `npm ci`, `npm run validate:data`, `npm run validate:synthetic-data`, `npm run test:synthetic-data`, `npm run typecheck`, `npm run build`
 4. Backend: `npm --prefix backend ci`, `npm --prefix backend run test:coverage`
 5. Voice contract: `npm --prefix voice ci`, `npm --prefix voice test`
-6. Backend Docker build
-7. For `main` only, Vercel deploys frontend production
-8. For `main` only, Cloud Run deploys backend production with WIF
+6. Mac mini bridge contract: `npm --prefix macmini-llm-bridge ci`, `npm --prefix macmini-llm-bridge test`
+7. Backend Docker build
+8. For `main` only, Vercel deploys frontend production
+9. For `main` only, Cloud Run deploys backend production with WIF
 
 Vercel Git auto-deploy is disabled by `vercel.json`.
 Cloud Run deploy uses commit-pinned v3 releases of `google-github-actions/auth`, `setup-gcloud`, and `deploy-cloudrun`, plus Artifact Registry push. CI should not use static GCP keys or mutate public invoker IAM.
@@ -192,6 +196,8 @@ npm --prefix backend run test:coverage
 npm --prefix backend run demo:contact-ops
 npm --prefix voice ci
 npm --prefix voice test
+npm --prefix macmini-llm-bridge ci
+npm --prefix macmini-llm-bridge test
 bash scripts/agent-check.sh
 ```
 
