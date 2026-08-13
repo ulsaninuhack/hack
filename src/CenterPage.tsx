@@ -33,6 +33,7 @@ import { caseDisplayName } from './caseDisplayName'
 import { formatScore } from './scoreFormat'
 
 const CENTER_ACTOR = '동센터 담당자'
+const ASSIGNMENT_PAGE_SIZE = 5
 const CENTER_REFRESH_INTERVAL_MS = 5_000
 const TRANSFER_TRACK_MESSAGE = '안부확인 트랙에서 사례관리·전문기관 트랙으로 전환하는 권고입니다. 전환 확정은 별도 행정 절차로 진행합니다.'
 
@@ -350,6 +351,7 @@ export function CenterPage({ reviewCaseId = null }: { reviewCaseId?: string | nu
   const [recommendations, setRecommendations] = useState<CaseDetail[]>([])
   const [selectedVisitId, setSelectedVisitId] = useState<string | null>(reviewCaseId)
   const [lane, setLane] = useState<'phone' | 'visit'>('phone')
+  const [lanePage, setLanePage] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState('')
   const [busy, setBusy] = useState(false)
@@ -415,6 +417,14 @@ export function CenterPage({ reviewCaseId = null }: { reviewCaseId?: string | nu
   const escalatedVisits = useMemo(
     () => (proposal?.lanes.visit ?? []).filter((item) => item.escalation),
     [proposal],
+  )
+  // 긴 레인은 5명 단위로 나눠 보여준다. 새로고침으로 목록이 줄면 현재
+  // 페이지를 마지막 페이지로 당겨 빈 화면을 막는다.
+  const lanePageCount = Math.max(1, Math.ceil(laneItems.length / ASSIGNMENT_PAGE_SIZE))
+  const currentLanePage = Math.min(lanePage, lanePageCount - 1)
+  const pagedLaneItems = useMemo(
+    () => laneItems.slice(currentLanePage * ASSIGNMENT_PAGE_SIZE, (currentLanePage + 1) * ASSIGNMENT_PAGE_SIZE),
+    [laneItems, currentLanePage],
   )
   const pendingVisitIds = useMemo(() => (proposal?.lanes.visit ?? [])
     .filter((item) => item.status !== 'confirmed' && !item.escalation)
@@ -627,13 +637,20 @@ export function CenterPage({ reviewCaseId = null }: { reviewCaseId?: string | nu
                 {proposal === null ? <p className="ops-empty">오늘 예정된 배치 제안이 없습니다.</p> : (
                   <>
                     <div className="lane-tabs" role="tablist" aria-label="전화 레인과 방문 레인">
-                      <button role="tab" aria-selected={lane === 'phone'} onClick={() => setLane('phone')}>전화 {proposal.lanes.phone.length}</button>
-                      <button role="tab" aria-selected={lane === 'visit'} onClick={() => setLane('visit')}>방문 {proposal.lanes.visit.length - escalatedVisits.length}</button>
+                      <button role="tab" aria-selected={lane === 'phone'} onClick={() => { setLane('phone'); setLanePage(0) }}>전화 {proposal.lanes.phone.length}</button>
+                      <button role="tab" aria-selected={lane === 'visit'} onClick={() => { setLane('visit'); setLanePage(0) }}>방문 {proposal.lanes.visit.length - escalatedVisits.length}</button>
                     </div>
                     <ul className="assignment-list" aria-label={lane === 'phone' ? '전화 레인 할당 제안' : '방문 레인 할당 제안'}>
                       {laneItems.length === 0 ? <li className="ops-empty">이 레인에는 오늘 제안이 없습니다.</li>
-                        : laneItems.map((item) => <ProposalRow key={item.case_id} item={item} onConfirm={confirmOne} onEscalate={escalateOne} busy={busy} />)}
+                        : pagedLaneItems.map((item) => <ProposalRow key={item.case_id} item={item} onConfirm={confirmOne} onEscalate={escalateOne} busy={busy} />)}
                     </ul>
+                    {lanePageCount > 1 && (
+                      <nav className="assignment-pager" aria-label="배치 목록 페이지 이동">
+                        <button disabled={currentLanePage === 0} onClick={() => setLanePage(currentLanePage - 1)}>이전</button>
+                        <span aria-live="polite">{currentLanePage + 1} / {lanePageCount} 페이지</span>
+                        <button disabled={currentLanePage >= lanePageCount - 1} onClick={() => setLanePage(currentLanePage + 1)}>다음</button>
+                      </nav>
+                    )}
                     {lane === 'visit' && escalatedVisits.length > 0 && (
                       <section className="escalated-box" aria-labelledby="escalated-heading">
                         <h3 id="escalated-heading"><AlertTriangle aria-hidden="true" size={16} /> 상급기관 신고됨 {escalatedVisits.length}건</h3>

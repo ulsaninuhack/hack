@@ -1026,6 +1026,11 @@ select:focus-visible,
 .center-page .assignment-actions { display: flex; gap: 8px; }
 .center-page .assignment-escalated { color: #d31530; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
 .center-page .assignment-escalated-note { margin: 0; font-size: 14px; color: var(--t-faint); }
+.center-page .assignment-pager { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 12px; }
+.center-page .assignment-pager button { min-height: 44px; min-width: 76px; border: 1px solid var(--t-line); border-radius: 10px; background: var(--t-card); color: var(--t-sub); font-weight: 700; font-size: 14px; cursor: pointer; transition: background .15s var(--ease), color .15s var(--ease); }
+.center-page .assignment-pager button:hover:not(:disabled) { background: var(--t-blue-soft); color: var(--t-blue); }
+.center-page .assignment-pager button:disabled { opacity: 0.4; cursor: default; }
+.center-page .assignment-pager span { font-size: 14px; color: var(--t-faint); font-variant-numeric: tabular-nums; }
 .center-page .escalated-box { margin-top: 14px; border: 1px solid #f3d4d4; background: var(--t-red-soft); border-radius: 12px; padding: 12px 14px; display: grid; gap: 8px; }
 .center-page .escalated-box h3 { margin: 0; display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 700; color: #c22f2f; }
 .center-page .escalated-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
