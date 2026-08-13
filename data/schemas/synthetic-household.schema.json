@@ -70,7 +70,17 @@
         "current_district_name_20260701",
         "geometry_resolution",
         "mapping_method",
-        "spatial_basis"
+        "spatial_basis",
+        "reference_pnu",
+        "road_address",
+        "building_name",
+        "main_use_names",
+        "apartment_reference",
+        "residential_building_reference",
+        "address_source",
+        "coordinate_source",
+        "residential_classification_sources",
+        "not_real_resident"
       ],
       "properties": {
         "longitude": { "type": "number", "minimum": 124, "maximum": 128 },
@@ -88,7 +98,43 @@
           ]
         },
         "mapping_method": { "type": "string", "minLength": 1 },
-        "spatial_basis": { "const": "synthetic_point_within_2025_geometry_zone" }
+        "spatial_basis": {
+          "const": "official_residential_building_address_reference"
+        },
+        "reference_pnu": { "type": "string", "pattern": "^\\d{19}$" },
+        "road_address": {
+          "type": "string",
+          "pattern": "^인천광역시 ",
+          "minLength": 8
+        },
+        "building_name": { "type": "string" },
+        "main_use_names": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "apartment_reference": { "type": "boolean" },
+        "residential_building_reference": { "const": true },
+        "address_source": { "const": "MOIS_JUSO_BUILDING_DB_202607" },
+        "coordinate_source": {
+          "enum": [
+            "VWORLD_AL_D010_PNU_REPRESENTATIVE_POINT_20260809",
+            "OPENSTREETMAP_NOMINATIM_RESIDENTIAL_FEATURE_20260813"
+          ]
+        },
+        "residential_classification_sources": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "VWORLD_BUILDING_AGE_REGISTER_20260805",
+              "MOIS_JUSO_BUILDING_DB_202607_COLLECTIVE_HOUSING_FLAG"
+            ]
+          }
+        },
+        "not_real_resident": { "const": true }
       }
     },
     "nullable_date": {

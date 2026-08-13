@@ -734,6 +734,28 @@ def catalog_for(path: Path) -> dict[str, str]:
             },
         )
 
+    if rel == "address/residential_coordinate_overrides.json":
+        return add_disclosure(
+            path,
+            {
+                "source_name": "OpenStreetMap Nominatim 송도 SK VIEW 주거건물 좌표 보완",
+                "source_url": (
+                    "https://nominatim.openstreetmap.org/search?"
+                    "q=%EC%86%A1%EB%8F%84+SK+VIEW+%EC%9D%B8%EC%B2%9C&"
+                    "format=jsonv2&limit=1&countrycodes=kr"
+                ),
+                "source_institution": "OpenStreetMap contributors",
+                "use": "공식 주소DB에는 있으나 보유 VWorld 건물도형과 결합되지 않은 송도5동 주거건물 대표좌표 보완",
+                "join_key": "PNU, 도로명주소, OSM way ID",
+                "access": "downloaded",
+                "upstream_access": "public no-key query",
+                "data_nature": "observed_public",
+                "reference_date_or_period": "2026-08-13",
+                "local_acquisition_date": "2026-08-13",
+                "license_or_terms_note": "Open Database License (ODbL) 1.0; attribution required.",
+            },
+        )
+
     utility_data_ids = {
         "utilities/incheon_water_billed_usage_by_district_20231231.csv": "15052871",
         "utilities/incheon_water_revenue_rate_2014_2024.csv": "15102131",

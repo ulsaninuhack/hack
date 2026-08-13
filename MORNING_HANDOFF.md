@@ -113,7 +113,7 @@
 - [ ] physical-device touch comfort and keyboard behavior
 - [ ] final Korean wording and visual polish
 - [ ] judge-readability and complete demo rehearsal
-- [ ] whether the 664 synthetic mild-signal accumulation warning is acceptable
+- [ ] whether the 647 synthetic mild-signal accumulation warning is acceptable
 
 ## Preview and screenshots
 

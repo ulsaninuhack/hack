@@ -20,9 +20,9 @@ function vulnerabilityBand(score) {
   return '0_24';
 }
 
-function assertScore(value, label) {
-  if (!Number.isInteger(value) || value < 0 || value > 100) {
-    throw new TypeError(`${label} must be an integer from 0 to 100`);
+function assertScore(value, label, { integer = false } = {}) {
+  if (!Number.isFinite(value) || value < 0 || value > 100 || (integer && !Number.isInteger(value))) {
+    throw new TypeError(`${label} must be ${integer ? 'an integer' : 'a finite number'} from 0 to 100`);
   }
 }
 
@@ -42,7 +42,7 @@ function assertLocation(location) {
 
 function assertTriage(triage) {
   if (!isObject(triage)) throw new TypeError('manager breadth record requires triage');
-  assertScore(triage.급성도_점수, '급성도_점수');
+  assertScore(triage.급성도_점수, '급성도_점수', { integer: true });
   assertScore(triage.취약도_점수, '취약도_점수');
   if (triage.급성도_등급 !== expectedAcuteGrade(triage.급성도_점수)) {
     throw new TypeError('급성도_등급 does not match 급성도_점수');

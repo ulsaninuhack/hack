@@ -31,7 +31,7 @@ Synthetic ContactOps routes:
 - `GET /api/v1/contact-ops/cases/:caseId`
 - `POST /api/v1/contact-ops/session-reset` — test/E2E only. It exists only when `CONTACT_OPS_ENABLE_TEST_RESET=1`, requires `X-Demo-Session-ID` and exactly `{ "expected_marker": "[합성]" }`, and idempotently removes only that session's synthetic overrides. Production leaves this route unavailable.
 - `GET /api/v1/contact-ops/manager-breadth` — session-scoped transfer recommendations, separate score distributions, deterministic tuning warning, and approved-only `VRP 아님` nearest-order hint; no query parameters
-- `GET /api/v1/contact-ops/operations-map` — 156-zone overlay. Fresh sessions expose one deterministic `[합성 시나리오]` example per current admin dong and separately count session-recorded, scenario, and unrecorded tasks; no query parameters
+- `GET /api/v1/contact-ops/operations-map` — 156-zone overlay. Fresh sessions expose one deterministic `[합성 시나리오]` example per current admin dong and separately count session-recorded, scenario, and unrecorded tasks. Sorted `visit_review_points` carry recommendation-only status, both scores and contribution traces, plus public residential-building addresses and representative coordinates for a future point layer; no query parameters
 - `POST /api/v1/contact-ops/cases/:caseId/contact-results`
 - `POST /api/v1/contact-ops/cases/:caseId/triage/recalculate`
 - `GET /api/v1/contact-ops/visit-recommendations?referenceDate=&workerId=&district=`

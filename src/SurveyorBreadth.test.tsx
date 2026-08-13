@@ -56,6 +56,12 @@ function detail(
         current_admin_dong_code_20260701: '2812551000',
         current_admin_dong_name_20260701: '신포동',
         current_district_name_20260701: '제물포구',
+        road_address: '인천광역시 제물포구 답동로 7-2',
+        building_name: '',
+        apartment_reference: false,
+        reference_pnu: '2812513200100110016',
+        residential_building_reference: true,
+        not_real_resident: true,
       },
       contact: { [CONSECUTIVE_NO_ANSWER_FIELD]: input.consecutiveNoAnswer ?? 0 },
       workflow: {

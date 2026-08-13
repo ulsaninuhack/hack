@@ -11,7 +11,12 @@ const SIGN_KEYS = [
   '연락_두절',
 ];
 
-const STRUCTURAL_CODES = ['고령비율', '1인가구비율', '노후주택', '기초수급_밀도'];
+const STRUCTURAL_CODE_MAP = [
+  ['고령비율', 'older_population_share'],
+  ['1인가구비율', 'one_person_household_share'],
+  ['노후주택', 'residential_building_30_plus_share'],
+  ['기초수급_밀도', 'basic_livelihood_context_density'],
+];
 
 const PROFILES = [
   {},
@@ -58,7 +63,51 @@ function assertSyntheticHousehold(household) {
   }
 }
 
-export function buildSyntheticScenarioInput(household, referenceDate) {
+export function buildPublicStructuralContext(household, structuralContext = null) {
+  assertSyntheticHousehold(household);
+  const zeroContext = {
+    지도구역_id: household.location.geometry_zone_id,
+    현행_행정동_코드_20260701: household.location.current_admin_dong_code_20260701,
+    점수: 0,
+    기준일_메모: '공개 구조 맥락 데이터가 주입되지 않은 테스트 기본값',
+    기여내역: STRUCTURAL_CODE_MAP.map(([코드]) => ({
+      코드,
+      가산점: 0,
+      출처: '공개_동단위_집계',
+    })),
+  };
+  if (structuralContext === null) return zeroContext;
+  if (!structuralContext || structuralContext.schema_version !== 'structural-context-p7-v1'
+      || structuralContext.model_output_label !== '[MODEL OUTPUT — UNVALIDATED]'
+      || !Array.isArray(structuralContext.zones)) {
+    throw new TypeError('structural context dataset is invalid');
+  }
+  const zone = structuralContext.zones.find(
+    (item) => item.geometry_zone_id === household.location.geometry_zone_id,
+  );
+  if (!zone || !zone.indicators || typeof zone.score_0_50 !== 'number') {
+    throw new TypeError('household geometry zone is missing structural context');
+  }
+  const contributions = STRUCTURAL_CODE_MAP.map(([코드, sourceCode]) => {
+    const indicator = zone.indicators[sourceCode];
+    if (!indicator || typeof indicator.contribution !== 'number') {
+      throw new TypeError(`structural context indicator is invalid: ${sourceCode}`);
+    }
+    return { 코드, 가산점: indicator.contribution, 출처: '공개_동단위_집계' };
+  });
+  const dates = [...new Set(Object.values(zone.indicators).flatMap(
+    (indicator) => Object.values(indicator.reference_dates || {}).filter(Boolean),
+  ))].sort();
+  return {
+    지도구역_id: household.location.geometry_zone_id,
+    현행_행정동_코드_20260701: household.location.current_admin_dong_code_20260701,
+    점수: zone.score_0_50,
+    기준일_메모: `${structuralContext.model_output_label}; 공개 집계 기준일 ${dates.join(', ')}; 혼합 스냅샷`,
+    기여내역: contributions,
+  };
+}
+
+export function buildSyntheticScenarioInput(household, referenceDate, structuralContext = null) {
   assertSyntheticHousehold(household);
   assertReferenceDate(referenceDate);
   const bytes = digest(household.id);
@@ -84,25 +133,21 @@ export function buildSyntheticScenarioInput(household, referenceDate) {
     마지막_연결_후_경과일: bytes[3] % 61,
     재연락_기한: household.workflow.follow_up_deadline,
     방문_승인_상태: null,
-    동단위_구조취약도: {
-      지도구역_id: household.location.geometry_zone_id,
-      현행_행정동_코드_20260701: household.location.current_admin_dong_code_20260701,
-      점수: 0,
-      기준일_메모: '합성 시나리오에는 검증 전 공개 구조 맥락 점수를 주입하지 않음',
-      기여내역: STRUCTURAL_CODES.map((코드) => ({
-        코드,
-        가산점: 0,
-        출처: '공개_동단위_집계',
-      })),
-    },
+    동단위_구조취약도: buildPublicStructuralContext(household, structuralContext),
   };
 }
 
-export function buildSyntheticScenarioTriage(household, referenceDate) {
-  return buildTriageQueue([buildSyntheticScenarioInput(household, referenceDate)])[0];
+export function buildSyntheticScenarioTriage(household, referenceDate, structuralContext = null) {
+  return buildTriageQueue([
+    buildSyntheticScenarioInput(household, referenceDate, structuralContext),
+  ])[0];
 }
 
-export function prepareSyntheticScenarioOverlayRecords(records, referenceDate) {
+export function prepareSyntheticScenarioOverlayRecords(
+  records,
+  referenceDate,
+  structuralContext = null,
+) {
   if (!Array.isArray(records)) throw new TypeError('records must be an array');
   assertReferenceDate(referenceDate);
 
@@ -124,7 +169,11 @@ export function prepareSyntheticScenarioOverlayRecords(records, referenceDate) {
     }
     return {
       ...record,
-      triage: buildSyntheticScenarioTriage(record.household, referenceDate),
+      triage: buildSyntheticScenarioTriage(
+        record.household,
+        referenceDate,
+        structuralContext,
+      ),
       score_source: 'synthetic_scenario',
     };
   });

@@ -1,10 +1,10 @@
 # I5 Data Bundle Inventory
 
-- Raw files: 322
-- Files with authoritative source URL cataloged: 321
+- Raw files: 323
+- Files with authoritative source URL cataloged: 322
 - User-provided official files with no recorded external URL: 1
 - Files needing source annotation: 0
-- Data nature: local_provenance_record=1, observed_public=85, official_document=236; synthetic raw files=0.
+- Data nature: local_provenance_record=1, observed_public=86, official_document=236; synthetic raw files=0.
 - CSV encodings observed: cp949, utf-8-sig.
 - API credentials were not generated. Items needing keys are listed in metadata/api_catalog.csv.
 - API access status and already-downloaded local bulk status are recorded separately.
