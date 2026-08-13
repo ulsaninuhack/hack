@@ -531,3 +531,17 @@ hostile follow-up, commit, preview, and blockers. Existing entries are never rew
   후보가 37점 `주시`로 들어가는 경로를 단언. 실기기·실제 노인 음질은 여전히 미증명.
 - 실 OpenAI 텍스트 검증에서 `공과금 석 달 밀림·마음이 괴로움·연락할 사람 없음·한 달간
   연락 없음`을 각각 체납 true, 괴로움 true, 관계망 없음, 연락 빈도 없음으로 매핑.
+
+## 2026-08-13 — 전화 확인·방문 확인 실데이터 연동 + 공유 데모 세션
+
+- 세션 격리 때문에 조사원 모바일 제출이 센터 데스크톱에 안 보이던 문제 해결:
+  두 클라이언트 모두 기본 세션을 공유 데모 세션(incheon-care-shared-demo-floor)
+  으로 통일. e2e·격리 시나리오는 기존처럼 sessionStorage 주입으로 덮어씀.
+- center-inbox 보고 카드에 report_lane(phone/visit)·escalation 상태를 부여해
+  /center를 전화 확인 / 방문 확인 / 방문 승격 세 섹션으로 재구성. 워딩 변경
+  (보고 확인→전화 확인, 방문 검토→방문 승격) 및 카드에 [기관 연락] 액션 추가.
+- 조사원이 /m에서 제출(POST contact-results)하면 센터 GET center-inbox에 즉시
+  반영 — 목데이터 아님을 명시. 위험 신호 카드는 방문 승격(기존 승인 플로우)
+  또는 기관 연락(escalations POST)으로 처리.
+- 검증: 백엔드 커버리지 게이트(97.33/90.9/100), 프런트 62, copy 게이트, 빌드,
+  E2E 5/5 그린.

@@ -106,10 +106,12 @@ function ProposalRow({
 function ReportCardView({
   card,
   onAcknowledge,
+  onEscalate,
   busy,
 }: {
   card: ReportCard
   onAcknowledge: (card: ReportCard) => void
+  onEscalate: (caseId: string) => void
   busy: boolean
 }) {
   const [showTransfer, setShowTransfer] = useState(false)
@@ -152,8 +154,11 @@ function ReportCardView({
           ? <p className="report-acknowledged"><CheckCircle2 aria-hidden="true" size={17} /> 확인함 · {card.acknowledgement.acknowledged_by}</p>
           : <button disabled={busy} onClick={() => onAcknowledge(card)}>보고 확인</button>}
         {card.workflow.visit_approval_status === 'recommended' && (
-          <a className="report-jump" href="#center-visit-review">방문 검토로 이동</a>
+          <a className="report-jump" href="#center-visit-review">방문 승격으로 이동</a>
         )}
+        {card.escalation
+          ? <p className="assignment-escalated"><AlertTriangle aria-hidden="true" size={17} /> 기관 연락됨 · {card.escalation.agency}</p>
+          : <button className="report-escalate" disabled={busy} onClick={() => onEscalate(card.case_id)}>기관 연락</button>}
         {card.workflow.transfer_label && (
           <button className="report-transfer-toggle" onClick={() => setShowTransfer((value) => !value)} aria-expanded={showTransfer}>이관 안내</button>
         )}
@@ -212,6 +217,8 @@ export function CenterPage() {
   }, [mapOpen, mapData])
 
   const proposal = inbox?.assignment_proposal ?? null
+  const phoneReports = useMemo(() => (inbox?.report_cards ?? []).filter((card) => card.report_lane !== 'visit'), [inbox])
+  const visitReports = useMemo(() => (inbox?.report_cards ?? []).filter((card) => card.report_lane === 'visit'), [inbox])
   const laneItems = useMemo(() => proposal?.lanes[lane] ?? [], [proposal, lane])
   const pendingVisitIds = useMemo(() => (proposal?.lanes.visit ?? [])
     .filter((item) => item.status !== 'confirmed' && !item.escalation)
@@ -313,9 +320,10 @@ export function CenterPage() {
               <strong className="center-hero-count">오늘 처리할 일 {inbox.summary.보고_대기_수 + inbox.summary.방문승인_대기_수}건</strong>
             </div>
             <div className="center-hero-pills">
-              <a href="#center-reports"><strong>{inbox.summary.보고_대기_수}건</strong><span>보고 확인 대기</span></a>
-              <a href="#center-assignment"><strong>{(proposal?.lanes.visit.length ?? 0) === 0 ? '없음' : pendingVisitIds.length === 0 ? '완료' : `대기 ${pendingVisitIds.length}건`}</strong><span>방문 확인·신고</span></a>
-              <a href="#center-visit-review"><strong>{inbox.summary.방문승인_대기_수}건</strong><span>방문 검토 대기</span></a>
+              <a href="#center-reports"><strong>{phoneReports.filter((card) => card.acknowledgement.status !== '확인' && !card.escalation).length}건</strong><span>전화 확인 대기</span></a>
+              <a href="#center-visit-reports"><strong>{visitReports.filter((card) => card.acknowledgement.status !== '확인' && !card.escalation).length}건</strong><span>방문 확인 대기</span></a>
+              <a href="#center-assignment"><strong>{(proposal?.lanes.visit.length ?? 0) === 0 ? '없음' : pendingVisitIds.length === 0 ? '완료' : `대기 ${pendingVisitIds.length}건`}</strong><span>방문 배정</span></a>
+              <a href="#center-visit-review"><strong>{inbox.summary.방문승인_대기_수}건</strong><span>방문 승격 대기</span></a>
               <div
                 className="center-hero-ring"
                 role="img"
@@ -354,17 +362,29 @@ export function CenterPage() {
               </section>
 
               <section id="center-reports" className="center-section" aria-labelledby="reports-heading">
-                <h2 id="reports-heading">보고 확인</h2>
-                {inbox.report_cards.length === 0
-                  ? <p className="ops-empty">아직 도착한 보고가 없습니다.</p>
-                  : inbox.report_cards.map((card) => (
-                    <ReportCardView key={card.card_id} card={card} onAcknowledge={acknowledge} busy={busy} />
+                <h2 id="reports-heading">전화 확인</h2>
+                <p className="assignment-rule-note">조사원이 전화 결과를 제출하면 바로 나타납니다. 위험 신호 보고는 모두 확인하고, 방문 승격 또는 기관 연락으로 처리합니다.</p>
+                {phoneReports.length === 0
+                  ? <p className="ops-empty">아직 도착한 전화 보고가 없습니다.</p>
+                  : phoneReports.map((card) => (
+                    <ReportCardView key={card.card_id} card={card} onAcknowledge={acknowledge} onEscalate={escalateOne} busy={busy} />
+                  ))}
+              </section>
+
+              <section id="center-visit-reports" className="center-section" aria-labelledby="visit-reports-heading">
+                <h2 id="visit-reports-heading">방문 확인</h2>
+                <p className="assignment-rule-note">조사원이 방문 결과를 제출하면 바로 나타납니다. 모든 방문 보고를 확인 또는 기관 연락으로 처리합니다.</p>
+                {visitReports.length === 0
+                  ? <p className="ops-empty">아직 도착한 방문 보고가 없습니다.</p>
+                  : visitReports.map((card) => (
+                    <ReportCardView key={card.card_id} card={card} onAcknowledge={acknowledge} onEscalate={escalateOne} busy={busy} />
                   ))}
               </section>
 
               <section id="center-visit-review" className="center-section" aria-labelledby="visit-review-heading">
-                <h2 id="visit-review-heading">방문 검토</h2>
-                {recommendations.length === 0 ? <p className="ops-empty">현재 검토할 방문 권고가 없습니다.</p> : (
+                <h2 id="visit-review-heading">방문 승격</h2>
+                <p className="assignment-rule-note">위험 신호가 확인된 전화 대상을 방문으로 올립니다. 승격 확정은 담당자 결정으로만 이루어집니다.</p>
+                {recommendations.length === 0 ? <p className="ops-empty">현재 승격 대기인 대상이 없습니다.</p> : (
                   <div className="visit-review">
                     <ul className="visit-review-list" aria-label="방문 권고 대기 목록">
                       {recommendations.map((item) => (
