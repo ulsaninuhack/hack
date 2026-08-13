@@ -24,6 +24,19 @@ describe('ContactOps API client', () => {
     expect(String(fetchMock.mock.calls[1][1]?.body)).toContain('max_route_distance_km')
   })
 
+  it('maps the combined refusal label to the canonical refused result', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      response({ synthetic: true, displayMarker: '[합성]', revision: 4, household: {}, observations: {}, triage: null }),
+    )
+    await submitContact({
+      caseId: 'SYN-HH-2812551000-0001',
+      revision: 3,
+      resultLabel: '연락(또는 방문) 거부',
+      observations: emptyObservations(),
+    })
+    expect(String(fetchMock.mock.calls[0][1]?.body)).toContain('"contact_result":"refused"')
+  })
+
   it('loads the server-owned manager breadth projection through the operation API', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(response({
       synthetic: true, displayMarker: '[합성]', transfer_recommendations: [], grade_distribution: {}, tuning_warning: {}, approved_visit_hint: {},

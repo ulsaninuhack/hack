@@ -14,13 +14,16 @@ import type { CaseDetail } from './contactOpsClient'
 import {
   ATTENTION_CONTACT_LABELS,
   DEMO_CENTER_DONG_CODE,
+  DEMO_WORKER_ID,
   acknowledgeReport,
   confirmAssignment,
   escalateCase,
   loadCenterInbox,
+  managementIntakeLabel,
 } from './threeTierClient'
 import type { AssignmentProposalItem, CenterInbox, ReportCard } from './threeTierClient'
 import { caseDisplayName } from './caseDisplayName'
+import { formatScore } from './scoreFormat'
 
 const CENTER_ACTOR = '동센터 담당자'
 const TRANSFER_TRACK_MESSAGE = '안부확인 트랙에서 사례관리·전문기관 트랙으로 전환하는 권고입니다. 전환 확정은 별도 행정 절차로 진행합니다.'
@@ -56,6 +59,10 @@ function ProposalRow({
         <span className="assignment-worker">{item.worker_display_name ?? '담당 미배정'}</span>
       </div>
       <p className="assignment-address">{item.road_address ?? '주소 정보 없음'}</p>
+      {item.lane === 'phone' && <div className="selection-reasons" aria-label="전화 대상 선정 사유">
+        {item.selection_reason_labels.map((label) => <span key={label}>{label}</span>)}
+      </div>}
+      {item.lane === 'visit' && <p className="mobile-acute-summary">급성도 {formatScore(item.급성도_점수, '기록 없음')}{item.급성도_점수 === null ? '' : '점'} · {item.급성도_등급 ?? '등급 기록 없음'}</p>}
       <dl className="assignment-facts">
         <div className="assignment-fact">
           <dt>마지막 연락</dt>
@@ -73,13 +80,20 @@ function ProposalRow({
             )}
           </dd>
         </div>
-        {item.earliest_due_date !== null && (
+        {item.lane === 'phone' && item.earliest_due_date !== null && (
           <div className="assignment-fact">
-            <dt>다음 예정</dt>
+            <dt>연락 기한</dt>
             <dd>{item.earliest_due_date}</dd>
           </div>
         )}
+        {item.lane === 'phone' && <>
+          <div className="assignment-fact"><dt>등록 근거</dt><dd>{managementIntakeLabel(item.management_entry.intake_channel)}</dd></div>
+          <div className="assignment-fact"><dt>관리 확인</dt><dd>연락 동의 기록 · 기존 정기 안부확인 중복 없음</dd></div>
+        </>}
       </dl>
+      {item.lane === 'visit' && item.급성도_기여내역.length > 0 && <ul className="mobile-acute-contributions" aria-label="급성도 주요 기여내역">
+        {item.급성도_기여내역.map((entry) => <li key={entry.코드}>{entry.근거} · +{formatScore(entry.가산점)}점</li>)}
+      </ul>}
       {item.adjustment_flags.length > 0 && (
         <p className="assignment-flags" role="note">조정 필요: {item.adjustment_flags.map((flag) => ({
           no_worker_for_dong: '담당 연결단원 없음',
@@ -124,12 +138,12 @@ function ReportCardView({
       </header>
       {card.road_address !== null && <p className="report-address">{card.road_address}</p>}
       <dl className="report-scores">
-        <div><dt>급성도</dt><dd>{card.급성도_점수}</dd></div>
-        <div><dt>취약도</dt><dd>{card.취약도_점수}</dd></div>
+        <div><dt>급성도</dt><dd>{formatScore(card.급성도_점수)}</dd></div>
+        <div><dt>취약도</dt><dd>{formatScore(card.취약도_점수)}</dd></div>
       </dl>
       <section className="report-reasons">
         <h4>사유</h4>
-        <ul>{card.사유_요약.map((reason) => <li key={`${reason.축}-${reason.근거}`}>{reason.축} · {reason.근거} · {reason.가산점}점</li>)}</ul>
+        <ul>{card.사유_요약.map((reason) => <li key={`${reason.축}-${reason.근거}`}>{reason.축} · {reason.근거} · {formatScore(reason.가산점)}점</li>)}</ul>
       </section>
       <section className="report-agencies">
         <h4>권고 기관</h4>
@@ -232,7 +246,7 @@ export function CenterPage() {
       .find((item) => item.case_id === caseId)?.display_name ?? caseDisplayName(caseId)
   }
   const selectedVisitDisplayName = selectedVisit ? displayNameForCase(selectedVisit.household.id) : ''
-  const workerId = `SYN-W-${DEMO_CENTER_DONG_CODE}-01`
+  const workerId = DEMO_WORKER_ID
 
   const act = async (action: () => Promise<void>, doneMessage: string, failMessage: string) => {
     try {
@@ -374,12 +388,12 @@ export function CenterPage() {
               <section id="center-visit-reports" className="center-section" aria-labelledby="visit-reports-heading">
                 <h2 id="visit-reports-heading">방문 확인</h2>
                 <p className="assignment-rule-note">조사원이 방문 결과를 제출하면 바로 나타납니다. 모든 방문 보고를 확인 또는 기관 연락으로 처리합니다.</p>
-                {visitReports.length === 0
-                  ? <p className="ops-empty">아직 도착한 방문 보고가 없습니다.</p>
-                  : visitReports.map((card) => (
-                    <ReportCardView key={card.card_id} card={card} onAcknowledge={acknowledge} onEscalate={escalateOne} busy={busy} />
-                  ))}
-              </section>
+                 {visitReports.length === 0
+                   ? <p className="ops-empty">아직 도착한 방문 보고가 없습니다.</p>
+                   : visitReports.map((card) => (
+                     <ReportCardView key={card.card_id} card={card} onAcknowledge={acknowledge} onEscalate={escalateOne} busy={busy} />
+                   ))}
+               </section>
 
               <section id="center-visit-review" className="center-section" aria-labelledby="visit-review-heading">
                 <h2 id="visit-review-heading">방문 승격</h2>
@@ -391,7 +405,7 @@ export function CenterPage() {
                         <li key={item.household.id}>
                           <button aria-pressed={item.household.id === selectedVisitId} onClick={() => { setSelectedVisitId(item.household.id); setDecision(null) }}>
                             <span className="case-id">{displayNameForCase(item.household.id)} 어르신</span>
-                            <span>급성도 {item.triage?.급성도_점수 ?? '–'} · 취약도 {item.triage?.취약도_점수 ?? '–'}</span>
+                            <span>급성도 {formatScore(item.triage?.급성도_점수)} · 취약도 {formatScore(item.triage?.취약도_점수)}</span>
                           </button>
                         </li>
                       ))}

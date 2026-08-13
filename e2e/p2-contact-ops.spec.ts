@@ -82,24 +82,23 @@ test('surveyor contact raises a recommendation and only a manager can approve it
   })
 
   await page.goto('/ops/surveyor')
-  const firstBefore = await page.getByRole('option').first().innerText()
+  const queue = page.getByRole('listbox', { name: '오늘 연락업무 목록' })
   await page.screenshot({ path: `${SCREENSHOT_DIR}/surveyor-queue-mobile.png` })
 
-  const target = page.getByRole('option', { name: new RegExp(CASE_NAME) })
+  const target = queue.getByRole('option', { name: new RegExp(CASE_NAME) })
   await target.scrollIntoViewIfNeeded()
   await target.click()
-  await page.getByLabel('통화 결과').selectOption({ label: '미응답' })
+  await page.getByLabel('통화(또는 방문) 결과').selectOption({ label: '미응답' })
   await page.getByLabel('우편물·고지서 적체').check()
   await page.getByLabel('식사 상태').selectOption({ label: '심각' })
-  await page.getByRole('button', { name: '통화 결과 저장' }).click()
+  await page.getByRole('button', { name: '통화(또는 방문) 결과 저장' }).click()
 
-  await expect(page.getByText('통화 결과를 저장하고 연락업무 순서를 다시 계산했습니다.')).toBeVisible()
+  await expect(page.getByText('통화(또는 방문) 결과를 저장하고 연락업무 순서를 다시 계산했습니다.')).toBeVisible()
   await expect(page.locator('.ops-detail')).toContainText('급성도')
   await expect(page.locator('.ops-detail')).toContainText('62')
   await expect(page.locator('.ops-detail')).toContainText('취약도')
   await expect(page.locator('.ops-detail')).toContainText('방문 권고 · 담당자 승인 대기')
-  await expect(page.getByRole('option').first()).toContainText(CASE_NAME)
-  expect(firstBefore).not.toContain(CASE_NAME)
+  await expect(target).toContainText('급성도 62')
   expect(mutationPaths).toContain(`/api/v1/contact-ops/cases/${CASE_ID}/contact-results`)
   expect(mutationPaths.some((path) => path.endsWith('/visit-decisions'))).toBe(false)
 
@@ -117,7 +116,10 @@ test('surveyor contact raises a recommendation and only a manager can approve it
 
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/ops/manager')
-  await expect(page.getByRole('option', { name: new RegExp(CASE_NAME) })).toBeVisible()
+  const managerTarget = page.getByRole('listbox', { name: '방문 권고 목록' }).getByRole('option')
+    .filter({ hasText: CASE_NAME }).filter({ hasText: '급성도 62' }).filter({ hasText: '취약도 37.6' })
+  await expect(managerTarget).toBeVisible()
+  await managerTarget.click()
   await expect(page.getByRole('region', { name: '연락업무 위치와 공개 동단위 맥락 지도' }))
     .toHaveAttribute('data-map-ready', 'true', { timeout: 45_000 })
   await page.screenshot({ path: `${SCREENSHOT_DIR}/manager-review-desktop.png` })
@@ -131,7 +133,7 @@ test('surveyor contact raises a recommendation and only a manager can approve it
   await page.getByLabel('결정 사유').fill('Playwright 수직 흐름 승인')
   await page.getByRole('button', { name: '방문 권고 승인 기록' }).click()
   await expect(page.getByText('담당자 승인을 기록했습니다.')).toBeVisible()
-  await expect(page.getByText('현재 검토할 방문 권고가 없습니다.')).toBeVisible()
+  await expect(managerTarget).toHaveCount(0)
 
   expect(mutationPaths.filter((path) => path.endsWith('/visit-decisions'))).toEqual([
     `/api/v1/contact-ops/cases/${CASE_ID}/visit-decisions`,

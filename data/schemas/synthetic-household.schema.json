@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://incheon-care-map.example/schemas/synthetic-household.schema.json",
   "title": "Incheon ContactOps synthetic contact-task dataset",
-  "description": "Synthetic phone-first contact tasks for queue and rule-graph development, not people or inferred household risk.",
+  "description": "Synthetic phone-first contact tasks for queue and rule-graph development, not people, inferred household risk, welfare eligibility, or benefit-recipient status.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -172,6 +172,58 @@
         "consecutive_no_answer_count": { "type": "integer", "minimum": 0 }
       }
     },
+    "management_entry": {
+      "type": "object",
+      "description": "Synthetic demo workflow entry. It records how a fictional contact-management task entered the workflow, contact permission, and an operational schedule-duplication check. It is not a welfare eligibility, recipient, or non-recipient determination.",
+      "additionalProperties": false,
+      "required": [
+        "synthetic",
+        "status",
+        "intake_channel",
+        "intake_recorded_date",
+        "ongoing_contact_permission",
+        "duplicate_service_check"
+      ],
+      "properties": {
+        "synthetic": { "const": true },
+        "status": { "const": "active_contact_management" },
+        "intake_channel": {
+          "enum": [
+            "self_request",
+            "family_request",
+            "partner_agency_referral",
+            "field_outreach"
+          ]
+        },
+        "intake_recorded_date": {
+          "type": "string",
+          "format": "date"
+        },
+        "ongoing_contact_permission": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "recorded_date", "basis"],
+          "properties": {
+            "status": { "const": "recorded" },
+            "recorded_date": { "type": "string", "format": "date" },
+            "basis": { "const": "synthetic_demo_scenario" }
+          }
+        },
+        "duplicate_service_check": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "checked_date", "scope", "interpretation"],
+          "properties": {
+            "status": { "const": "completed_no_overlapping_schedule" },
+            "checked_date": { "type": "string", "format": "date" },
+            "scope": { "const": "regular_wellbeing_contact_or_home_visit" },
+            "interpretation": {
+              "const": "workflow_duplicate_check_not_welfare_eligibility"
+            }
+          }
+        }
+      }
+    },
     "visit_context": {
       "type": "object",
       "additionalProperties": false,
@@ -275,6 +327,7 @@
       "required": [
         "id",
         "synthetic",
+        "management_entry",
         "location",
         "contact",
         "visit_context",
@@ -284,6 +337,7 @@
       "properties": {
         "id": { "type": "string", "pattern": "^SYN-HH-\\d{10}-\\d{4}$" },
         "synthetic": { "const": true },
+        "management_entry": { "$ref": "#/$defs/management_entry" },
         "location": { "$ref": "#/$defs/location" },
         "contact": { "$ref": "#/$defs/contact" },
         "visit_context": { "$ref": "#/$defs/visit_context" },

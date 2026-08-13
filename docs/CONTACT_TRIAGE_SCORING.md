@@ -70,7 +70,7 @@ npm --prefix backend run report:contact-triage
 
 실제 연락 결과가 없는 새 세션에서도 구현된 점수·지도 계약을 확인할 수 있도록 `backend/src/contact-triage-synthetic-scenario.mjs`가 현행 행정동별 가장 작은 합성 업무 ID 1건을 고정 예시로 선택한다. 총 162개 예시가 156개 지도구역을 모두 덮으며, 급성도 채색과 취약도 원 크기는 계속 별도 축이다.
 
-- 화면과 API는 항상 `[합성 시나리오]`, 기준일, 세션 기록·합성 예시·미기록 건수를 함께 표시한다.
+- 화면은 `데모 예시`, 기준일, 세션 기록·데모 예시·미기록 건수를 함께 표시한다. API는 `synthetic=true`와 시나리오 출처 필드로 같은 경계를 유지한다.
 - 전체 5,869건을 구역 최댓값에 넣어 거의 모든 구역이 100점으로 포화되는 것을 피하기 위한 표시용 표본이다.
 - 실제 세션 점수가 존재하는 케이스에는 합성 예시를 적용하지 않는다.
 - 합성 예시는 ContactOps 상태, 후속조치, 방문 승인, 이관 또는 경로 제약을 변경하지 않는다.
@@ -78,6 +78,18 @@ npm --prefix backend run report:contact-triage
 - `GET /api/v1/contact-ops/operations-map`의 `visit_review_points`는 이 표본 중 `권고` 상태만 급성도·취약도·케이스 ID 순으로 정렬해 제공한다. 각 점에는 공개 주거건물 도로명주소·대표좌표·건물명·아파트 여부와 점수 기여내역이 포함되어 UI가 별도 결합 없이 점 레이어를 만들 수 있다.
 
 이는 운영 로직 시연 데이터이지 실제 주민 상태, 실제 이웃연결단 업무량 또는 개인 판정이 아니다.
+
+## 센터 방문검토용 데모 사전 기록
+
+서버는 별도로 현행 행정동마다 1건, 총 162건의 `demo_precontact_record` baseline을 만든다. 이는 “오늘 앞선 연락 결과가 이미 접수된 상태”를 시연하기 위한 것이며 원본 household fixture에는 급성도나 관찰값을 저장하지 않는다.
+
+- canonical scorer의 급성도 55점 이상인 후보 중 `-0001`을 우선 제외하고, 가장 낮은 임계 통과 점수와 업무 ID 순으로 1건을 선택한다.
+- `프로필_버전=demo-precontact-v1`, `revision=1`, `visit_approval_status=recommended`로 시작한다.
+- 담당자 승인·반려 결정과 승인 방문 경로 제약은 만들지 않는다.
+- `recommended`는 센터 방문검토에만 나타나며, `approved`가 된 뒤에만 오늘 방문 레인으로 이동한다.
+- 메모리·Firestore 세션 reset은 같은 baseline으로 복귀한다. 일반 state 생성기는 `initialRecords`를 주입하지 않으면 기존 `revision=0`, `triage=null` 동작을 유지한다.
+
+이 사전 기록도 실제 연락 기록이나 실제 주민 상태가 아닌 결정적 데모 상태다.
 
 ## 검증
 

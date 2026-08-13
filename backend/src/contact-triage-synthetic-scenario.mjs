@@ -43,6 +43,9 @@ const PROFILES = [
   },
 ];
 
+const DEMO_PRECONTACT_SOURCE = 'demo_precontact_record';
+const DEMO_PRECONTACT_PROFILE_VERSION = 'demo-precontact-v1';
+
 function digest(id) {
   return createHash('sha256').update(id).digest();
 }
@@ -141,6 +144,87 @@ export function buildSyntheticScenarioTriage(household, referenceDate, structura
   return buildTriageQueue([
     buildSyntheticScenarioInput(household, referenceDate, structuralContext),
   ])[0];
+}
+
+function observationsFromScenarioInput(input) {
+  return {
+    관찰_6징후: structuredClone(input.관찰_6징후),
+    식사상태: input.식사상태,
+    위생상태: input.위생상태,
+    공과금_2개월_이상_체납: input.공과금_2개월_이상_체납,
+    최근_건강_정신_괴로움: input.최근_건강_정신_괴로움,
+    관계망_유무: input.관계망_유무,
+    연락_빈도: input.연락_빈도,
+  };
+}
+
+// A fresh demo session starts with one clearly-labelled, deterministic prior
+// contact record per current dong. Prefer a non-0001 case so the established
+// golden phone journey remains untouched; within that pool choose the lowest
+// recommendation score, then case ID, to avoid a seeded high score masking a
+// score created live during the demo.
+export function buildDemoPrecontactSeedRecords(
+  households,
+  referenceDate,
+  structuralContext = null,
+) {
+  if (!Array.isArray(households)) throw new TypeError('households must be an array');
+  assertReferenceDate(referenceDate);
+
+  const candidatesByDong = new Map();
+  for (const household of households) {
+    assertSyntheticHousehold(household);
+    const input = buildSyntheticScenarioInput(household, referenceDate, structuralContext);
+    const triage = buildTriageQueue([input])[0];
+    if (triage.급성도_점수 < 55) continue;
+    const code = household.location.current_admin_dong_code_20260701;
+    const candidates = candidatesByDong.get(code) ?? [];
+    candidates.push({ household, input, triage });
+    candidatesByDong.set(code, candidates);
+  }
+
+  const records = [];
+  for (const candidates of candidatesByDong.values()) {
+    const preferred = candidates.filter(({ household }) => !household.id.endsWith('-0001'));
+    const pool = preferred.length > 0 ? preferred : candidates;
+    const selected = pool.toSorted((left, right) => (
+      left.triage.급성도_점수 - right.triage.급성도_점수
+      || left.household.id.localeCompare(right.household.id)
+    ))[0];
+    const contactHistory = {
+      ...selected.household.contact,
+      consecutive_no_answer_count: selected.input.연속_미응답_횟수,
+    };
+    const household = {
+      ...structuredClone(selected.household),
+      contact: contactHistory,
+      workflow: {
+        ...structuredClone(selected.household.workflow),
+        visit_approval_status: 'recommended',
+        visit_decision: null,
+      },
+      approved_visit_constraints: null,
+    };
+    records.push({
+      revision: 1,
+      household,
+      observations: observationsFromScenarioInput(selected.input),
+      triage: {
+        ...selected.triage,
+        기록_출처: DEMO_PRECONTACT_SOURCE,
+        프로필_버전: DEMO_PRECONTACT_PROFILE_VERSION,
+      },
+      updated_at: `${referenceDate}T00:00:00.000Z`,
+    });
+  }
+
+  const dongCount = new Set(households.map(
+    (household) => household.location.current_admin_dong_code_20260701,
+  )).size;
+  if (records.length !== dongCount) {
+    throw new Error('every current admin dong must have a recommendation-eligible demo seed');
+  }
+  return records.toSorted((left, right) => left.household.id.localeCompare(right.household.id));
 }
 
 export function prepareSyntheticScenarioOverlayRecords(

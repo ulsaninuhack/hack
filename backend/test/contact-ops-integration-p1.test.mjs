@@ -55,6 +55,23 @@ const observations = {
   연락_빈도: null,
 };
 
+const unconfirmedObservations = {
+  관찰_6징후: {
+    우편물_고지서_적체: false,
+    악취_벌레: false,
+    쓰레기_술병: false,
+    인기척_없이_TV_불: false,
+    외출_없음: false,
+    연락_두절: false,
+  },
+  식사상태: null,
+  위생상태: null,
+  공과금_2개월_이상_체납: null,
+  최근_건강_정신_괴로움: null,
+  관계망_유무: null,
+  연락_빈도: null,
+};
+
 const mapStore = createDataStore({
   summary: { schemaVersion: 1, project: 'test', metricGuardrail: 'test', counts: {} },
   zones: { type: 'FeatureCollection', features: [] },
@@ -155,5 +172,63 @@ describe('P1 real HTTP → service → memory-state vertical slice', () => {
     assert.equal(isolated.response.status, 200);
     assert.equal(isolated.payload.data.revision, 0);
     assert.equal(isolated.payload.data.household.workflow.visit_approval_status, null);
+  });
+
+  test('keeps an approved urgent visit grade when refusal yields no confirmable details', async () => {
+    const sessionId = 'integration-session-visit-refusal';
+    const urgent = await request(`/api/v1/contact-ops/cases/${CASE_ID}/contact-results`, {
+      method: 'POST',
+      sessionId,
+      body: {
+        expected_revision: 0,
+        contact_date: '2026-08-12',
+        contact_result: 'no_answer',
+        observations: {
+          ...observations,
+          관찰_6징후: Object.fromEntries(
+            Object.keys(observations.관찰_6징후).map((key) => [key, true]),
+          ),
+          식사상태: '심각',
+        },
+      },
+    });
+    assert.equal(urgent.response.status, 200);
+    assert.equal(urgent.payload.data.triage.급성도_등급, '방문권고-우선');
+    const urgentScore = urgent.payload.data.triage.급성도_점수;
+    const urgentContributions = urgent.payload.data.triage.점수_기여내역;
+    const missedCount = urgent.payload.data.household.contact.consecutive_no_answer_count;
+
+    const approved = await request(`/api/v1/contact-ops/cases/${CASE_ID}/visit-decisions`, {
+      method: 'POST',
+      sessionId,
+      body: {
+        expected_revision: 1,
+        decision: 'approved',
+        decided_by: 'synthetic-manager',
+        decided_at: '2026-08-12T09:00:00Z',
+        note: '시급 방문 승인',
+        assigned_worker_ids: [WORKER_ID],
+        max_route_distance_km: 4,
+      },
+    });
+    assert.equal(approved.response.status, 200);
+
+    const refused = await request(`/api/v1/contact-ops/cases/${CASE_ID}/contact-results`, {
+      method: 'POST',
+      sessionId,
+      body: {
+        expected_revision: 2,
+        contact_date: '2026-08-12',
+        contact_result: 'refused',
+        observations: unconfirmedObservations,
+      },
+    });
+    assert.equal(refused.response.status, 200);
+    assert.equal(refused.payload.data.household.contact.last_contact_result, 'refused');
+    assert.equal(refused.payload.data.household.contact.consecutive_no_answer_count, missedCount);
+    assert.equal(refused.payload.data.triage.급성도_점수, urgentScore);
+    assert.equal(refused.payload.data.triage.급성도_등급, '방문권고-우선');
+    assert.deepEqual(refused.payload.data.triage.점수_기여내역, urgentContributions);
+    assert.deepEqual(refused.payload.data.observations, urgent.payload.data.observations);
   });
 });

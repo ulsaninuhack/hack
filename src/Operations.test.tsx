@@ -111,12 +111,14 @@ describe('P2 surveyor flow', () => {
     mocks.loadCase.mockResolvedValue(detail)
     mocks.submitContact.mockResolvedValue({ ...detail, revision: 4 })
     render(<SurveyorPage />)
-    expect(await screen.findByRole('group', { name: '통화 결과 입력' })).toBeInTheDocument()
-    await user.selectOptions(screen.getByLabelText('통화 결과'), '미응답')
+    expect(await screen.findByRole('group', { name: '통화(또는 방문) 결과 입력' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: '연락(또는 방문) 거부' })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: /^연락 거부$/ })).toBeNull()
+    await user.selectOptions(screen.getByLabelText('통화(또는 방문) 결과'), '미응답')
     await user.click(screen.getByLabelText('우편물·고지서 적체'))
     await user.selectOptions(screen.getByLabelText('식사 상태'), '심각')
     await user.selectOptions(screen.getByLabelText('도움을 요청할 관계망'), '없음')
-    await user.click(screen.getByRole('button', { name: '통화 결과 저장' }))
+    await user.click(screen.getByRole('button', { name: '통화(또는 방문) 결과 저장' }))
     await waitFor(() => expect(mocks.submitContact).toHaveBeenCalledWith(expect.objectContaining({
       resultLabel: '미응답',
       revision: 3,

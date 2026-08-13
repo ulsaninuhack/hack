@@ -110,14 +110,9 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
     expect(mutationPaths.filter((path) => path.endsWith('/assignment-confirmations'))).toEqual([])
     await page.getByRole('tab', { name: /^방문 \d+$/ }).click()
     await expect(page.getByLabel('방문 레인 할당 제안')).not.toContainText(CASE_NAME)
-    await expect(page.getByLabel('방문 레인 할당 제안').getByRole('button', { name: '신고' }).first()).toBeVisible()
+    await expect(page.getByLabel('방문 레인 할당 제안')).toContainText('이 레인에는 오늘 제안이 없습니다.')
     await page.screenshot({ path: `${SCREENSHOT_DIR}/p9-center-assignment-desktop.png` })
-    await page.getByRole('button', { name: '오늘 방문 일괄 확인' }).click()
-    await expect(page.getByText('오늘 방문을 일괄 확인했습니다. 조사원 방문 목록에 반영됩니다.')).toBeVisible()
-    await expect(page.getByText('오늘 방문이 모두 처리되었습니다. 확인된 방문은 조사원 목록에 반영됩니다.')).toBeVisible()
-    expect(mutationPaths.filter((path) => path.endsWith('/assignment-confirmations'))).toEqual([
-      '/api/v1/contact-ops/three-tier/assignment-confirmations',
-    ])
+    expect(mutationPaths.filter((path) => path.endsWith('/assignment-confirmations'))).toEqual([])
     await page.getByRole('tab', { name: /^전화 \d+$/ }).click()
   })
 
@@ -148,7 +143,7 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
     await page.getByRole('button', { name: '직접 체크하기' }).click()
     await expectTierMobileMeasurements(page)
     await expectNoSeriousAxeViolations(page)
-    await page.getByLabel('통화 결과').selectOption({ label: '미응답' })
+    await page.getByLabel('통화(또는 방문) 결과').selectOption({ label: '미응답' })
     await page.getByRole('checkbox', { name: '우편물·고지서 적체' }).check()
     await page.getByLabel('식사 상태').selectOption({ label: '심각' })
     await page.screenshot({ path: `${SCREENSHOT_DIR}/p9-mobile-checklist.png` })
@@ -196,6 +191,22 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
       assigned_worker_ids: [WORKER_ID],
       routing_interpretation: 'approved_visit_only_not_person_risk',
     })
+
+    await page.getByRole('tab', { name: /^방문 \d+$/ }).click()
+    const approvedVisit = page.getByLabel('방문 레인 할당 제안').locator('li').filter({ hasText: CASE_NAME })
+    await expect(approvedVisit).toContainText('급성도 62점 · 방문권고')
+    await expect(approvedVisit).toContainText('연속 미응답 2회 · +25점')
+    await approvedVisit.getByRole('button', { name: '확인' }).click()
+    await expect(page.getByText('방문 1건을 확인했습니다. 조사원 방문 목록에 반영됩니다.')).toBeVisible()
+    expect(mutationPaths.filter((path) => path.endsWith('/assignment-confirmations'))).toEqual([
+      '/api/v1/contact-ops/three-tier/assignment-confirmations',
+    ])
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.goto('/m')
+    await page.getByRole('tab', { name: /방문 \d+건/ }).click()
+    await expect(page.getByLabel('오늘 방문 목록')).toContainText(CASE_NAME)
+    await expect(page.getByLabel('오늘 방문 목록')).toContainText('급성도 62점 · 방문권고')
   })
 
   await test.step('시·구 화면과 집계가 승인 결과를 반영한다 (INV17 유지)', async () => {

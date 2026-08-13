@@ -20,7 +20,7 @@ const CONTACT_RESULT_LABELS = new Map([
   ['connected_ok', '안부 확인 완료'],
   ['connected_concern', '우려 사항 있음'],
   ['no_answer', '연락 안 됨'],
-  ['refused', '연락 거부'],
+  ['refused', '연락(또는 방문) 거부'],
   ['invalid_contact', '연락처 확인 필요'],
 ]);
 
@@ -161,6 +161,20 @@ function reasonSummary(triage) {
     .map((item) => ({ 축: item.축, 근거: item.근거, 가산점: item.가산점 }));
 }
 
+function acuteContributionSummary(triage) {
+  return [...(triage?.점수_기여내역 ?? [])]
+    .filter(({ 축 }) => 축 === '급성도')
+    .sort((left, right) => right.가산점 - left.가산점
+      || String(left.코드 ?? '').localeCompare(String(right.코드 ?? '')))
+    .slice(0, 3)
+    .map(({ 코드, 근거, 가산점 }) => ({ 코드, 근거, 가산점 }));
+}
+
+function gradeSource(triage) {
+  if (triage === null) return '미기록';
+  return triage.기록_출처 === 'demo_precontact_record' ? '데모 사전 기록' : '세션 기록';
+}
+
 // 조사원 제출(기존 contact-results 경로) 결과를 동 센터 인박스용 구조화 보고
 // 카드로 파생한다. 세션에 기록된 결과가 있는 케이스만 카드가 된다.
 export function buildReportCard(record) {
@@ -223,14 +237,35 @@ function timeWindowsOverlap(left, right) {
 }
 
 function laneFor(household, dueIds) {
-  if (household.workflow.visit_approval_status === 'approved') return 'visit';
+  const status = household.workflow.visit_approval_status;
+  if (status === 'approved') return 'visit';
+  if (status === 'recommended') return null;
   if (!dueIds.has(household.id)) return null;
-  return household.contact.preferred_contact_method === 'visit' ? 'visit' : 'phone';
+  return 'phone';
+}
+
+function elapsedDays(from, to) {
+  return Math.round((Date.parse(`${to}T00:00:00.000Z`) - Date.parse(`${from}T00:00:00.000Z`)) / 86_400_000);
+}
+
+function selectionReasonLabels(queueItem, household, referenceDate) {
+  if (!queueItem) return [];
+  return queueItem.due_reasons.map((reason) => {
+    if (reason === 'follow_up_missing_deadline') return '재연락 기한 확인 필요';
+    const dueDate = reason === 'follow_up_deadline'
+      ? household.workflow.follow_up_deadline
+      : household.contact.next_contact_date;
+    const days = elapsedDays(dueDate, referenceDate);
+    if (reason === 'follow_up_deadline') {
+      return days === 0 ? '오늘 재연락' : `재연락 ${days}일 지연`;
+    }
+    return days === 0 ? '오늘 정기 연락' : `정기 연락 ${days}일 지연`;
+  });
 }
 
 // 자동 할당 제안 엔진(결정론): due일·급성도 등급·동 매칭·연결단원 용량.
 // 산출물은 전부 status='proposed' — 확정은 서비스 계층의 명시적 확인 API만
-// 수행한다(INV14). 방문 레인은 승인된 방문 또는 방문선호 due만(INV16).
+// 수행한다(INV14). 방문 레인은 명시적으로 승인된 방문만 포함한다(INV16).
 export function buildAssignmentProposals({ records, workers, referenceDate, dongCode = null }) {
   if (!Array.isArray(records)) throw new TypeError('records must be an array');
   if (!Array.isArray(workers)) throw new TypeError('workers must be an array');
@@ -263,6 +298,7 @@ export function buildAssignmentProposals({ records, workers, referenceDate, dong
     const queueEntry = queueOrder.get(household.id) ?? null;
     const proposal = {
       status: 'proposed',
+      assignment_status: 'proposed',
       case_id: household.id,
       display_name: deriveCaseDisplayName(household.id),
       road_address: household.location.road_address ?? null,
@@ -278,9 +314,14 @@ export function buildAssignmentProposals({ records, workers, referenceDate, dong
       worker_display_name: worker?.display_name ?? null,
       급성도_등급: triage?.급성도_등급 ?? null,
       급성도_점수: triage?.급성도_점수 ?? null,
-      grade_source: triage === null ? '미기록' : '세션 기록',
+      grade_source: gradeSource(triage),
+      기록_출처: triage?.기록_출처 ?? null,
+      프로필_버전: triage?.프로필_버전 ?? null,
+      급성도_기여내역: acuteContributionSummary(triage),
       due_reasons: queueEntry?.item.due_reasons ?? [],
       earliest_due_date: queueEntry?.item.earliest_due_date ?? null,
+      selection_reason_labels: selectionReasonLabels(queueEntry?.item ?? null, household, referenceDate),
+      management_entry: structuredClone(household.management_entry),
       preferred_contact_method: household.contact.preferred_contact_method,
       approved_visit: household.workflow.visit_approval_status === 'approved',
       adjustment_flags: [],

@@ -236,7 +236,7 @@ export function AiObservationPanel({
     <header className="ai-observation-heading">
       <div>
         <h2 id="ai-observation-heading">인공지능(AI) 관찰 후보 검토</h2>
-        <p>AI 후보 · 자동 승인 아님 · 수동 통화 결과 입력은 언제든 계속 사용할 수 있습니다.</p>
+        <p>AI 후보 · 자동 승인 아님 · 수동 통화(또는 방문) 결과 입력은 언제든 계속 사용할 수 있습니다.</p>
       </div>
     </header>
     <ol className="ai-graph" aria-label="AI 후보 처리 단계">
