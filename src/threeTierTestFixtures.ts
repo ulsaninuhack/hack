@@ -21,7 +21,9 @@ export const phoneLaneItem: LaneItem = {
   location: {
     dong_code: '2812551000', dong_name: '신포동', district: '제물포구',
     latitude: 37.46, longitude: 126.61,
-    address_note: '합성 데이터에는 주소가 없습니다 · 동 단위 위치만 표시',
+    road_address: '인천광역시 제물포구 답동로 7-2', building_name: null,
+    apartment_reference: false,
+    address_note: '공공 주거용 건물 주소 참조 · 실제 거주자와 연결되지 않음',
   },
   last_contact: { date: '2026-08-11', result_label: '연락 안 됨', consecutive_no_answer_count: 1 },
   visit_approval_status: null,

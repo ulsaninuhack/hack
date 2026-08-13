@@ -376,3 +376,14 @@ hostile follow-up, commit, preview, and blockers. Existing entries are never rew
   샌드박스는 외부 타일 접근이 없어 지도 배경이 비어 있음(데이터 레이어는 렌더).
 - 백엔드 211 테스트·커버리지 게이트 그린, 프런트 50 테스트·typecheck·build 그린.
 - MORNING_HANDOFF 3계층 섹션(증명/미증명 분리·데모 대본), AGENT_HANDOFF 시임 갱신.
+
+## 2026-08-13 — main #25 병합 및 3계층 주소 반영
+
+- origin/main(#25 공공 주거 주소 합성 데이터)을 3계층 브랜치에 병합. PROGRESS
+  충돌은 양쪽 기록 모두 유지로 해소.
+- 의미 병합: 레인 API `location`에 `road_address`·`building_name`·
+  `apartment_reference` 추가, `/m` 대상 정보·방문 목록에 공공 건물 주소 표기
+  ("실제 거주자와 연결되지 않음" 병기). "주소 없음" 대체 표기는 폐기하고
+  REDESIGN_SPEC에 개정 기록. 튜닝 경고 수치 664→647 갱신.
+- 검증: 백엔드 214 테스트·커버리지 게이트 그린, 프런트 50, E2E 5/5,
+  `agent:check` 전체 그린.

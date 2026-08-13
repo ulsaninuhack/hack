@@ -21,6 +21,8 @@ function household(id, overrides = {}) {
       current_district_name_20260701: jemulpo ? '제물포구' : '부평구',
       geometry_zone_id: jemulpo ? 'vworld_sgis_20250630:23010530' : 'vworld_sgis_20250630:23060110',
       latitude: 37.46, longitude: 126.61,
+      road_address: jemulpo ? '인천광역시 제물포구 답동로 7-2' : '인천광역시 부평구 삼산로 11',
+      building_name: '', apartment_reference: false, not_real_resident: true,
       ...overrides.location,
     },
     contact: {
@@ -148,7 +150,9 @@ describe('three-tier today lanes API', () => {
       assert.match(item.virtual_phone.display_number, /^010-0000-\d{4}$/);
       assert.equal(item.virtual_phone.label, '[가상]');
       assert.equal(item.virtual_phone.dialable, false);
-      assert.equal(item.location.address_note, '합성 데이터에는 주소가 없습니다 · 동 단위 위치만 표시');
+      assert.equal(item.location.address_note, '공공 주거용 건물 주소 참조 · 실제 거주자와 연결되지 않음');
+      assert.equal(item.location.road_address, '인천광역시 제물포구 답동로 7-2');
+      assert.equal(item.location.building_name, null);
       assert.equal(item.last_contact.result_label, '연락 안 됨');
     }
     assert.equal(lanes.phone[0].visit_context, undefined);

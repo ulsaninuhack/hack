@@ -68,6 +68,9 @@ export interface LaneLocation {
   district: string
   latitude: number
   longitude: number
+  road_address: string | null
+  building_name: string | null
+  apartment_reference: boolean | null
   address_note: string
 }
 

@@ -84,7 +84,8 @@ describe('MobilePage (조사원 /m)', () => {
     expect(within(overlay).getByText(/실제 전화는 걸리지 않습니다/)).toBeInTheDocument()
     await user.click(within(overlay).getByRole('button', { name: '가상 발신 화면 닫기' }))
     expect(screen.queryByRole('dialog')).toBeNull()
-    expect(screen.getByText('합성 데이터에는 주소가 없습니다 · 동 단위 위치만 표시')).toBeInTheDocument()
+    expect(screen.getByText('공공 주거용 건물 주소 참조 · 실제 거주자와 연결되지 않음')).toBeInTheDocument()
+    expect(screen.getByText('인천광역시 제물포구 답동로 7-2')).toBeInTheDocument()
   })
 
   it('manual path submits only after surveyor confirmation and shows the report screen (INV14)', async () => {

@@ -130,7 +130,8 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
     await page.screenshot({ path: `${SCREENSHOT_DIR}/p9-mobile-dial.png` })
     await dialOverlay.getByRole('button', { name: '가상 발신 화면 닫기' }).click()
     expect(await page.locator('body').innerText()).not.toMatch(REAL_PHONE_PATTERN)
-    await expect(page.getByText('합성 데이터에는 주소가 없습니다 · 동 단위 위치만 표시')).toBeVisible()
+    await expect(page.getByText('공공 주거용 건물 주소 참조 · 실제 거주자와 연결되지 않음')).toBeVisible()
+    await expect(page.getByText(/인천광역시 제물포구/)).toBeVisible()
 
     await page.getByRole('button', { name: '직접 체크하기' }).click()
     await expectTierMobileMeasurements(page)

@@ -79,7 +79,12 @@ function laneItem(record, proposal, referenceDate) {
       district: household.location.current_district_name_20260701,
       latitude: household.location.latitude,
       longitude: household.location.longitude,
-      address_note: '합성 데이터에는 주소가 없습니다 · 동 단위 위치만 표시',
+      // #25 이후 픽스처는 공공 주거용 건물의 도로명 주소 참조를 갖는다.
+      // 실제 거주자와 연결되지 않는다(not_real_resident).
+      road_address: household.location.road_address ?? null,
+      building_name: household.location.building_name || null,
+      apartment_reference: household.location.apartment_reference ?? null,
+      address_note: '공공 주거용 건물 주소 참조 · 실제 거주자와 연결되지 않음',
     },
     last_contact: {
       date: household.contact.last_contact_date,

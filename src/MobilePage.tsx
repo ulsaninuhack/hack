@@ -262,6 +262,9 @@ export function MobilePage() {
                           {item.visit_context.requires_two_person_team ? ' · 2인 1조' : ''}
                         </span>
                       )}
+                      {item.lane === 'visit' && item.location.road_address && (
+                        <span className="mobile-task-meta">{item.location.road_address}{item.location.building_name ? ` (${item.location.building_name})` : ''}</span>
+                      )}
                     </button>
                   </li>
                 ))}
@@ -280,6 +283,13 @@ export function MobilePage() {
           <dl className="mobile-case-facts">
             <div><dt>등급</dt><dd><LaneBadge item={selected} /> <small>({selected.grade_source})</small></dd></div>
             <div><dt>위치</dt><dd>{selected.location.district} {selected.location.dong_name}</dd></div>
+            {selected.location.road_address && (
+              <div><dt>주소</dt><dd>
+                {selected.location.road_address}
+                {selected.location.building_name ? ` (${selected.location.building_name})` : ''}
+                {selected.location.apartment_reference ? ' · 공동주택' : ''}
+              </dd></div>
+            )}
             <div><dt>마지막 연락</dt><dd>{selected.last_contact.date ?? '기록 없음'} · {selected.last_contact.result_label}</dd></div>
             {selected.visit_context && (
               <div><dt>방문 조건</dt><dd>
