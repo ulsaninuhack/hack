@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   loadTodayLanes: vi.fn(),
   loadReportCard: vi.fn(),
   uploadVoiceObservationAudio: vi.fn(),
+  createAiObservationCandidate: vi.fn(),
   submitContact: vi.fn(),
   loadData: vi.fn(),
 }))
@@ -27,6 +28,7 @@ vi.mock('./contactOpsClient', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./contactOpsClient')>()
   return { ...actual, submitContact: mocks.submitContact }
 })
+vi.mock('./AiObservationClient', () => ({ createAiObservationCandidate: mocks.createAiObservationCandidate }))
 
 import { MobilePage } from './MobilePage'
 import { phoneLaneItem as phoneItem, todayLanesFixture as lanes, voiceCandidateConcernResult } from './threeTierTestFixtures'
@@ -273,6 +275,42 @@ describe('MobilePage (조사원 /m)', () => {
     expect(screen.getByText(/해당하는 체크리스트를 확인하면 제출 후 점수에 반영됩니다/)).toBeInTheDocument()
     expect(screen.getByLabelText('통화(또는 방문) 결과')).toHaveValue('우려 사항 있음')
     expect(screen.getByRole('checkbox', { name: '악취·벌레' })).toBeChecked()
+    expect(mocks.submitContact).not.toHaveBeenCalled()
+  })
+
+  it('memo path fills checklist candidates from free text without auto-submitting (INV14)', async () => {
+    arrange()
+    mocks.createAiObservationCandidate.mockResolvedValue({
+      candidate: {
+        case_id: 'SYN-HH-2812551000-0001',
+        contact_result: ['no', 'answer'].join('_'),
+        observations: {
+          관찰_6징후: { 우편물_고지서_적체: true, 악취_벌레: false, 쓰레기_술병: false, 인기척_없이_TV_불: false, 외출_없음: false, 연락_두절: false },
+          식사상태: null, 위생상태: null, 공과금_2개월_이상_체납: null,
+          최근_건강_정신_괴로움: null, 관계망_유무: null, 연락_빈도: null,
+        },
+        transcript: '[마스킹] 메모 내용',
+        free_text: '우편함에 고지서가 쌓여 있었음',
+        critic: { missing_fields: ['식사상태'], contradictions: [], low_confidence_fields: [], warnings: [] },
+        requires_user_confirmation: true,
+      },
+    })
+    const user = userEvent.setup()
+    render(<MobilePage />)
+    await user.click(await screen.findByText('김영자 어르신'))
+    await user.click(screen.getByRole('button', { name: /메모로 채우기/ }))
+    await user.type(screen.getByLabelText('통화·방문 메모'), '전화를 안 받으시고 우편함에 고지서가 쌓여 있었어요')
+    expect(mocks.createAiObservationCandidate).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('button', { name: 'AI 후보 만들기' }))
+    await waitFor(() => expect(mocks.createAiObservationCandidate).toHaveBeenCalledTimes(1))
+    const request = mocks.createAiObservationCandidate.mock.calls[0][0]
+    expect(request.caseId).toBe('SYN-HH-2812551000-0001')
+    expect(request.source).toEqual({ kind: 'text', text: '전화를 안 받으시고 우편함에 고지서가 쌓여 있었어요' })
+    expect(await screen.findByText(/메모에서 만든 AI 후보입니다/)).toBeInTheDocument()
+    expect(screen.getByText('누락 확인: 식사상태')).toBeInTheDocument()
+    expect(screen.getByLabelText('통화(또는 방문) 결과')).toHaveValue('미응답')
+    expect(screen.getByRole('checkbox', { name: '우편물·고지서 적체' })).toBeChecked()
+    expect(screen.getByRole('region', { name: '기타 특이사항 확인' })).toHaveTextContent('우편함에 고지서가 쌓여 있었음')
     expect(mocks.submitContact).not.toHaveBeenCalled()
   })
 })

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ChangeEvent } from 'react'
-import { AlertTriangle, CheckCircle2, ChevronLeft, MapPinned, Mic, Phone, RefreshCw, Send, X } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, ChevronLeft, MapPinned, Mic, Phone, RefreshCw, Send, Sparkles, X } from 'lucide-react'
 import MapView from './MapView'
 import { loadData } from './data'
 import type { DataBundle } from './types'
@@ -19,6 +19,7 @@ import {
   uploadVoiceObservationAudio,
 } from './threeTierClient'
 import type { LaneItem, ReportCard, TodayLanes, VoiceCandidate } from './threeTierClient'
+import { createAiObservationCandidate } from './AiObservationClient'
 import { formatScore } from './scoreFormat'
 
 const CONTACT_LABELS: ContactResultLabel[] = [
@@ -35,7 +36,7 @@ const SIGN_FIELDS: Array<{ key: keyof CanonicalObservations['관찰_6징후']; l
 ]
 
 type Step = 'list' | 'case' | 'done'
-type InputPath = 'voice' | 'chat' | 'manual'
+type InputPath = 'memo' | 'voice' | 'chat' | 'manual'
 
 interface ChatQuestion {
   id: string
@@ -127,6 +128,7 @@ export function MobilePage() {
   const [resultLabel, setResultLabel] = useState<ContactResultLabel | ''>('')
   const [observations, setObservations] = useState<CanonicalObservations>(emptyObservations)
   const [candidateNote, setCandidateNote] = useState<string | null>(null)
+  const [memoText, setMemoText] = useState('')
   const [candidateFreeText, setCandidateFreeText] = useState<string | null>(null)
   const [criticWarnings, setCriticWarnings] = useState<string[]>([])
   const [chatIndex, setChatIndex] = useState(0)
@@ -173,16 +175,20 @@ export function MobilePage() {
     setObservations(emptyObservations())
     setCandidateNote(null)
     setCandidateFreeText(null)
+    setMemoText('')
     setCriticWarnings([])
     setChatIndex(0)
     setChatLog([])
     setShowDial(false)
   }
 
-  const applyVoiceCandidate = (candidate: VoiceCandidate) => {
+  const applyCandidate = (
+    candidate: Pick<VoiceCandidate, 'contact_result' | 'observations' | 'free_text' | 'critic'>,
+    note: string,
+  ) => {
     setObservations(candidate.observations)
     setResultLabel(contactResultLabelFromCode(candidate.contact_result))
-    setCandidateNote('음성에서 만든 후보입니다. 아래 체크리스트를 확인하고 고친 뒤 제출해 주세요.')
+    setCandidateNote(note)
     setCandidateFreeText(candidate.free_text.trim() || null)
     setCriticWarnings([
       ...candidate.critic.contradictions,
@@ -198,12 +204,30 @@ export function MobilePage() {
       setBusy(true)
       setError(null)
       const response = await uploadVoiceObservationAudio({ caseId: selected.case_id, revision: selected.revision, file })
-      applyVoiceCandidate(response.candidate)
+      applyCandidate(response.candidate, '음성에서 만든 후보입니다. 아래 체크리스트를 확인하고 고친 뒤 제출해 주세요.')
     } catch (cause) {
       setError(errorText(cause, '음성 파일에서 후보를 만들지 못했습니다. 수동 입력을 사용할 수 있습니다.'))
     } finally {
       setBusy(false)
       event.target.value = ''
+    }
+  }
+
+  const submitMemo = async () => {
+    if (!selected || !memoText.trim()) return
+    try {
+      setBusy(true)
+      setError(null)
+      const response = await createAiObservationCandidate({
+        caseId: selected.case_id,
+        revision: selected.revision,
+        source: { kind: 'text', text: memoText.trim() },
+      })
+      applyCandidate(response.candidate, '메모에서 만든 AI 후보입니다. 아래 체크리스트를 확인하고 고친 뒤 제출해 주세요.')
+    } catch (cause) {
+      setError(errorText(cause, '메모에서 후보를 만들지 못했습니다. 문답 또는 직접 체크를 사용할 수 있습니다.'))
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -449,8 +473,29 @@ export function MobilePage() {
           <h2>통화(또는 방문) 결과 입력</h2>
           {inputPath === null && (
             <div className="mobile-input-paths" role="group" aria-label="입력 방법 선택">
+              <button onClick={() => setInputPath('memo')}><Sparkles aria-hidden="true" /> 메모로 채우기 (AI 후보)</button>
               <button onClick={() => setInputPath('voice')}><Mic aria-hidden="true" /> 음성 파일로 채우기</button>
               <button onClick={() => setInputPath('chat')}>문답 또는 직접 체크하기</button>
+            </div>
+          )}
+
+          {inputPath === 'memo' && !candidateNote && (
+            <div className="mobile-memo" role="group" aria-label="메모 입력">
+              <label className="mobile-memo-label">통화·방문 메모
+                <textarea
+                  rows={3}
+                  value={memoText}
+                  onChange={(event) => setMemoText(event.target.value)}
+                  placeholder="예: 전화를 안 받으시고, 우편함에 고지서가 쌓여 있었어요"
+                  disabled={busy}
+                />
+              </label>
+              <p className="mobile-path-note">쓴 내용으로 체크리스트 후보를 채웁니다. 자동 제출되지 않습니다. 이름·연락처 같은 개인정보는 적지 마세요.</p>
+              {busy && <p role="status">메모에서 후보를 만드는 중입니다.</p>}
+              <button className="mobile-memo-run" onClick={() => void submitMemo()} disabled={busy || !memoText.trim()}>
+                <Sparkles aria-hidden="true" size={17} /> AI 후보 만들기
+              </button>
+              <button className="mobile-secondary" onClick={() => setInputPath(null)}>다른 방법 선택</button>
             </div>
           )}
 
