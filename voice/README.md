@@ -5,7 +5,7 @@
 ## 현재 단계
 
 - **3a 완료:** 텍스트 입력 -> OpenAI Structured Outputs -> 계약 검증 -> JSON
-- **3b 완료(모킹 전사 검증):** WAV/MP3 파일 -> OpenAI 전사 -> 즉시 PII 마스킹 -> 기존 3a -> 같은 계약 검증 -> JSON
+- **3b 완료(모킹 전사 검증):** WAV/MP3/M4A 파일 -> OpenAI 전사 -> 즉시 PII 마스킹 -> 기존 3a -> 같은 계약 검증 -> JSON
 - **ContactOps P3 어댑터 완료(모킹 검증):** Planner -> 기존 JSON 스키마 -> 영/한 관찰 매핑 -> Critic -> 명시적 사용자 확인 후보
 - **3c 미구현:** Realtime API(WebRTC) -> function calling -> 같은 JSON
 
@@ -53,7 +53,7 @@ npm run audio -- \
 
 `OPENAI_VOICE_TEXT_MODEL`로 Structured Outputs 지원 모델을 바꿀 수 있다. 기본값은 `gpt-4o-mini`다.
 
-파일 전사 모델은 `OPENAI_VOICE_TRANSCRIPTION_MODEL`로 바꾼다. 기본값은 `gpt-4o-mini-transcribe`이며 `whisper-1`, `gpt-4o-transcribe` 계열로 교체할 수 있다. 입력 언어 힌트는 `OPENAI_VOICE_TRANSCRIPTION_LANGUAGE`이고 기본값은 `ko`다. 이 어댑터는 제품 범위에 맞춰 WAV/MP3 정규 파일만 받으며, OpenAI 파일 전사 제한에 맞춰 25MB 이하만 허용한다. 구현은 OpenAI의 [파일 전사 가이드](https://developers.openai.com/api/docs/guides/speech-to-text)처럼 `audio.transcriptions.create`에 파일 스트림을 전달한다.
+파일 전사 모델은 `OPENAI_VOICE_TRANSCRIPTION_MODEL`로 바꾼다. 기본값은 `gpt-4o-mini-transcribe`이며 `whisper-1`, `gpt-4o-transcribe` 계열로 교체할 수 있다. 입력 언어 힌트는 `OPENAI_VOICE_TRANSCRIPTION_LANGUAGE`이고 기본값은 `ko`다. 이 어댑터는 제품 범위에 맞춰 WAV/MP3/M4A 정규 파일만 받으며, OpenAI 파일 전사 제한에 맞춰 25MB 이하만 허용한다. 구현은 OpenAI의 [파일 전사 가이드](https://developers.openai.com/api/docs/guides/speech-to-text)처럼 `audio.transcriptions.create`에 파일 스트림을 전달한다.
 
 메인이 호출할 단일 인터페이스는 다음과 같다.
 
@@ -80,7 +80,7 @@ const result = await processAudioFile({
 
 전사 호출 경계는 `transcribe(audioPath, options) -> string`이다. 테스트에서는 `processAudioFile`의 `transcriber` 옵션에 stub을 주입하고, 운영에서는 기본 OpenAI 어댑터를 사용한다.
 
-ContactOps는 `planContactOpsObservation(input, options)`로 텍스트 또는 검증된 WAV/MP3를 후보로 바꾸고, 서버가 확인 요청을 받을 때 `assertContactOpsObservationCandidate(value)`로 정확한 키와 경계를 다시 검증한다. 어댑터는 `confirmed: false` 후보만 만들며 확정·점수·승인을 실행하지 않는다.
+ContactOps는 `planContactOpsObservation(input, options)`로 텍스트 또는 검증된 WAV/MP3/M4A를 후보로 바꾸고, 서버가 확인 요청을 받을 때 `assertContactOpsObservationCandidate(value)`로 정확한 키와 경계를 다시 검증한다. 어댑터는 `confirmed: false` 후보만 만들며 확정·점수·승인을 실행하지 않는다.
 
 ```js
 import {
@@ -117,7 +117,7 @@ ContactOps 실제 Planner–Critic 그래프는 `ENABLE_LIVE_CONTACT_OPS_AI=1`�
 - 주입한 전사 결과가 오디오 파일 경계를 거쳐 즉시 마스킹되고 기존 3a와 고정 JSON 계약으로 연결됨
 - 3a의 Structured Outputs 요청, 출력 스키마 검증, evidence 원문 부분문자열 검증을 수정·복제하지 않고 재사용함
 - 합성 PII 형태가 3a API 요청과 최종 `transcript`·`evidence`에 원문으로 남지 않음
-- WAV/MP3 파일 종류·시그니처·크기·심볼릭 링크 검증과 오류 메시지 비노출
+- WAV/MP3/M4A 파일 종류·시그니처·크기·심볼릭 링크 검증과 오류 메시지 비노출
 
 ### 초록이 증명하지 못하는 것
 

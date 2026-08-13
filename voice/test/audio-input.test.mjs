@@ -204,6 +204,33 @@ test('transcribe accepts MP3 input and a configurable model', async () => {
   assert.equal(calls[0].model, 'gpt-4o-transcribe');
 });
 
+test('transcribe accepts the M4A container recorded by the mobile client', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'voice-audio-m4a-'));
+  const audioPath = join(directory, 'memo.m4a');
+  await writeFile(audioPath, Buffer.from([
+    0x00, 0x00, 0x00, 0x18,
+    0x66, 0x74, 0x79, 0x70,
+    0x4d, 0x34, 0x41, 0x20,
+  ]));
+  const calls = [];
+
+  const result = await transcribe(audioPath, {
+    client: {
+      audio: {
+        transcriptions: {
+          async create(request) {
+            calls.push(request);
+            return { text: '모바일 전사' };
+          },
+        },
+      },
+    },
+  });
+
+  assert.equal(result, '모바일 전사');
+  assert.equal(basename(calls[0].file.path), 'memo.m4a');
+});
+
 test('transcribe rejects unsupported, empty, malformed, linked, and oversized files', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'voice-audio-invalid-'));
   const unsupported = join(directory, 'memo.txt');

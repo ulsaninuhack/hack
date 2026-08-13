@@ -5,6 +5,7 @@ import { createContactOpsAiRuntime } from './contact-ops-ai-runtime.mjs';
 import { createContactOpsService } from './contact-ops-service.mjs';
 import { createFirestoreContactOpsState, createMemoryContactOpsState } from './contact-ops-state.mjs';
 import { loadDataStore } from './data-store.mjs';
+import { createVoiceAudioUploader } from './voice-audio-upload.mjs';
 
 const port = Number(process.env.PORT || 8080);
 if (!Number.isSafeInteger(port) || port < 1 || port > 65_535) {
@@ -49,13 +50,14 @@ async function loadContactOpsState(households) {
 }
 
 const store = await loadDataStore();
+const voiceAudioDirectory = process.env.VOICE_AUDIO_DIR || '/tmp/contact-ops-audio';
 let contactOpsAiRuntime;
 async function loadContactOpsAiRuntime() {
   if (!contactOpsAiRuntime) {
     const voiceAdapter = await import('../../voice/src/contact-ops-adapter.mjs');
     contactOpsAiRuntime = createContactOpsAiRuntime({
       voiceAdapter,
-      audioDirectory: process.env.VOICE_AUDIO_DIR || '/tmp/contact-ops-audio',
+      audioDirectory: voiceAudioDirectory,
     });
   }
   return contactOpsAiRuntime;
@@ -90,6 +92,7 @@ const server = createApiServer({
   store,
   logger,
   contactOpsService,
+  voiceAudioUploader: createVoiceAudioUploader({ audioDirectory: voiceAudioDirectory }),
   enableDemoSessionReset: process.env.CONTACT_OPS_ENABLE_TEST_RESET === '1',
 });
 

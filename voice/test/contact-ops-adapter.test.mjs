@@ -209,7 +209,7 @@ test('an injected Critic may add flags but cannot mutate the candidate', async (
   assert.equal(result.confirmed, false);
 });
 
-test('validated WAV/MP3 input uses the injected transcriber and the same Planner adapter', async () => {
+test('validated WAV/MP3/M4A input uses the injected transcriber and the same Planner adapter', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'contact-ops-adapter-audio-'));
   const audioPath = join(directory, 'memo.wav');
   await writeFile(audioPath, Buffer.from('RIFF0000WAVEdata'));
@@ -230,6 +230,21 @@ test('validated WAV/MP3 input uses the injected transcriber and the same Planner
   assert.equal(result.source_kind, 'audio');
   assert.deepEqual(transcriberCalls, [audioPath]);
 
+  const mobileAudioPath = join(directory, 'mobile.m4a');
+  await writeFile(mobileAudioPath, Buffer.from([
+    0x00, 0x00, 0x00, 0x18,
+    0x66, 0x74, 0x79, 0x70,
+    0x4d, 0x34, 0x41, 0x20,
+  ]));
+  const mobileResult = await planContactOpsObservation(
+    { kind: 'audio', audioPath: mobileAudioPath, surveyorId: SURVEYOR_ID, caseId: ROUTE_CASE_ID },
+    {
+      transcriber: async () => transcript,
+      plannerClient: mockPlanner(plannerOutput({ transcript, reached: false })),
+    },
+  );
+  assert.equal(mobileResult.source_kind, 'audio');
+
   const invalidPath = join(directory, 'memo.txt');
   await writeFile(invalidPath, 'not audio');
   await assert.rejects(
@@ -240,7 +255,7 @@ test('validated WAV/MP3 input uses the injected transcriber and the same Planner
         plannerClient: mockPlanner(plannerOutput()),
       },
     ),
-    /WAV or MP3/,
+    /WAV, MP3, or M4A/,
   );
 });
 

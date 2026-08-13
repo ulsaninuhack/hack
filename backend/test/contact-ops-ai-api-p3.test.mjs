@@ -57,6 +57,13 @@ describe('P3 AI observation HTTP contract', () => {
     assert.equal(audio.response.status, 200);
     assert.deepEqual(calls.at(-1).source, { kind: 'audio', fileReference: 'contact-0001.wav' });
 
+    const mobileAudio = await post({
+      mode: 'candidate', expected_revision: 0, contact_date: '2026-08-12',
+      surveyor_id: '연결단원 001', validated_file_reference: 'contact-0001.m4a',
+    });
+    assert.equal(mobileAudio.response.status, 200);
+    assert.deepEqual(calls.at(-1).source, { kind: 'audio', fileReference: 'contact-0001.m4a' });
+
     const confirm = await post({
       mode: 'confirm', expected_revision: 0, contact_date: '2026-08-12',
       confirmed: true, candidate: { confirmed: false },
