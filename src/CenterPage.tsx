@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-import { AlertTriangle, CheckCircle2, ClipboardCheck, Inbox, MapPinned, RefreshCw } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, MapPinned, RefreshCw } from 'lucide-react'
 import MapView from './MapView'
 import { loadData } from './data'
 import type { DataBundle } from './types'
@@ -20,8 +20,7 @@ import {
 import type { AssignmentProposalItem, CenterInbox, ReportCard } from './threeTierClient'
 
 const CENTER_ACTOR = '동센터 담당자'
-const SYNTHETIC_MESSAGE = '합성 연락업무 데모 · 실제 주민, 실제 업무, 개인 판정이 아닙니다.'
-const TRANSFER_TRACK_MESSAGE = '안부확인 트랙에서 사례관리·전문기관 트랙으로 전환하는 권고입니다. 전환 확정은 별도 행정 절차이며 이 합성 데모의 범위 밖입니다.'
+const TRANSFER_TRACK_MESSAGE = '안부확인 트랙에서 사례관리·전문기관 트랙으로 전환하는 권고입니다. 전환 확정은 별도 행정 절차로 진행합니다.'
 
 function errorText(cause: unknown, fallback: string) {
   if (cause instanceof ContactOpsClientError && cause.code === 'STATE_CONFLICT') {
@@ -47,11 +46,10 @@ function ProposalRow({
   return (
     <li className="assignment-row" data-lane={item.lane}>
       <div className="assignment-row-main">
-        <span className="case-id">[합성] {item.case_id}</span>
+        <span className="case-id">{item.case_id}</span>
         <GradeChip grade={item.급성도_등급} />
         <span className="assignment-worker">{item.worker_display_name ?? '담당 미배정'}</span>
       </div>
-      <p className="assignment-basis">{item.제안_근거.join(' · ')}</p>
       {item.adjustment_flags.length > 0 && (
         <p className="assignment-flags" role="note">조정 필요: {item.adjustment_flags.map((flag) => ({
           no_worker_for_dong: '담당 연결단원 없음',
@@ -61,7 +59,7 @@ function ProposalRow({
       )}
       {item.status === 'confirmed'
         ? <p className="assignment-confirmed"><CheckCircle2 aria-hidden="true" size={17} /> 확인됨 · {item.confirmed_by}</p>
-        : <button className="confirm-one" disabled={busy} onClick={() => onConfirm(item.case_id)}>이 제안 확인</button>}
+        : <button className="confirm-one" disabled={busy} onClick={() => onConfirm(item.case_id)}>확인</button>}
     </li>
   )
 }
@@ -77,10 +75,10 @@ function ReportCardView({
 }) {
   const [showTransfer, setShowTransfer] = useState(false)
   return (
-    <article className="report-card" aria-label={`[합성] ${card.case_id} 보고 카드`}>
+    <article className="report-card" aria-label={`${card.case_id} 보고 카드`}>
       <header>
         <GradeChip grade={card.등급} />
-        <span className="case-id">[합성] {card.case_id}</span>
+        <span className="case-id">{card.case_id}</span>
         <span className="report-meta">{card.evidence.마지막_연락_결과_라벨} · {card.evidence.마지막_연락_일자 ?? '기록 없음'}</span>
       </header>
       <dl className="report-scores">
@@ -88,17 +86,17 @@ function ReportCardView({
         <div><dt>취약도</dt><dd>{card.취약도_점수}</dd></div>
       </dl>
       <section className="report-reasons">
-        <h4>사유 요약</h4>
+        <h4>사유</h4>
         <ul>{card.사유_요약.map((reason) => <li key={`${reason.축}-${reason.근거}`}>{reason.축} · {reason.근거} · {reason.가산점}점</li>)}</ul>
       </section>
       <section className="report-agencies">
-        <h4>권고 기관 (권고와 사유까지만 · 확정은 담당자)</h4>
+        <h4>권고 기관</h4>
         {card.권고_기관.length === 0 ? <p>권고할 기관 신호가 없습니다.</p> : (
           <ul>{card.권고_기관.map((agency) => <li key={agency.기관}><strong>{agency.기관}</strong><span>{agency.사유}</span></li>)}</ul>
         )}
       </section>
       <details className="report-evidence">
-        <summary>관찰 근거 열기</summary>
+        <summary>관찰 근거</summary>
         <ul>
           <li>연속 미응답 {card.evidence.연속_미응답_횟수}회</li>
           <li>식사 상태: {card.evidence.관찰.식사상태 ?? '확인하지 못함'}</li>
@@ -232,17 +230,13 @@ export function CenterPage() {
 
   return (
     <main className="tier-page center-page">
-      <header className="tier-header">
-        <div>
-          <span className="synthetic-chip">[합성]</span>
-          <h1>동 행정복지센터용 · {inbox?.dong_name ?? '신포동'}</h1>
-          <p className="tier-audience">{inbox?.district ?? '제물포구'} {inbox?.dong_name ?? '신포동'} 행정복지센터 확인·승인 화면</p>
-        </div>
-        <p>{SYNTHETIC_MESSAGE}</p>
+      <header className="center-header">
+        <h1>{inbox?.dong_name ?? '신포동'} 행정복지센터</h1>
+        <span className="center-demo-badge">[합성] 데모</span>
         <nav aria-label="3계층 화면 이동">
-          <a href="/m">조사원 모바일</a>
-          <a href="/city">시·구 지도</a>
-          <a href="/">공개 지도</a>
+          <a href="/m">조사원</a>
+          <a href="/city">시·구</a>
+          <a href="/">지도</a>
         </nav>
       </header>
 
@@ -254,7 +248,7 @@ export function CenterPage() {
         </div>
       )}
       {feedback && <p className="ops-feedback" role="status" aria-live="polite">{feedback}</p>}
-      {loading && !inbox && <p className="ops-state" role="status">동 행정복지센터 업무를 불러오는 중입니다.</p>}
+      {loading && !inbox && <p className="ops-state" role="status">불러오는 중입니다.</p>}
 
       {inbox && (
         <>
@@ -268,18 +262,13 @@ export function CenterPage() {
           <div className="center-columns">
             <div className="center-main">
               <section id="center-assignment" className="center-section" aria-labelledby="assignment-heading">
-                <h2 id="assignment-heading"><ClipboardCheck aria-hidden="true" size={20} /> 오늘 배치 확인</h2>
+                <h2 id="assignment-heading">오늘 배치 확인</h2>
                 {proposal === null ? <p className="ops-empty">오늘 예정된 배치 제안이 없습니다.</p> : (
                   <>
-                    <p className="center-section-note">
-                      결정론 규칙이 만든 <strong>제안</strong>입니다. {proposal.confirmation_rule}.
-                      담당 {proposal.worker_display_name} · 일일 승인 방문 용량 {proposal.max_daily_approved_visits}건.
-                    </p>
                     <div className="lane-tabs" role="tablist" aria-label="전화 레인과 방문 레인">
-                      <button role="tab" aria-selected={lane === 'phone'} onClick={() => setLane('phone')}>전화 레인 {proposal.lanes.phone.length}건</button>
-                      <button role="tab" aria-selected={lane === 'visit'} onClick={() => setLane('visit')}>방문 레인 {proposal.lanes.visit.length}건</button>
+                      <button role="tab" aria-selected={lane === 'phone'} onClick={() => setLane('phone')}>전화 {proposal.lanes.phone.length}</button>
+                      <button role="tab" aria-selected={lane === 'visit'} onClick={() => setLane('visit')}>방문 {proposal.lanes.visit.length}</button>
                     </div>
-                    <p className="lane-rule">방문 레인에는 승인된 방문 또는 방문 선호 예정 업무만 들어옵니다. 전화 큐와 섞지 않습니다.</p>
                     <ul className="assignment-list" aria-label={lane === 'phone' ? '전화 레인 할당 제안' : '방문 레인 할당 제안'}>
                       {laneItems.length === 0 ? <li className="ops-empty">이 레인에는 오늘 제안이 없습니다.</li>
                         : laneItems.map((item) => <ProposalRow key={item.case_id} item={item} onConfirm={confirmOne} busy={busy} />)}
@@ -293,34 +282,32 @@ export function CenterPage() {
               </section>
 
               <section id="center-reports" className="center-section" aria-labelledby="reports-heading">
-                <h2 id="reports-heading"><Inbox aria-hidden="true" size={20} /> 보고 확인</h2>
-                <p className="center-section-note">조사원 제출이 도착하면 등급·사유·권고 기관이 담긴 보고 카드가 쌓입니다.</p>
+                <h2 id="reports-heading">보고 확인</h2>
                 {inbox.report_cards.length === 0
-                  ? <p className="ops-empty">아직 도착한 보고가 없습니다. 조사원 모바일 화면에서 통화 결과를 제출하면 이곳에 나타납니다.</p>
+                  ? <p className="ops-empty">아직 도착한 보고가 없습니다.</p>
                   : inbox.report_cards.map((card) => (
                     <ReportCardView key={card.card_id} card={card} onAcknowledge={acknowledge} busy={busy} />
                   ))}
               </section>
 
               <section id="center-visit-review" className="center-section" aria-labelledby="visit-review-heading">
-                <h2 id="visit-review-heading"><CheckCircle2 aria-hidden="true" size={20} /> 방문 검토</h2>
-                <p className="center-section-note">방문 권고는 담당자의 명시적 승인 또는 반려로만 확정됩니다.</p>
+                <h2 id="visit-review-heading">방문 검토</h2>
                 {recommendations.length === 0 ? <p className="ops-empty">현재 검토할 방문 권고가 없습니다.</p> : (
                   <div className="visit-review">
                     <ul className="visit-review-list" aria-label="방문 권고 대기 목록">
                       {recommendations.map((item) => (
                         <li key={item.household.id}>
                           <button aria-pressed={item.household.id === selectedVisitId} onClick={() => { setSelectedVisitId(item.household.id); setDecision(null) }}>
-                            <span className="case-id">[합성] {item.household.id}</span>
+                            <span className="case-id">{item.household.id}</span>
                             <span>급성도 {item.triage?.급성도_점수 ?? '–'} · 취약도 {item.triage?.취약도_점수 ?? '–'}</span>
                           </button>
                         </li>
                       ))}
                     </ul>
                     {selectedVisit && (
-                      <form className="ops-form" onSubmit={submitVisitDecision}>
+                      <form className="ops-form center-decision-form" onSubmit={submitVisitDecision}>
                         <fieldset>
-                          <legend>담당자 결정 · [합성] {selectedVisit.household.id}</legend>
+                          <legend>담당자 결정 · {selectedVisit.household.id}</legend>
                           <label className="ops-choice"><input checked={decision === 'approved'} onChange={() => setDecision('approved')} type="radio" name="center-decision" /><span>방문 권고 승인</span></label>
                           <label className="ops-choice"><input checked={decision === 'rejected'} onChange={() => setDecision('rejected')} type="radio" name="center-decision" /><span>방문 권고 반려</span></label>
                           {decision === 'approved' && (
@@ -349,8 +336,7 @@ export function CenterPage() {
 
             <aside className="center-side">
               <details className="center-map-widget" onToggle={(event) => setMapOpen((event.target as HTMLDetailsElement).open)}>
-                <summary><MapPinned aria-hidden="true" size={18} /> 우리 동 지도 열기 (참고용)</summary>
-                <p className="center-section-note">지도는 위치 확인 보조 수단입니다. 업무 처리는 왼쪽 목록에서 합니다.</p>
+                <summary><MapPinned aria-hidden="true" size={18} /> 우리 동 지도 열기</summary>
                 <div className="center-map-frame">
                   {mapOpen && mapData ? (
                     <MapView
@@ -366,20 +352,12 @@ export function CenterPage() {
                         longitude: selectedVisit.household.location.longitude,
                         latitude: selectedVisit.household.location.latitude,
                       } : null}
-                      ariaLabel="[합성] 우리 동 케이스 위치 참고 지도"
+                      ariaLabel="우리 동 케이스 위치 지도"
                       onSelectDong={() => {}}
                     />
                   ) : <p role="status">지도를 열면 우리 동 위치를 확인할 수 있습니다.</p>}
                 </div>
               </details>
-              <section className="center-side-note" aria-label="처리 원칙">
-                <h3>처리 원칙</h3>
-                <ul>
-                  <li>자동 산출은 전부 제안입니다. 확정은 이 화면의 확인·승인 버튼만 만듭니다.</li>
-                  <li>전화 레인과 방문 레인은 분리 운영합니다.</li>
-                  <li>이관 권고는 {TRANSFER_TRACK_MESSAGE}</li>
-                </ul>
-              </section>
             </aside>
           </div>
         </>

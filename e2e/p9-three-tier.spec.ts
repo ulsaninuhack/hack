@@ -101,12 +101,12 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
 
   await test.step('동 센터가 오늘 배치안을 명시적으로 확인한다 (INV14)', async () => {
     await page.goto('/center')
-    await expect(page.getByRole('heading', { name: /동 행정복지센터용 · 신포동/ })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /신포동 행정복지센터/ })).toBeVisible()
     await expect(page.getByLabel('전화 레인 할당 제안')).toContainText(CASE_ID)
     expect(mutationPaths.filter((path) => path.endsWith('/assignment-confirmations'))).toEqual([])
-    await page.getByRole('tab', { name: /방문 레인/ }).click()
+    await page.getByRole('tab', { name: /^방문 \d+$/ }).click()
     await expect(page.getByLabel('방문 레인 할당 제안')).not.toContainText(CASE_ID)
-    await page.getByRole('tab', { name: /전화 레인/ }).click()
+    await page.getByRole('tab', { name: /^전화 \d+$/ }).click()
     await page.screenshot({ path: `${SCREENSHOT_DIR}/p9-center-assignment-desktop.png` })
     await page.getByRole('button', { name: '오늘 배치 일괄 확인' }).click()
     await expect(page.getByText('오늘 배치안을 일괄 확인했습니다.')).toBeVisible()
@@ -159,7 +159,7 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
   await test.step('동 센터가 보고 카드를 확인하고 방문을 승인한다 (INV6/INV18)', async () => {
     await page.setViewportSize({ width: 1440, height: 900 })
     await page.goto('/center')
-    const card = page.getByLabel(`[합성] ${CASE_ID} 보고 카드`)
+    const card = page.getByLabel(`${CASE_ID} 보고 카드`)
     await expect(card).toBeVisible()
     await expect(card).toContainText('방문권고')
     await expect(card).toContainText('연락 안 됨')
@@ -238,7 +238,7 @@ test('three-tier screenshot matrix and axe sweep (390×844 · 1440×900)', async
   const page = await context.newPage()
   const surfaces: Array<{ route: string; name: string; ready: RegExp }> = [
     { route: '/city', name: 'city', ready: /시·구 배치 브리핑/ },
-    { route: '/center', name: 'center', ready: /동 행정복지센터용/ },
+    { route: '/center', name: 'center', ready: /행정복지센터/ },
     { route: '/m', name: 'mobile', ready: /조사원 화면/ },
   ]
   for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {

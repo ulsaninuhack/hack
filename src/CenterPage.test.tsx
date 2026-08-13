@@ -185,12 +185,12 @@ describe('CenterPage (동 행정복지센터)', () => {
   it('renders the center audience header, summary actions, and report card with grade vocabulary', async () => {
     arrange()
     render(<CenterPage />)
-    expect(await screen.findByRole('heading', { name: /동 행정복지센터용 · 신포동/ })).toBeInTheDocument()
-    expect(screen.getAllByText('[합성]').length).toBeGreaterThan(0)
+    expect(await screen.findByRole('heading', { name: /신포동 행정복지센터/ })).toBeInTheDocument()
+    expect(screen.getByText('[합성] 데모')).toBeInTheDocument()
     const summary = screen.getByLabelText('오늘 처리 요약과 다음 행동')
     expect(within(summary).getByText('보고 확인 대기')).toBeInTheDocument()
     expect(within(summary).getByText('방문 검토 대기')).toBeInTheDocument()
-    const card = await screen.findByLabelText('[합성] SYN-HH-2812551000-0001 보고 카드')
+    const card = await screen.findByLabelText('SYN-HH-2812551000-0001 보고 카드')
     expect(within(card).getByText('방문권고')).toBeInTheDocument()
     expect(within(card).getByText('보건소·의료 연계')).toBeInTheDocument()
     expect(within(card).getByText('행정복지센터 이관 권고')).toBeInTheDocument()
@@ -204,7 +204,7 @@ describe('CenterPage (동 행정복지센터)', () => {
     const phoneLane = await screen.findByLabelText('전화 레인 할당 제안')
     expect(within(phoneLane).getByText(/SYN-HH-2812551000-0001/)).toBeInTheDocument()
     expect(within(phoneLane).queryByText(/SYN-HH-2812551000-0002/)).toBeNull()
-    await user.click(screen.getByRole('tab', { name: /방문 레인/ }))
+    await user.click(screen.getByRole('tab', { name: /방문 \d/ }))
     const visitLane = await screen.findByLabelText('방문 레인 할당 제안')
     expect(within(visitLane).getByText(/SYN-HH-2812551000-0002/)).toBeInTheDocument()
     expect(within(visitLane).queryByText(/SYN-HH-2812551000-0001/)).toBeNull()
@@ -222,7 +222,7 @@ describe('CenterPage (동 행정복지센터)', () => {
       dongCode: '2812551000', referenceDate: '2026-08-12',
       confirmedBy: '동센터 담당자', caseIds: null,
     }))
-    await user.click((await screen.findAllByRole('button', { name: '이 제안 확인' }))[0])
+    await user.click((await screen.findAllByRole('button', { name: '확인' }))[0])
     await waitFor(() => expect(mocks.confirmAssignment).toHaveBeenCalledWith({
       dongCode: '2812551000', referenceDate: '2026-08-12',
       confirmedBy: '동센터 담당자', caseIds: ['SYN-HH-2812551000-0001'],
@@ -233,7 +233,7 @@ describe('CenterPage (동 행정복지센터)', () => {
     arrange()
     const user = userEvent.setup()
     render(<CenterPage />)
-    const card = await screen.findByLabelText('[합성] SYN-HH-2812551000-0001 보고 카드')
+    const card = await screen.findByLabelText('SYN-HH-2812551000-0001 보고 카드')
     await user.click(within(card).getByRole('button', { name: '보고 확인' }))
     await waitFor(() => expect(mocks.acknowledgeReport).toHaveBeenCalledWith({
       caseId: 'SYN-HH-2812551000-0001', revision: 1, acknowledgedBy: '동센터 담당자',
@@ -259,7 +259,7 @@ describe('CenterPage (동 행정복지센터)', () => {
     arrange()
     const user = userEvent.setup()
     render(<CenterPage />)
-    const card = await screen.findByLabelText('[합성] SYN-HH-2812551000-0001 보고 카드')
+    const card = await screen.findByLabelText('SYN-HH-2812551000-0001 보고 카드')
     await user.click(within(card).getByRole('button', { name: '이관 안내' }))
     expect(within(card).getByText(/안부확인 트랙에서 사례관리·전문기관 트랙으로 전환/)).toBeInTheDocument()
   })
