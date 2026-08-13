@@ -550,6 +550,55 @@ select:focus-visible,
 .city-zone-metrics dd { margin: 0; font-weight: 700; }
 .city-zone-structure { margin-top: 10px; display: grid; gap: 6px; }
 
+/* /city — Gamegoo(https://github.com/Gamegoo-repo/Gamegoo-front-v2)에서 참고한
+   violet/magenta 색상 팔레트와 애니메이션. 문구·데이터는 변경하지 않고 시각 레이어만. */
+.city-page {
+  --gg-violet-100: #f0f0fc;
+  --gg-violet-200: #dfdeff;
+  --gg-violet-300: #c1b7ff;
+  --gg-violet-400: #9f90f9;
+  --gg-violet-500: #7b65ff;
+  --gg-violet-600: #5a42ee;
+  --gg-violet-700: #452aea;
+  --gg-violet-800: #2811ba;
+  --gg-violet-900: #1c0a88;
+  --gg-magenta: #ca1fcf;
+  background: linear-gradient(180deg, var(--gg-violet-100), var(--cream) 360px);
+}
+.city-page .tier-header { background: linear-gradient(120deg, var(--gg-violet-700), var(--gg-violet-900)); border: none; color: #fff; }
+.city-page .tier-header h1 { color: #fff; }
+.city-page .tier-header nav a { background: rgba(255,255,255,.14); color: #fff; transition: background .2s var(--ease), transform .2s var(--ease); }
+.city-page .tier-header nav a:hover { background: rgba(255,255,255,.24); transform: translateY(-1px); }
+
+.city-page .city-section, .city-page .city-zone-rollup {
+  border: none;
+  border-radius: 20px;
+  box-shadow: 0 10px 28px rgba(69,42,234,.10), 0 2px 6px rgba(69,42,234,.06);
+  animation: gg-fade-in-y .45s var(--ease) both;
+  transition: box-shadow .2s var(--ease);
+}
+.city-page .city-section:hover, .city-page .city-zone-rollup:hover { box-shadow: 0 16px 36px rgba(69,42,234,.16), 0 4px 10px rgba(69,42,234,.08); }
+
+.city-page .city-stat-bar-fill { background: linear-gradient(90deg, var(--gg-violet-400), var(--gg-violet-600)); }
+.city-page .city-ai-summary > button { background: var(--gg-violet-600); }
+.city-page .city-ai-summary > button:hover:not(:disabled) { background: var(--gg-violet-700); }
+.city-page .city-ai-summary h4 svg { color: var(--gg-magenta); animation: gg-bubble-float 3s ease-in-out infinite; }
+.city-page .city-ai-summary-card { border: 1px solid var(--gg-violet-200); background: var(--gg-violet-100); animation: gg-fade-in-y .35s var(--ease) both; }
+.city-page .city-priority-index { background: var(--gg-magenta); }
+.city-page .city-fact-chips span { background: var(--gg-violet-100); color: var(--gg-violet-800); }
+.city-page .city-staffing-table thead th { background: var(--gg-violet-100); color: var(--gg-violet-800); }
+.city-page .city-staffing-table tr[data-selected="true"] { background: var(--gg-violet-100); }
+.city-page .city-district-select select:focus { outline: 2px solid var(--gg-violet-500); outline-offset: 1px; }
+
+@keyframes gg-fade-in-y {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes gg-bubble-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
 @media (max-width: 1100px) {
   .center-columns, .city-columns { grid-template-columns: 1fr; }
   .city-map { position: static; height: 420px; }
