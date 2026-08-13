@@ -567,6 +567,11 @@ async function routeThreeTier(request, url, threeTierService) {
     assertIsoDateValue(body.reference_date, 'reference_date');
     return threeTierService.confirmAssignment({ sessionId, dongCode: body.dong_code, referenceDate: body.reference_date, confirmedBy: body.confirmed_by, caseIds: body.case_ids });
   }
+  if (url.pathname === `${THREE_TIER_PREFIX}escalations`) {
+    exactBody(body, ['case_id', 'reported_by']);
+    if (!CASE_ID_PATTERN.test(body.case_id || '')) throw new ApiError(400, 'INVALID_BODY', 'case_id must be a synthetic case ID');
+    return threeTierService.escalateCase({ sessionId, caseId: body.case_id, reportedBy: body.reported_by });
+  }
   throw new ApiError(404, 'NOT_FOUND', 'Route not found');
 }
 

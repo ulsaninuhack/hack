@@ -16,6 +16,7 @@ import {
   DEMO_CENTER_DONG_CODE,
   acknowledgeReport,
   confirmAssignment,
+  escalateCase,
   loadCenterInbox,
 } from './threeTierClient'
 import type { AssignmentProposalItem, CenterInbox, ReportCard } from './threeTierClient'
@@ -39,10 +40,12 @@ function GradeChip({ grade }: { grade: string | null }) {
 function ProposalRow({
   item,
   onConfirm,
+  onEscalate,
   busy,
 }: {
   item: AssignmentProposalItem
   onConfirm: (caseId: string) => void
+  onEscalate: (caseId: string) => void
   busy: boolean
 }) {
   return (
@@ -84,9 +87,18 @@ function ProposalRow({
           capacity_exceeded: '일일 방문 용량 초과',
         }[flag] ?? flag)).join(' · ')}</p>
       )}
-      {item.status === 'confirmed'
-        ? <p className="assignment-confirmed"><CheckCircle2 aria-hidden="true" size={17} /> 확인됨 · {item.confirmed_by}</p>
-        : <button className="confirm-one" disabled={busy} onClick={() => onConfirm(item.case_id)}>확인</button>}
+      {item.lane === 'phone'
+        ? <p className="assignment-confirmed assignment-auto"><CheckCircle2 aria-hidden="true" size={17} /> 자동 배정됨 · {item.worker_display_name ?? '담당 미배정'}</p>
+        : item.escalation
+          ? <p className="assignment-escalated"><AlertTriangle aria-hidden="true" size={17} /> 상급기관 신고됨 · {item.escalation.agency}</p>
+          : item.status === 'confirmed'
+            ? <p className="assignment-confirmed"><CheckCircle2 aria-hidden="true" size={17} /> 방문 확인됨 · {item.confirmed_by}</p>
+            : (
+              <div className="assignment-actions">
+                <button className="confirm-one" disabled={busy} onClick={() => onConfirm(item.case_id)}>확인</button>
+                <button className="escalate-one" disabled={busy} onClick={() => onEscalate(item.case_id)}>신고</button>
+              </div>
+            )}
     </li>
   )
 }
@@ -201,6 +213,9 @@ export function CenterPage() {
 
   const proposal = inbox?.assignment_proposal ?? null
   const laneItems = useMemo(() => proposal?.lanes[lane] ?? [], [proposal, lane])
+  const pendingVisitIds = useMemo(() => (proposal?.lanes.visit ?? [])
+    .filter((item) => item.status !== 'confirmed' && !item.escalation)
+    .map((item) => item.case_id), [proposal])
   const selectedVisit = recommendations.find((item) => item.household.id === selectedVisitId) ?? null
   const displayNameForCase = (caseId: string) => {
     const reportName = inbox?.report_cards.find((card) => card.case_id === caseId)?.display_name
@@ -228,13 +243,18 @@ export function CenterPage() {
 
   const confirmOne = (caseId: string) => act(
     async () => { await confirmAssignment({ dongCode: DEMO_CENTER_DONG_CODE, referenceDate: CONTACT_OPS_REFERENCE_DATE, confirmedBy: CENTER_ACTOR, caseIds: [caseId] }) },
-    '할당 제안 1건을 확인했습니다.',
-    '할당 제안을 확인하지 못했습니다.',
+    '방문 1건을 확인했습니다. 조사원 방문 목록에 반영됩니다.',
+    '방문을 확인하지 못했습니다.',
   )
-  const confirmAll = () => act(
-    async () => { await confirmAssignment({ dongCode: DEMO_CENTER_DONG_CODE, referenceDate: CONTACT_OPS_REFERENCE_DATE, confirmedBy: CENTER_ACTOR, caseIds: null }) },
-    '오늘 배치안을 일괄 확인했습니다.',
-    '오늘 배치안을 확인하지 못했습니다.',
+  const confirmAllVisits = (caseIds: string[]) => act(
+    async () => { await confirmAssignment({ dongCode: DEMO_CENTER_DONG_CODE, referenceDate: CONTACT_OPS_REFERENCE_DATE, confirmedBy: CENTER_ACTOR, caseIds }) },
+    '오늘 방문을 일괄 확인했습니다. 조사원 방문 목록에 반영됩니다.',
+    '오늘 방문을 확인하지 못했습니다.',
+  )
+  const escalateOne = (caseId: string) => act(
+    async () => { await escalateCase({ caseId, reportedBy: CENTER_ACTOR }) },
+    '상급기관에 신고했습니다. 해당 방문은 조사원 배정에서 제외됩니다.',
+    '상급기관 신고를 기록하지 못했습니다.',
   )
   const acknowledge = (card: ReportCard) => act(
     async () => { await acknowledgeReport({ caseId: card.case_id, revision: card.revision, acknowledgedBy: CENTER_ACTOR }) },
@@ -294,7 +314,7 @@ export function CenterPage() {
             </div>
             <div className="center-hero-pills">
               <a href="#center-reports"><strong>{inbox.summary.보고_대기_수}건</strong><span>보고 확인 대기</span></a>
-              <a href="#center-assignment"><strong>{inbox.summary.배치_상태 === 'confirmed' ? '완료' : inbox.summary.배치_상태 === 'partially_confirmed' ? '일부 확인' : '대기'}</strong><span>오늘 배치 확인</span></a>
+              <a href="#center-assignment"><strong>{(proposal?.lanes.visit.length ?? 0) === 0 ? '없음' : pendingVisitIds.length === 0 ? '완료' : `대기 ${pendingVisitIds.length}건`}</strong><span>방문 확인·신고</span></a>
               <a href="#center-visit-review"><strong>{inbox.summary.방문승인_대기_수}건</strong><span>방문 검토 대기</span></a>
               <div
                 className="center-hero-ring"
@@ -311,7 +331,8 @@ export function CenterPage() {
           <div className="center-columns">
             <div className="center-main">
               <section id="center-assignment" className="center-section" aria-labelledby="assignment-heading">
-                <h2 id="assignment-heading">오늘 배치 확인</h2>
+                <h2 id="assignment-heading">오늘 배치</h2>
+                <p className="assignment-rule-note">전화는 자동 배정됩니다. 방문은 확인 또는 상급기관 신고로 처리합니다.</p>
                 {proposal === null ? <p className="ops-empty">오늘 예정된 배치 제안이 없습니다.</p> : (
                   <>
                     <div className="lane-tabs" role="tablist" aria-label="전화 레인과 방문 레인">
@@ -320,12 +341,14 @@ export function CenterPage() {
                     </div>
                     <ul className="assignment-list" aria-label={lane === 'phone' ? '전화 레인 할당 제안' : '방문 레인 할당 제안'}>
                       {laneItems.length === 0 ? <li className="ops-empty">이 레인에는 오늘 제안이 없습니다.</li>
-                        : laneItems.map((item) => <ProposalRow key={item.case_id} item={item} onConfirm={confirmOne} busy={busy} />)}
+                        : laneItems.map((item) => <ProposalRow key={item.case_id} item={item} onConfirm={confirmOne} onEscalate={escalateOne} busy={busy} />)}
                     </ul>
-                    {proposal.status !== 'confirmed' && (
-                      <button className="confirm-all" disabled={busy} onClick={confirmAll}>오늘 배치 일괄 확인</button>
+                    {lane === 'visit' && pendingVisitIds.length > 0 && (
+                      <button className="confirm-all" disabled={busy} onClick={() => confirmAllVisits(pendingVisitIds)}>오늘 방문 일괄 확인</button>
                     )}
-                    {proposal.status === 'confirmed' && <p className="assignment-confirmed" role="status">오늘 배치안이 모두 확인되었습니다.</p>}
+                    {lane === 'visit' && proposal.lanes.visit.length > 0 && pendingVisitIds.length === 0 && (
+                      <p className="assignment-confirmed" role="status">오늘 방문이 모두 처리되었습니다. 확인된 방문은 조사원 목록에 반영됩니다.</p>
+                    )}
                   </>
                 )}
               </section>

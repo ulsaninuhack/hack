@@ -270,7 +270,13 @@ export function MobilePage() {
           </div>
           {loading && !lanesData ? <p className="ops-state" role="status">오늘 목록을 불러오는 중입니다.</p> : (
             <ul className="mobile-task-list" aria-label={lane === 'phone' ? '오늘 전화 목록' : '오늘 방문 목록'}>
-              {items.length === 0 ? <li className="ops-empty">오늘 이 목록에는 예정된 업무가 없습니다.</li>
+              {items.length === 0 ? (
+                <li className="ops-empty">
+                  {(lanesData?.pending_confirmation?.[lane] ?? 0) > 0
+                    ? `동 센터가 배치를 배정하면 여기에 나타납니다. (배정 대기 ${lanesData?.pending_confirmation[lane]}건)`
+                    : '오늘 이 목록에는 예정된 업무가 없습니다.'}
+                </li>
+              )
                 : items.map((item) => (
                   <li key={item.case_id}>
                     <button className="mobile-task" onClick={() => openCase(item)}>

@@ -181,6 +181,18 @@ describe('MobilePage (조사원 /m)', () => {
     expect(screen.getByLabelText('통화 결과')).toBeInTheDocument()
   })
 
+  it('shows a waiting note in the visit lane until the center confirms (배정 파이프라인)', async () => {
+    arrange()
+    const user = userEvent.setup()
+    const waiting = structuredClone(lanes)
+    waiting.lanes.visit = []
+    waiting.pending_confirmation = { phone: 0, visit: 2 }
+    mocks.loadTodayLanes.mockResolvedValue(waiting)
+    render(<MobilePage />)
+    await user.click(await screen.findByRole('tab', { name: /방문 0건/ }))
+    expect(await screen.findByText(/동 센터가 배치를 배정하면 여기에 나타납니다. \(배정 대기 2건\)/)).toBeInTheDocument()
+  })
+
   it('the open visit map exposes an explicit close button', async () => {
     arrange()
     const user = userEvent.setup()

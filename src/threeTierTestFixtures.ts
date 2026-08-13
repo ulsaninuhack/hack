@@ -53,6 +53,8 @@ export const todayLanesFixture: TodayLanes = {
   worker_display_name: '연결단원 001',
   dong_code: '2812551000',
   dong_name: '신포동',
+  assignment_rule: '동 행정복지센터가 확인한 배치만 조사원에게 배정된다',
+  pending_confirmation: { phone: 0, visit: 0 },
   lane_rule: '방문 레인에는 승인된 방문 또는 방문 선호 예정 업무만 포함',
   lanes: { phone: [phoneLaneItem], visit: [visitLaneItem] },
 }

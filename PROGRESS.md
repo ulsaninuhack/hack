@@ -499,3 +499,18 @@ hostile follow-up, commit, preview, and blockers. Existing entries are never rew
 - Cloud Run `incheon-care-api-00031-7t8`에서 7초 한국어 합성 M4A를 모바일과 같은
   multipart 경로로 실행: HTTP 200, `source_kind=audio`, `connected_concern`, 식사
   `심각`, `confirmed=false`. 실기기·노인 음성·소음 정확도와 3c는 여전히 미증명.
+
+## 2026-08-13 — 배정 파이프라인: 전화 자동 배정 · 방문 확인/신고 (제품 오너 지시)
+
+- 조사원 /m 오늘 목록이 확정 상태를 반영: 전화 레인은 규칙 산출 그대로 자동
+  배정, 방문 레인은 동 센터의 명시적 확인이 있어야 배정되고 상급기관 신고
+  케이스는 제외. today-lanes에 assignment_rule·pending_confirmation 추가.
+- 상급기관 신고 액션 신설: POST three-tier/escalations (명시적 사람 액션,
+  INV14). 신고 대상 기관은 규칙 테이블 권고 기관 그대로(권고 이상 생성 안 함).
+  center-inbox 방문 행에 escalation 상태 표기.
+- /center 배치 섹션 개편: 전화 행은 "자동 배정됨", 방문 행은 [확인]/[신고]
+  버튼, 방문 탭에 "오늘 방문 일괄 확인", 히어로 필은 방문 처리 대기 수 표시.
+  위험 신호 시 방문 승격은 기존 방문 검토 승인 플로우가 담당.
+- 직전 커밋의 "조사원 화면 이동" 링크 버튼은 컨셉 폐기로 제거.
+- 검증: 백엔드 커버리지 게이트(97.24/90.72/100), 프런트 61, copy 게이트,
+  빌드, E2E 5/5 그린(골든 재작성: 자동 배정·방문 일괄 확인·신고 버튼).
