@@ -177,14 +177,76 @@ describe('LiveCallPanel', () => {
 
     const captions = screen.getByRole('region', { name: '실시간 자막' })
     const question = screen.getByRole('heading', { name: '다음 확인 질문' }).closest('section')
-    const preview = screen.getByRole('region', { name: '통화 중 확인된 항목' })
+    const preview = screen.getByRole('region', { name: '통화 중 확인할 항목' })
     expect(captions.nextElementSibling).toBe(question)
     expect(preview).not.toHaveTextContent('AI 후보')
     expect(preview).not.toHaveTextContent('미확정')
     expect(preview).not.toHaveTextContent('근거 발화')
     expect(screen.getByText('식사 상태')).toBeInTheDocument()
     expect(screen.getByText('불량')).toBeInTheDocument()
-    expect(screen.getByText(liveCandidate.critic.next_question)).toBeInTheDocument()
+    expect(screen.getByText('최근 몸이 아프거나 마음이 힘든 일은 없으세요?')).toBeInTheDocument()
+    expect(screen.queryByText(liveCandidate.critic.next_question)).toBeNull()
+  })
+
+  it('keeps every phone checklist item visible and asks about an unconfirmed item', async () => {
+    mocks.connect.mockResolvedValue({
+      roomName: 'care-call-abc123',
+      localRole: 'surveyor',
+      setMuted: mocks.setMuted,
+      finish: mocks.finish,
+      disconnect: mocks.disconnect,
+    })
+    const liveCandidate = {
+      contact_result: ['connected', 'concern'].join('_') as VoiceCandidate['contact_result'],
+      transcript: '밥도 안 먹고 씻지도 않고 공과금도 안 내고 있어요.',
+      observations: {
+        관찰_6징후: { 우편물_고지서_적체: false, 악취_벌레: false, 쓰레기_술병: false, 인기척_없이_TV_불: false, 외출_없음: false, 연락_두절: false },
+        식사상태: '불량', 위생상태: '불량', 공과금_2개월_이상_체납: true,
+        최근_건강_정신_괴로움: null, 관계망_유무: null, 연락_빈도: null,
+      },
+      critic: {
+        missing_fields: ['관찰_6징후.외출_없음', '최근_건강_정신_괴로움', '관계망_유무'],
+        contradictions: [], low_confidence_fields: [], warnings: [],
+        next_question: '오늘 식사를 한 끼도 하지 못한 건가요, 아니면 평소보다 양이 줄어든 건가요?',
+      },
+    } satisfies Pick<VoiceCandidate, 'contact_result' | 'transcript' | 'observations' | 'critic'>
+    const user = userEvent.setup()
+    render(<LiveCallPanel join={hostJoin} liveCandidate={liveCandidate} />)
+    await user.click(screen.getByRole('button', { name: '통화 연결' }))
+
+    const preview = screen.getByRole('region', { name: '통화 중 확인할 항목' })
+    for (const label of ['최근 외출', '식사 상태', '위생 상태', '도움 관계망', '건강·마음 어려움', '공과금 체납']) {
+      expect(within(preview).getByText(label)).toBeInTheDocument()
+    }
+    expect(within(preview).getAllByText('미확인')).toHaveLength(3)
+    expect(within(preview).getByText('체납 있음')).toBeInTheDocument()
+    expect(screen.getByText('최근 몸이 아프거나 마음이 힘든 일은 없으세요?')).toBeInTheDocument()
+    expect(screen.queryByText(liveCandidate.critic.next_question)).toBeNull()
+  })
+
+  it('shows an explicit recent outing as confirmed instead of unknown', async () => {
+    mocks.connect.mockResolvedValue({
+      roomName: 'care-call-abc123', localRole: 'surveyor',
+      setMuted: mocks.setMuted, finish: mocks.finish, disconnect: mocks.disconnect,
+    })
+    const liveCandidate = {
+      contact_result: ['connected', 'ok'].join('_') as VoiceCandidate['contact_result'],
+      transcript: '어제 시장에 다녀왔어요.',
+      observations: {
+        관찰_6징후: { 우편물_고지서_적체: false, 악취_벌레: false, 쓰레기_술병: false, 인기척_없이_TV_불: false, 외출_없음: false, 연락_두절: false },
+        식사상태: null, 위생상태: null, 공과금_2개월_이상_체납: null,
+        최근_건강_정신_괴로움: null, 관계망_유무: null, 연락_빈도: null,
+      },
+      critic: { missing_fields: ['식사상태'], contradictions: [], low_confidence_fields: [], warnings: [], next_question: null },
+    } satisfies Pick<VoiceCandidate, 'contact_result' | 'transcript' | 'observations' | 'critic'>
+    const user = userEvent.setup()
+    render(<LiveCallPanel join={hostJoin} liveCandidate={liveCandidate} />)
+    await user.click(screen.getByRole('button', { name: '통화 연결' }))
+
+    const preview = screen.getByRole('region', { name: '통화 중 확인할 항목' })
+    const outing = within(preview).getByText('최근 외출').closest('li')
+    expect(outing).toHaveTextContent('있음')
+    expect(outing).not.toHaveTextContent('미확인')
   })
 
   it('shows only recent outing from the six environmental signs during a live phone call', async () => {
@@ -209,8 +271,9 @@ describe('LiveCallPanel', () => {
     render(<LiveCallPanel join={hostJoin} liveCandidate={liveCandidate} />)
     await user.click(screen.getByRole('button', { name: '통화 연결' }))
 
-    const preview = screen.getByRole('region', { name: '통화 중 확인된 항목' })
-    expect(within(preview).getByText('최근 외출 없음')).toBeInTheDocument()
+    const preview = screen.getByRole('region', { name: '통화 중 확인할 항목' })
+    expect(within(preview).getByText('최근 외출')).toBeInTheDocument()
+    expect(within(preview).getByText('없음')).toBeInTheDocument()
     for (const label of ['우편물·고지서 적체', '악취·벌레', '쓰레기·술병', '인기척 없이 TV·불', '연락 두절']) {
       expect(within(preview).queryByText(label)).toBeNull()
     }
@@ -304,7 +367,7 @@ describe('LiveCallPanel', () => {
     await user.click(screen.getByRole('button', { name: '통화 연결' }))
 
     expect(screen.getByText('자막 대기 중')).toBeInTheDocument()
-    expect(screen.getByText('대기 중')).toBeInTheDocument()
+    expect(screen.getAllByText('미확인')).toHaveLength(6)
     for (const phrase of [
       '말을 시작하면 발화자별 자막이 표시됩니다.',
       '연락 대상의 확정 발화',

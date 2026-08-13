@@ -134,7 +134,7 @@ export function buildAgencyRecommendations({ observations, household, triage }) 
   const isolated = observations.관계망_유무 === '없음';
   if (observations.공과금_2개월_이상_체납 === true || (isolated && (mealConcern || hygieneConcern))) {
     const reason = observations.공과금_2개월_이상_체납 === true
-      ? '공과금 2개월 이상 체납 관찰·보고'
+      ? '공과금 체납 관찰·보고'
       : '관계망 부재와 생활 상태 어려움이 함께 관찰됨';
     push('구 희망복지지원단', reason, ['매뉴얼_p11', '매뉴얼_p49']);
   }

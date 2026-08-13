@@ -47,7 +47,7 @@ const candidate = {
   },
   free_text: '식사 상태 재확인',
   critic: {
-    missing_fields: ['식사상태'],
+    missing_fields: ['식사상태', '공과금_2개월_이상_체납'],
     contradictions: ['미응답과 연락 두절 아님을 함께 확인해야 함'],
     low_confidence_fields: ['위생상태'],
     warnings: [],
@@ -130,6 +130,8 @@ describe('P3 Planner-Critic surveyor review', () => {
     expect(screen.getByRole('heading', { name: '다음 확인 질문' })).toBeInTheDocument()
     expect(screen.getByText(candidate.critic.next_question)).toBeInTheDocument()
     expect(screen.getByText('식사상태')).toBeInTheDocument()
+    expect(screen.getByText('공과금 체납')).toBeInTheDocument()
+    expect(document.body.textContent).not.toContain('공과금_2개월_이상_체납')
     expect(screen.getByText('모순 확인')).toBeInTheDocument()
     expect(screen.getByText('낮은 확신 필드')).toBeInTheDocument()
     expect(screen.getByLabelText('AI 후보 연락 결과')).toHaveValue('미응답')
