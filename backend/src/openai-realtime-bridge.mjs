@@ -2,19 +2,20 @@ import { LiveCallError } from './live-call-service.mjs';
 
 const OPENAI_REALTIME_CALLS_URL = 'https://api.openai.com/v1/realtime/calls';
 const DEFAULT_REALTIME_SESSION_MODEL = 'gpt-realtime-2.1';
+const LIVE_TRANSCRIPTION_LANGUAGE = 'ko';
 
-function sessionConfig({ model, language, sessionModel }) {
+function sessionConfig({ model, sessionModel }) {
   return {
     type: 'realtime',
     model: sessionModel,
     output_modalities: ['text'],
     audio: {
       input: {
-        transcription: { model, languages: [language], delay: 'low' },
+        transcription: { model, languages: [LIVE_TRANSCRIPTION_LANGUAGE], delay: 'low' },
         noise_reduction: { type: 'near_field' },
         turn_detection: {
           type: 'server_vad',
-          threshold: 0.75,
+          threshold: 0.8,
           prefix_padding_ms: 300,
           silence_duration_ms: 700,
           create_response: false,
@@ -37,10 +38,10 @@ export function createOpenAiRealtimeBridge({
   }
 
   return Object.freeze({
-    async exchangeSdp({ sdp, safetyIdentifier, model, language }) {
+    async exchangeSdp({ sdp, safetyIdentifier, model }) {
       const form = new FormData();
       form.set('sdp', sdp);
-      form.set('session', JSON.stringify(sessionConfig({ model, language, sessionModel })));
+      form.set('session', JSON.stringify(sessionConfig({ model, sessionModel })));
       try {
         const response = await fetchImpl(OPENAI_REALTIME_CALLS_URL, {
           method: 'POST',

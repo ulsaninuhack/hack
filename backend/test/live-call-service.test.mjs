@@ -72,7 +72,7 @@ function harness(overrides = {}) {
 
 describe('live call service', () => {
   test('creates a two-person audio room with server-controlled speaker roles', async () => {
-    const { service, issued, invites } = harness();
+    const { service, issued, invites } = harness({ transcriptionLanguage: 'en' });
 
     const result = await service.createCall({
       sessionId: SESSION_ID,
@@ -158,7 +158,6 @@ describe('live call service', () => {
       sdp: 'v=0\r\na=group:BUNDLE 0\r\n',
       safetyIdentifier: 'live-call:call-fixed:resident',
       model: 'gpt-live-transcribe',
-      language: 'ko',
     }]);
   });
 
