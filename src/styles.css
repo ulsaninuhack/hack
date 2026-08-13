@@ -817,3 +817,8 @@ select:focus-visible,
 .mobile-page .mobile-map-close { position: absolute; top: 8px; right: 8px; z-index: 5; display: grid; place-content: center; width: 48px; height: 48px; min-height: 48px; border: 1px solid var(--t-line); border-radius: 50%; background: var(--t-card); color: var(--t-sub); cursor: pointer; box-shadow: 0 2px 8px rgba(25, 27, 30, 0.15); transition: background .15s var(--ease), transform .2s var(--ease); }
 .mobile-page .mobile-map-close:hover { background: var(--t-track); }
 .mobile-page .mobile-map-close:active { transform: scale(0.94); }
+
+/* /center → /m 파이프라인: 배치 확인 후 조사원 화면 이동 */
+.center-page .assignment-to-mobile { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; margin-top: 10px; border: 1px solid var(--t-blue); border-radius: 10px; background: var(--t-blue-soft); color: var(--t-blue-dark); font-weight: 700; font-size: 16px; text-decoration: none; transition: background .15s var(--ease), transform .2s var(--ease); }
+.center-page .assignment-to-mobile:hover { background: #e2defb; }
+.center-page .assignment-to-mobile:active { transform: scale(0.98); }

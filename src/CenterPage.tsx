@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-import { AlertTriangle, CheckCircle2, MapPinned, RefreshCw } from 'lucide-react'
+import { AlertTriangle, ArrowRight, CheckCircle2, MapPinned, RefreshCw } from 'lucide-react'
 import MapView from './MapView'
 import { loadData } from './data'
 import type { DataBundle } from './types'
@@ -326,6 +326,11 @@ export function CenterPage() {
                       <button className="confirm-all" disabled={busy} onClick={confirmAll}>오늘 배치 일괄 확인</button>
                     )}
                     {proposal.status === 'confirmed' && <p className="assignment-confirmed" role="status">오늘 배치안이 모두 확인되었습니다.</p>}
+                    {(proposal.status === 'confirmed' || proposal.confirmed_count > 0) && (
+                      <a className="assignment-to-mobile" href="/m">
+                        조사원 화면에서 확인된 배치 진행하기 <ArrowRight aria-hidden="true" size={18} />
+                      </a>
+                    )}
                   </>
                 )}
               </section>

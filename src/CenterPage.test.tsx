@@ -240,6 +240,22 @@ describe('CenterPage (동 행정복지센터)', () => {
     }))
   })
 
+  it('links to the surveyor screen only after a confirmation exists (pipeline)', async () => {
+    arrange()
+    const user = userEvent.setup()
+    render(<CenterPage />)
+    await screen.findByLabelText('전화 레인 할당 제안')
+    expect(screen.queryByRole('link', { name: /조사원 화면에서 확인된 배치 진행하기/ })).toBeNull()
+    mocks.loadCenterInbox.mockResolvedValue({
+      ...structuredClone(inbox),
+      summary: { ...inbox.summary, 배치_상태: 'confirmed' },
+      assignment_proposal: { ...structuredClone(proposal), status: 'confirmed', confirmed_count: 2 },
+    })
+    await user.click(screen.getByRole('button', { name: '오늘 배치 일괄 확인' }))
+    const pipelineLink = await screen.findByRole('link', { name: /조사원 화면에서 확인된 배치 진행하기/ })
+    expect(pipelineLink).toHaveAttribute('href', '/m')
+  })
+
   it('acknowledges report cards with an explicit actor', async () => {
     arrange()
     const user = userEvent.setup()

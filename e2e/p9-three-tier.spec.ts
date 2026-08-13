@@ -116,10 +116,14 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
     expect(mutationPaths.filter((path) => path.endsWith('/assignment-confirmations'))).toEqual([
       '/api/v1/contact-ops/three-tier/assignment-confirmations',
     ])
+    const pipelineLink = page.getByRole('link', { name: /조사원 화면에서 확인된 배치 진행하기/ })
+    await expect(pipelineLink).toBeVisible()
+    await expect(pipelineLink).toHaveAttribute('href', '/m')
   })
 
   await test.step('조사원이 모바일에서 가상 전화·수동 체크리스트로 제출한다 (INV14/15/16)', async () => {
     await page.setViewportSize({ width: 390, height: 844 })
+    // 센터의 파이프라인 링크와 같은 경로로 진입한다 (같은 세션이 그대로 이어진다)
     await page.goto('/m')
     await expect(page.getByRole('heading', { name: /조사원 화면/ })).toBeVisible()
     await expect(page.getByLabel('오늘 전화 목록')).toContainText(CASE_NAME)
