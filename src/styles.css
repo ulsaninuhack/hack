@@ -180,7 +180,52 @@ button { color: inherit; }
 @keyframes pulse { 50% { transform: scale(.92); opacity: .75; } }
 .loading-state strong, .fatal-state h1 { margin: 0; font-size: 17px; }
 .loading-state span, .fatal-state p { margin-top: 7px; color: #9eb0ac; font-size: 11px; }
-.fatal-state button { padding: 9px 15px; color: var(--dark); background: var(--gold); border: 0; border-radius: 9px; font-weight: 800; }
+.fatal-state button { padding: 9px 15px; color: var(--dark); background: var(--gg-magenta, #ca1fcf); border: 0; border-radius: 9px; font-weight: 800; }
+.loading-mark { background: var(--gg-magenta, #ca1fcf); color: #fff; }
+
+/* Public map (돌봄나침반) — same Gamegoo-inspired violet/magenta accent as /city.
+   Scoped to .app-shell so it never touches Operations/Center/Mobile chrome.
+   Choropleth fill colors and the legend gradient are untouched — they encode data. */
+.app-shell {
+  --gg-violet-100: #f0f0fc;
+  --gg-violet-200: #dfdeff;
+  --gg-violet-300: #c1b7ff;
+  --gg-violet-400: #9f90f9;
+  --gg-violet-500: #7b65ff;
+  --gg-violet-600: #5a42ee;
+  --gg-violet-700: #452aea;
+  --gg-violet-800: #2811ba;
+  --gg-violet-900: #1c0a88;
+  --gg-magenta: #ca1fcf;
+}
+.app-shell .topbar { background: linear-gradient(120deg, var(--gg-violet-700), var(--gg-violet-900)); }
+.app-shell .brand-mark { background: var(--gg-magenta); color: #fff; box-shadow: 0 6px 16px rgba(202,31,207,.32); }
+.app-shell .data-link:hover, .app-shell .method-button:hover { background: rgba(123,101,255,.22); border-color: var(--gg-violet-400); }
+
+.app-shell .kpi-icon { color: var(--gg-violet-700); background: var(--gg-violet-100); }
+.app-shell .kpi-card { animation: gg-fade-in-y .4s var(--ease) both; }
+.app-shell .kpi-card:hover { border-color: var(--gg-violet-300); box-shadow: 0 10px 26px rgba(69,42,234,.14); }
+
+.app-shell .section-kicker, .app-shell .section-heading span { color: var(--gg-violet-700); }
+.app-shell .metric-option.active { border-color: var(--gg-violet-400); background: var(--gg-violet-100); box-shadow: 0 4px 14px rgba(69,42,234,.14); }
+.app-shell .active .radio-dot { border-color: var(--gg-violet-600); }
+
+.app-shell .layer-row input:checked { background: var(--gg-violet-600); }
+.app-shell .search-box:focus-within { border-color: var(--gg-violet-400); box-shadow: 0 14px 38px rgba(69,42,234,.18); }
+.app-shell .search-box > svg, .app-shell .search-results svg { color: var(--gg-violet-600); }
+.app-shell .search-results button:hover { background: var(--gg-violet-100); }
+
+.app-shell .map-mode-toggle button[aria-pressed="true"] { color: #fff; background: var(--gg-violet-600); border-color: var(--gg-violet-600); }
+.app-shell .detail-hero { background: linear-gradient(120deg, var(--gg-violet-700), var(--gg-violet-900)); }
+.app-shell .detail-location > span { color: var(--gg-violet-700); }
+.app-shell .panel-close:hover { background: var(--gg-violet-100); }
+.app-shell .method-dialog li strong { color: var(--gg-violet-700); }
+.app-shell .method-dialog > a { color: var(--gg-violet-700); }
+
+@keyframes gg-fade-in-y {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 @media (max-width: 980px) {
   .topbar { grid-template-columns: 220px 1fr auto; }
@@ -590,10 +635,6 @@ select:focus-visible,
 .city-page .city-staffing-table tr[data-selected="true"] { background: var(--gg-violet-100); }
 .city-page .city-district-select select:focus { outline: 2px solid var(--gg-violet-500); outline-offset: 1px; }
 
-@keyframes gg-fade-in-y {
-  from { opacity: 0; transform: translateY(14px); }
-  to { opacity: 1; transform: translateY(0); }
-}
 @keyframes gg-bubble-float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-4px); }
