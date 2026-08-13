@@ -536,6 +536,26 @@ async function routeThreeTier(request, url, threeTierService) {
       if (!CASE_ID_PATTERN.test(caseId)) throw new ApiError(400, 'INVALID_PATH', 'caseId must be a synthetic case ID');
       return threeTierService.getReportCard({ sessionId: readSession(), caseId });
     }
+    if (url.pathname.startsWith(`${THREE_TIER_PREFIX}case-history-summaries/`)) {
+      assertKnownQuery(url.searchParams, new Set());
+      const caseId = url.pathname.slice(`${THREE_TIER_PREFIX}case-history-summaries/`.length);
+      if (!CASE_ID_PATTERN.test(caseId)) throw new ApiError(400, 'INVALID_PATH', 'caseId must be a synthetic case ID');
+      return threeTierService.getCaseHistorySummary({ sessionId: readSession(), caseId });
+    }
+    if (url.pathname.startsWith(`${THREE_TIER_PREFIX}case-histories/`)) {
+      assertKnownQuery(url.searchParams, new Set());
+      const caseId = url.pathname.slice(`${THREE_TIER_PREFIX}case-histories/`.length);
+      if (!CASE_ID_PATTERN.test(caseId)) throw new ApiError(400, 'INVALID_PATH', 'caseId must be a synthetic case ID');
+      return threeTierService.getCaseHistory({ sessionId: readSession(), caseId });
+    }
+    if (url.pathname === `${THREE_TIER_PREFIX}center-calendar`) {
+      assertKnownQuery(url.searchParams, new Set(['dongCode', 'month']));
+      const dongCode = url.searchParams.get('dongCode');
+      if (dongCode === null || !DONG_CODE_QUERY_PATTERN.test(dongCode)) throw new ApiError(400, 'INVALID_QUERY', 'dongCode must be a 10-digit current admin dong code');
+      const month = url.searchParams.get('month');
+      if (month === null || !/^\d{4}-(?:0[1-9]|1[0-2])$/.test(month)) throw new ApiError(400, 'INVALID_QUERY', 'month must use the YYYY-MM form');
+      return threeTierService.getCenterCalendar({ sessionId: readSession(), dongCode, month });
+    }
     if (url.pathname === `${THREE_TIER_PREFIX}city-operations-map`) {
       assertKnownQuery(url.searchParams, new Set());
       return threeTierService.getCityOperationsMap({ sessionId: readSession() });

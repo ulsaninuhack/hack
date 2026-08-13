@@ -69,6 +69,12 @@ guidance in `/center`). District AI summaries use OpenAI Codex-authored guidance
 for all 11 current districts and quote server-injected aggregates only. They are
 versioned as `codex_authored_v1`; no runtime API key or mock generator is used.
 Golden E2E: `e2e/p9-three-tier.spec.ts`.
+Case history (`backend/src/three-tier-history.mjs` + `/center` 지난 기록 아코디언·
+기록 캘린더): per-case timelines are deterministic synthetic entries seeded from the
+case ID, with the current session's submitted contact merged on top; the accordion
+summary uses a runtime LLM only when `OPENAI_API_KEY` is set (banned-word filtered,
+labeled `[AI 생성 · 기록 요약 · 개인 예측 아님]`) and otherwise a deterministic
+template. It never emits scores or predictions.
 Proven/unproven split lives in `MORNING_HANDOFF.md`.
 
 The primary continuation seams are:

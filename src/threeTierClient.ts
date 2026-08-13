@@ -417,6 +417,61 @@ export async function loadReportCard(caseId: string): Promise<{ report_card: Rep
   return request(`/api/v1/contact-ops/three-tier/report-cards/${encodeURIComponent(caseId)}`)
 }
 
+export interface CaseHistoryEntry {
+  일자: string
+  결과_라벨: string
+  식사상태: string | null
+  위생상태: string | null
+  특이_징후_수: number
+  출처: string
+}
+
+export interface CaseHistory {
+  synthetic: true
+  displayMarker: '[합성]'
+  case_id: string
+  display_name: string
+  trend_label: string
+  source_note: string
+  entries: CaseHistoryEntry[]
+}
+
+export interface CaseHistorySummary {
+  case_id: string
+  summary_text: string
+  generator: string
+  label: string
+}
+
+export interface CenterCalendarDay {
+  일자: string
+  기록_수: number
+  미응답_수: number
+  사례: Array<{ case_id: string; display_name: string; 결과_라벨: string; 출처: string }>
+}
+
+export interface CenterCalendar {
+  month: string
+  source_note: string
+  days: CenterCalendarDay[]
+}
+
+export async function loadCaseHistory(caseId: string): Promise<CaseHistory> {
+  return request(`/api/v1/contact-ops/three-tier/case-histories/${encodeURIComponent(caseId)}`)
+}
+
+export async function loadCaseHistorySummary(caseId: string): Promise<CaseHistorySummary> {
+  return request(`/api/v1/contact-ops/three-tier/case-history-summaries/${encodeURIComponent(caseId)}`)
+}
+
+export async function loadCenterCalendar(input: {
+  dongCode?: string
+  month: string
+}): Promise<CenterCalendar> {
+  const query = new URLSearchParams({ dongCode: input.dongCode ?? DEMO_CENTER_DONG_CODE, month: input.month })
+  return request(`/api/v1/contact-ops/three-tier/center-calendar?${query}`)
+}
+
 export async function acknowledgeReport(input: {
   caseId: string
   revision: number

@@ -559,3 +559,54 @@ describe('three-tier route guards', () => {
     assert.match(stamp, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
   });
 });
+
+describe('three-tier case history API', () => {
+  const session = 'three-tier-history-session-01';
+
+  test('serves a deterministic case history timeline', async () => {
+    const { response, body } = await get('/api/v1/contact-ops/three-tier/case-histories/SYN-HH-2812551000-0001', session);
+    assert.equal(response.status, 200);
+    assert.equal(body.data.displayMarker, '[합성]');
+    assert.equal(body.data.entries.length, 6);
+    assert.equal(body.data.entries[0].일자, '2026-08-11');
+    assert.ok(body.data.entries.every((entry) => entry.출처 === '합성 과거 기록'));
+    assert.equal(response.status, 200);
+  });
+
+  test('serves the history summary with the AI label and deterministic fallback', async () => {
+    const { response, body } = await get('/api/v1/contact-ops/three-tier/case-history-summaries/SYN-HH-2812551000-0001', session);
+    assert.equal(response.status, 200);
+    assert.equal(body.data.label, '[AI 생성 · 기록 요약 · 개인 예측 아님]');
+    assert.equal(body.data.generator, 'deterministic_v1');
+    assert.match(body.data.summary_text, /마지막 기록/);
+    assert.doesNotMatch(body.data.summary_text, /위험|예측/);
+  });
+
+  test('serves the dong month calendar and validates its query', async () => {
+    const ok = await get('/api/v1/contact-ops/three-tier/center-calendar?dongCode=2812551000&month=2026-08', session);
+    assert.equal(ok.response.status, 200);
+    assert.equal(ok.body.data.month, '2026-08');
+    assert.ok(ok.body.data.days.length > 0);
+    assert.ok(ok.body.data.days[0].사례.length > 0);
+
+    const badMonth = await get('/api/v1/contact-ops/three-tier/center-calendar?dongCode=2812551000&month=2026-13', session);
+    assert.equal(badMonth.response.status, 400);
+    const badDong = await get('/api/v1/contact-ops/three-tier/center-calendar?dongCode=12&month=2026-08', session);
+    assert.equal(badDong.response.status, 400);
+    const badCase = await get('/api/v1/contact-ops/three-tier/case-histories/NOPE', session);
+    assert.equal(badCase.response.status, 400);
+    const badSummaryCase = await get('/api/v1/contact-ops/three-tier/case-history-summaries/NOPE', session);
+    assert.equal(badSummaryCase.response.status, 400);
+  });
+
+  test('reflects a session-recorded contact at the top of the timeline', async () => {
+    const recorded = await post('/api/v1/contact-ops/cases/SYN-HH-2812551000-0001/contact-results', {
+      expected_revision: 0, contact_date: REFERENCE_DATE,
+      contact_result: ['connected', 'concern'].join('_'), observations: concernObservations,
+    }, session);
+    assert.equal(recorded.response.status, 200);
+    const { body } = await get('/api/v1/contact-ops/three-tier/case-histories/SYN-HH-2812551000-0001', session);
+    assert.equal(body.data.entries[0].출처, '세션 기록');
+    assert.equal(body.data.entries[0].식사상태, '심각');
+  });
+});
