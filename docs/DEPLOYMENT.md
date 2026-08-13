@@ -82,7 +82,10 @@ the entry bundle served through the public production alias afterward. Vercel's
 generated deployment URL is intentionally not used for the public smoke test
 because that URL is protected by team SSO; `incheon-care-map.vercel.app` is the
 public runtime contract. These checks prevent the static fallback from hiding a
-missing production API configuration.
+missing production API configuration. Because the alias can briefly serve an
+HTML/asset pair from two different deployments right after cutover, the
+post-deploy check re-fetches the alias HTML and its entry asset together and
+retries up to 12 times before failing.
 
 ## Backend production
 
