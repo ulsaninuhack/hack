@@ -1087,9 +1087,13 @@ select:focus-visible,
 .live-call-caption-empty { margin: 0; padding: 28px 16px; color: #656b75; text-align: center; }
 
 .guest-call-page {
+  height: 100dvh;
   min-height: 100dvh;
   padding: 24px max(18px, calc((100vw - 620px) / 2)) 48px;
   overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
   background: #f1f5fa;
   color: #191b1e;
   font: 18px/1.55 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, 'Noto Sans KR', sans-serif;
