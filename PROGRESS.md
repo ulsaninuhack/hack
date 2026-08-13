@@ -281,3 +281,15 @@ hostile follow-up, commit, preview, and blockers. Existing entries are never rew
   seams, non-bypass rules, and historical production identifiers. `AGENTS.md` records the same
   generic Claude/Codex bootstrap. GitHub visibility is stated accurately as public while
   `package.json` remains private only to prevent accidental npm publication.
+
+## 2026-08-13 — 3계층 재설계 P0 PASS (branch claude/three-tier-care-redesign-8lpmkw)
+
+- REDESIGN_SPEC.md 프리즈 커밋: 철학·INV14~19·페이즈 done 조건·환경 확정 사항.
+- 회귀 베이스라인: 컨테이너 기본 Node v22.22.2에서는 백엔드 커버리지 게이트가
+  functions 98.51%로 실패(테스트 파일 함수 계측 차이). Node v24.19.0(/opt/node24)
+  설치 후 `npm --prefix backend run test:coverage` PASS (lines 96.47%, branches 90.66%,
+  functions 100%). 그 외 `npm run agent:check` 전 단계는 Node 22에서도 PASS였고,
+  이후 검증은 전부 Node 24로 실행한다.
+- INV15/INV4 충돌 조정 확정: 가상 전화번호는 픽스처가 아닌 어댑터 계층에서 케이스 ID로
+  결정적 유도(스펙 본문 참조).
+- Attempts: 1/5.
