@@ -3,7 +3,7 @@ import { Check, Copy, HelpCircle, LoaderCircle, Mic, MicOff, PhoneCall, PhoneOff
 import QRCode from 'qrcode'
 
 import type { LiveCallJoin } from './liveCallClient'
-import { selectLiveNextQuestion } from './liveCandidatePolicy'
+import { isCandidateValuePending, selectLiveNextQuestion } from './liveCandidatePolicy'
 import { connectLiveCallSession, type LiveCallSession } from './liveCallSession'
 import { appendCaption, residentTranscript, type LiveCaption } from './liveCallTranscript'
 import type { VoiceCandidate } from './threeTierClient'
@@ -52,21 +52,36 @@ function LiveChecklistPreview({
       value: outingMissing
         ? null
         : candidate.observations.관찰_6징후.외출_없음 ? '없음' : '있음',
+      pending: false,
     },
-    { label: '식사 상태', value: candidate?.observations.식사상태 ?? null },
-    { label: '위생 상태', value: candidate?.observations.위생상태 ?? null },
-    { label: '도움 관계망', value: candidate?.observations.관계망_유무 ?? null },
+    {
+      label: '식사 상태',
+      value: candidate?.observations.식사상태 ?? null,
+      pending: candidate ? isCandidateValuePending(candidate, '식사상태') : false,
+    },
+    {
+      label: '위생 상태',
+      value: candidate?.observations.위생상태 ?? null,
+      pending: candidate ? isCandidateValuePending(candidate, '위생상태') : false,
+    },
+    {
+      label: '도움 관계망',
+      value: candidate?.observations.관계망_유무 ?? null,
+      pending: candidate ? isCandidateValuePending(candidate, '관계망_유무') : false,
+    },
     {
       label: '건강·마음 어려움',
       value: candidate?.observations.최근_건강_정신_괴로움 == null
         ? null
         : candidate.observations.최근_건강_정신_괴로움 ? '어려움 있음' : '어려움 없음',
+      pending: candidate ? isCandidateValuePending(candidate, '최근_건강_정신_괴로움') : false,
     },
     {
       label: '공과금 체납',
       value: candidate?.observations.공과금_2개월_이상_체납 == null
         ? null
         : candidate.observations.공과금_2개월_이상_체납 ? '체납 있음' : '체납 없음',
+      pending: candidate ? isCandidateValuePending(candidate, '공과금_2개월_이상_체납') : false,
     },
   ]
 
@@ -82,7 +97,7 @@ function LiveChecklistPreview({
         return <li key={row.label} data-candidate={checked}>
           {checked ? <Check aria-hidden="true" /> : <span aria-hidden="true">—</span>}
           <strong>{row.label}</strong>
-          <em>{row.value ?? '미확인'}</em>
+          <em>{row.value === null ? '미확인' : `${row.value}${row.pending ? ' (보류)' : ''}`}</em>
         </li>
       })}
     </ul>

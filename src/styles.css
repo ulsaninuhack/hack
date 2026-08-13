@@ -533,6 +533,7 @@ ul.mobile-acute-contributions { list-style: none; display: grid; gap: 6px; }
 .mobile-chat-options { display: grid; gap: 8px; }
 .mobile-chat-options button { border: 1.5px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); font-weight: 700; cursor: pointer; min-height: 52px; }
 .mobile-checklist { display: grid; gap: 12px; margin-top: 8px; }
+.candidate-pending-label { color: #8a4b00; font-weight: 850; }
 .mobile-extra-note { display: grid; gap: 6px; padding: 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-muted); }
 .mobile-extra-note h3, .mobile-extra-note p { margin: 0; }
 .mobile-extra-note h3 { font-size: 18px; }

@@ -27,7 +27,7 @@ import { createAiObservationCandidate } from './AiObservationClient'
 import { formatScore } from './scoreFormat'
 import { buildGuestInviteUrl, createLiveCall, type LiveCallCredentials, type LiveCallJoin } from './liveCallClient'
 import { LiveCallPanel } from './LiveCallPanel'
-import { restrictLiveCandidateToPhoneEvidence } from './liveCandidatePolicy'
+import { isCandidateValuePending, restrictLiveCandidateToPhoneEvidence } from './liveCandidatePolicy'
 
 const CONTACT_LABELS: ContactResultLabel[] = [
   '안부 확인 완료', '우려 사항 있음', '미응답', '연락(또는 방문) 거부', '연락처 확인 필요',
@@ -164,6 +164,7 @@ export function MobilePage() {
   const [observations, setObservations] = useState<CanonicalObservations>(emptyObservations)
   const [memoText, setMemoText] = useState('')
   const [candidateFreeText, setCandidateFreeText] = useState<string | null>(null)
+  const [candidateCritic, setCandidateCritic] = useState<VoiceCandidate['critic'] | null>(null)
   const [chatIndex, setChatIndex] = useState(0)
   const [chatLog, setChatLog] = useState<Array<{ prompt: string; answer: string }>>([])
   const [reportCard, setReportCard] = useState<ReportCard | null>(null)
@@ -179,6 +180,7 @@ export function MobilePage() {
   const [liveCandidateError, setLiveCandidateError] = useState<string | null>(null)
   const liveCandidateRef = useRef<VoiceCandidate | null>(null)
   const liveCandidateGenerationRef = useRef(0)
+  const liveCandidateAppliedGenerationRef = useRef(0)
   const liveCandidateScopeRef = useRef<string | null>(null)
 
   useEffect(() => {
@@ -252,11 +254,13 @@ export function MobilePage() {
       source: { kind: 'text', text: transcript },
     }).then((response) => {
       if (scope !== liveCandidateScopeRef.current
-          || generation !== liveCandidateGenerationRef.current) return
+          || generation <= liveCandidateAppliedGenerationRef.current) return
       const candidate = restrictLiveCandidateToPhoneEvidence(response.candidate)
+      liveCandidateAppliedGenerationRef.current = generation
       liveCandidateRef.current = candidate
       setLiveCandidate(candidate)
-      setLiveCandidatePending(false)
+      setLiveCandidateError(null)
+      if (generation === liveCandidateGenerationRef.current) setLiveCandidatePending(false)
     }).catch(() => {
       if (scope !== liveCandidateScopeRef.current
           || generation !== liveCandidateGenerationRef.current) return
@@ -275,6 +279,7 @@ export function MobilePage() {
     setResultLabel('')
     setObservations(emptyObservations())
     setCandidateFreeText(null)
+    setCandidateCritic(null)
     setMemoText('')
     setChatIndex(0)
     setChatLog([])
@@ -284,13 +289,18 @@ export function MobilePage() {
   }
 
   const applyCandidate = (
-    candidate: Pick<VoiceCandidate, 'contact_result' | 'observations' | 'free_text'>,
+    candidate: Pick<VoiceCandidate, 'contact_result' | 'observations' | 'free_text' | 'critic'>,
   ) => {
     setObservations(candidate.observations)
     setResultLabel(contactResultLabelFromCode(candidate.contact_result))
     setCandidateFreeText(candidate.free_text.trim() || null)
+    setCandidateCritic(candidate.critic)
     setInputPath('manual')
   }
+
+  const candidateValuePending = (
+    field: Exclude<keyof CanonicalObservations, '관찰_6징후'>,
+  ) => candidateCritic !== null && isCandidateValuePending({ observations, critic: candidateCritic }, field)
 
   const startLiveCall = async () => {
     if (!selected) return
@@ -443,6 +453,11 @@ export function MobilePage() {
   }
   const update = <K extends keyof CanonicalObservations>(key: K, next: CanonicalObservations[K]) => {
     setObservations((value) => ({ ...value, [key]: next }))
+    setCandidateCritic((critic) => critic === null ? null : ({
+      ...critic,
+      missing_fields: critic.missing_fields.filter((field) => field !== key),
+      low_confidence_fields: critic.low_confidence_fields.filter((field) => field !== key),
+    }))
   }
 
   return (
@@ -759,31 +774,32 @@ export function MobilePage() {
                   ))}
                 </fieldset>
               )}
-              <label>식사 상태
-                <select value={observations.식사상태 ?? ''} onChange={(event) => update('식사상태', (event.target.value || null) as CanonicalObservations['식사상태'])}>
+              <label><span className="candidate-pending-label">{`식사 상태${candidateValuePending('식사상태') ? ' (보류)' : ''}`}</span>
+                <select aria-label="식사 상태" value={observations.식사상태 ?? ''} onChange={(event) => update('식사상태', (event.target.value || null) as CanonicalObservations['식사상태'])}>
                   <option value="">확인하지 못함</option><option>양호</option><option>불량</option><option>심각</option>
                 </select>
               </label>
-              <label>위생 상태
-                <select value={observations.위생상태 ?? ''} onChange={(event) => update('위생상태', (event.target.value || null) as CanonicalObservations['위생상태'])}>
+              <label><span className="candidate-pending-label">{`위생 상태${candidateValuePending('위생상태') ? ' (보류)' : ''}`}</span>
+                <select aria-label="위생 상태" value={observations.위생상태 ?? ''} onChange={(event) => update('위생상태', (event.target.value || null) as CanonicalObservations['위생상태'])}>
                   <option value="">확인하지 못함</option><option>양호</option><option>불량</option>
                 </select>
               </label>
-              <label>도움을 요청할 관계망
-                <select value={observations.관계망_유무 ?? ''} onChange={(event) => update('관계망_유무', (event.target.value || null) as CanonicalObservations['관계망_유무'])}>
+              <label><span className="candidate-pending-label">{`도움을 요청할 관계망${candidateValuePending('관계망_유무') ? ' (보류)' : ''}`}</span>
+                <select aria-label="도움을 요청할 관계망" value={observations.관계망_유무 ?? ''} onChange={(event) => update('관계망_유무', (event.target.value || null) as CanonicalObservations['관계망_유무'])}>
                   <option value="">확인하지 못함</option><option>있음</option><option>없음</option>
                 </select>
               </label>
-              <label>평소 타인 연락 빈도
-                <select value={observations.연락_빈도 ?? ''} onChange={(event) => update('연락_빈도', (event.target.value || null) as CanonicalObservations['연락_빈도'])}>
+              <label><span className="candidate-pending-label">{`평소 타인 연락 빈도${candidateValuePending('연락_빈도') ? ' (보류)' : ''}`}</span>
+                <select aria-label="평소 타인 연락 빈도" value={observations.연락_빈도 ?? ''} onChange={(event) => update('연락_빈도', (event.target.value || null) as CanonicalObservations['연락_빈도'])}>
                   <option value="">확인하지 못함</option>
                   <option value="주_1회_이상">주 1회 이상</option>
                   <option value="주_1회_미만">주 1회 미만</option>
                   <option value="없음">연락 없음</option>
                 </select>
               </label>
-              <label>최근 건강·마음 어려움
+              <label><span className="candidate-pending-label">{`최근 건강·마음 어려움${candidateValuePending('최근_건강_정신_괴로움') ? ' (보류)' : ''}`}</span>
                 <select
+                  aria-label="최근 건강·마음 어려움"
                   value={observations.최근_건강_정신_괴로움 === null ? '' : String(observations.최근_건강_정신_괴로움)}
                   onChange={(event) => update('최근_건강_정신_괴로움', event.target.value === '' ? null : event.target.value === 'true')}
                 >
@@ -792,8 +808,9 @@ export function MobilePage() {
                   <option value="true">어려움 있음</option>
                 </select>
               </label>
-              <label>공과금 체납
+              <label><span className="candidate-pending-label">{`공과금 체납${candidateValuePending('공과금_2개월_이상_체납') ? ' (보류)' : ''}`}</span>
                 <select
+                  aria-label="공과금 체납"
                   value={observations.공과금_2개월_이상_체납 === null ? '' : String(observations.공과금_2개월_이상_체납)}
                   onChange={(event) => update('공과금_2개월_이상_체납', event.target.value === '' ? null : event.target.value === 'true')}
                 >

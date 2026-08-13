@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { restrictLiveCandidateToPhoneEvidence, selectLiveNextQuestion } from './liveCandidatePolicy'
+import { isCandidateValuePending, restrictLiveCandidateToPhoneEvidence, selectLiveNextQuestion } from './liveCandidatePolicy'
 import type { VoiceCandidate } from './threeTierClient'
 
 const candidate = {
@@ -49,6 +49,22 @@ describe('live phone evidence policy', () => {
     expect(restricted.observations.식사상태).toBe('불량')
     expect(restricted.observations.최근_건강_정신_괴로움).toBe(true)
     expect(candidate.observations.관찰_6징후.우편물_고지서_적체).toBe(true)
+  })
+
+  it('marks a populated low-confidence value pending without erasing it', () => {
+    const pendingMeal = {
+      ...candidate,
+      critic: { ...candidate.critic, low_confidence_fields: ['식사상태'] },
+    } as VoiceCandidate
+    const missingMeal = {
+      ...pendingMeal,
+      observations: { ...pendingMeal.observations, 식사상태: null },
+      critic: { ...pendingMeal.critic, missing_fields: ['식사상태'] },
+    } as VoiceCandidate
+
+    expect(isCandidateValuePending(pendingMeal, '식사상태')).toBe(true)
+    expect(pendingMeal.observations.식사상태).toBe('불량')
+    expect(isCandidateValuePending(missingMeal, '식사상태')).toBe(false)
   })
 
   it('asks about an unconfirmed item instead of repeating a checked meal question', () => {

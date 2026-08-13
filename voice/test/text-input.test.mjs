@@ -69,6 +69,18 @@ for (const fixture of fixtures) {
   });
 }
 
+test('defaults structured text extraction to GPT-5.6 Luna with no reasoning overhead', async () => {
+  const calls = [];
+  const result = await processVoiceInput(fixtures[2].input, {
+    client: mockClient(fixtures[2].expected, calls),
+  });
+
+  assert.deepEqual(result, fixtures[2].expected);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].model, 'gpt-5.6-luna');
+  assert.deepEqual(calls[0].reasoning, { effort: 'none' });
+});
+
 test('masks common PII shapes without changing synthetic IDs', () => {
   const input = 'CASE-0412 연결단원 001 이름: 김민수, +82 10-9876-5432, user@example.com, 900101-1234567, 영종대로 123';
   assert.equal(

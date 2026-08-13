@@ -294,21 +294,33 @@ Recommended `main` branch protection requires pull requests and the
 workflow as a required check. Select the check after it has completed at least
 once in this repository.
 
-## Mac mini Codex text transport
+## OpenAI text LLM runtime
 
-The optional home Mac mini bridge is administered over SSH but serves Cloud Run through a bounded
-authenticated HTTPS endpoint. It does not expose a shell or the raw Codex app-server protocol.
-Provisioning, Secret Manager wiring, live smoke, rotation, and rollback are documented in
-[`MAC_MINI_CODEX_BRIDGE.md`](MAC_MINI_CODEX_BRIDGE.md). Do not add its Cloud Run environment
-variables to the production workflow until the Funnel and end-to-end synthetic smoke both pass;
-the configured bridge keeps authentication and response-contract failures closed. With the existing
-`OPENAI_API_KEY` secret present, only network errors, timeouts, HTTP 503/504, and a non-JSON gateway
-502 use OpenAI as the text Planner/Critic availability fallback.
+Production ContactOps text analysis uses the OpenAI Responses API directly. Do not configure the
+retired Mac mini Codex bridge in Cloud Run or GitHub Actions. Stale `CONTACT_OPS_CODEX_BRIDGE_*`
+variables are ignored by the text client so they cannot silently put the home transport back on the
+request path.
 
-The `backend-production` environment requires
-`CONTACT_OPS_CODEX_BRIDGE_URL=https://macmini.taild33a67.ts.net/incheon-care-codex-bridge`.
-The workflow injects `CONTACT_OPS_CODEX_BRIDGE_TOKEN` directly from the
-`codex-bridge-token` Secret Manager secret; the bearer token is never stored in GitHub.
+The backend deploy sets:
+
+```text
+ENABLE_LIVE_CONTACT_OPS_AI=1
+OPENAI_VOICE_TEXT_MODEL=gpt-5.6-luna
+OPENAI_VOICE_TEXT_REASONING_EFFORT=none
+OPENAI_CONTACT_OPS_CRITIC_MODEL=gpt-5.6-luna
+OPENAI_CONTACT_OPS_CRITIC_REASONING_EFFORT=none
+```
+
+`OPENAI_API_KEY` comes from Secret Manager as `openai-api-key:latest`. The same secret covers text
+Planner/Critic calls and the existing file transcription adapter. Planner and transcript Critic are
+started concurrently for each live candidate request, and the browser keeps the latest successfully
+applied candidate if a newer refresh fails. Real production proof still requires a successful
+`main` deploy run, Cloud Run revision/digest check, `/health` smoke, and one consented synthetic
+`ai-observations` request against the deployed URL.
+
+[`MAC_MINI_CODEX_BRIDGE.md`](MAC_MINI_CODEX_BRIDGE.md) is now archival rollback material only. Do
+not start the LaunchAgent, restore Funnel, or re-add bridge secrets without an explicit new
+architecture decision and fresh E2E proof.
 
 ## Official references
 

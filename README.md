@@ -27,7 +27,7 @@ UI 변경은 [`docs/UI_UX_REVIEW_RUBRIC.md`](docs/UI_UX_REVIEW_RUBRIC.md)의 조
 
 실행 중인 웹앱은 대용량 원천을 직접 읽지 않고, 검증된 정적 자산만 `public/data/`에서 불러온다. 복지시설 원천 정규화 3,394개는 보존하되, 현재 시설 runtime 레이어는 명백한 아동·청소년 전용 시설을 제외한 관련 canonical 3,115개와 지도 포인트 2,816개를 소비한다. 이는 법적 이용자격 판정이 아니다. `VITE_API_BASE_URL`이 설정된 runtime에서는 Cloud Run API를 우선 사용하고, 환경변수가 없거나 API 호출이 실패하면 Vercel에 배포된 같은 정적 자산으로 fallback한다.
 
-프론트엔드는 React 19·TypeScript 7·Vite 8·MapLibre GL JS 6으로 구성했고 OpenStreetMap 베이스맵을 사용한다. 백엔드는 Node.js 24로 작성했으며, 검증된 `public/data/`와 합성 ContactOps 세션 API를 Cloud Run에서 제공한다. 공개 지도 요청은 개인 데이터나 AI 추론 결과를 생성하지 않고 Firestore 장애와 분리된다. 별도 `voice/` 모듈은 동의받고 개인정보를 마스킹한 텍스트 또는 검증된 WAV/MP3/M4A를 Planner→스키마→한글 관찰 DTO→Critic 후보로 바꾼다. Critic은 모호한 표현에서 가장 정보가치가 높은 확인 질문 한 개를 제안하며 점수나 등급을 만들지 않는다. 텍스트 Planner/Critic은 OpenAI 클라이언트 또는 인증된 Mac mini Codex 브리지 중 하나를 사용할 수 있고, 오디오 전사는 계속 전용 OpenAI 어댑터를 사용한다. 실시간 통화에서는 연락 대상의 새 확정 발화가 들어오면 최신 누적 후보 체크리스트를 갱신하고, 세션 로컬 근거 원장이 후보 항목과 발화 ID를 연결한다. 전화 발화만으로 자동 채울 수 있는 관찰 6징후는 `최근 외출 없음`으로 제한하며, 우편물·악취·쓰레기·TV·연락 두절은 방문 또는 주변 확인용 수동 항목으로 남긴다. 상충하는 식사 발화는 둘 다 보존해 확인 질문과 함께 표시한다. 후보는 사용자가 명시적으로 확인하기 전에는 ContactOps 상태를 바꾸지 않으며 방문 승인을 만들 수 없다.
+프론트엔드는 React 19·TypeScript 7·Vite 8·MapLibre GL JS 6으로 구성했고 OpenStreetMap 베이스맵을 사용한다. 백엔드는 Node.js 24로 작성했으며, 검증된 `public/data/`와 합성 ContactOps 세션 API를 Cloud Run에서 제공한다. 공개 지도 요청은 개인 데이터나 AI 추론 결과를 생성하지 않고 Firestore 장애와 분리된다. 별도 `voice/` 모듈은 동의받고 개인정보를 마스킹한 텍스트 또는 검증된 WAV/MP3/M4A를 Planner→스키마→한글 관찰 DTO→Critic 후보로 바꾼다. Critic은 모호한 표현에서 가장 정보가치가 높은 확인 질문 한 개를 제안하며 점수나 등급을 만들지 않는다. 텍스트 Planner와 전사 Critic은 OpenAI Responses API를 직접 호출하고 기본 모델은 `gpt-5.6-luna`, reasoning effort는 `none`이다. Planner의 구조화 결과가 식사·공과금 같은 의미 판단의 원본이며, 서버 결정론은 스키마·enum 검증, 서버 소유 필드 제거, 전화 관찰 제한, 미확정 확인 경계만 담당한다. 두 LLM 호출은 같은 누적 전사문으로 동시에 시작한 뒤 확인 후보로 병합되고, 오디오 전사는 계속 전용 OpenAI 어댑터를 사용한다. 실시간 통화에서는 연락 대상의 새 확정 발화가 들어오면 최신 누적 후보 체크리스트를 갱신하고, 세션 로컬 근거 원장이 후보 항목과 발화 ID를 연결한다. 브라우저 후보 요청도 발화마다 병렬로 진행하며, 이미 적용 가능한 최신 성공 후보는 이후 새로고침 실패가 와도 유지한다. 전화 발화만으로 자동 채울 수 있는 관찰 6징후는 `최근 외출 없음`으로 제한하며, 우편물·악취·쓰레기·TV·연락 두절은 방문 또는 주변 확인용 수동 항목으로 남긴다. 상충하는 식사 발화와 확인 질문은 병렬 Luna Critic 결과를 합쳐 표시한다. Luna Critic이 정확한 `low_confidence_fields`로 재확인을 요구하면 UI는 값이 있는 Planner 필드 뒤에만 `(보류)`를 붙이고, 값이 `null`이면 기존처럼 `미확인`으로 표시한다. Critic 호출만 실패해도 성공한 Planner 후보를 폐기하지 않고 채워진 값을 `(보류)`로 남긴다. 조사원이 해당 select를 직접 바꾸면 보류 표시는 해제되며, 보류 표시는 제출을 강제 차단하지 않는다. 후보는 사용자가 명시적으로 확인하기 전에는 ContactOps 상태를 바꾸지 않으며 방문 승인을 만들 수 없다.
 
 ## 합성 ContactOps 개발 데이터
 
@@ -54,7 +54,7 @@ UI 변경은 [`docs/UI_UX_REVIEW_RUBRIC.md`](docs/UI_UX_REVIEW_RUBRIC.md)의 조
 npm --prefix backend run demo:contact-ops
 ```
 
-이 명령은 오늘 연락대상 큐 생성, 더미 연락결과 입력, 미응답·후속조치 규칙 검사, 2축 점수의 방문 권고, 담당자 명시 승인까지 텍스트로 보여 준다. 미응답 2회만으로 방문을 직접 권고하지 않는다. 이 결정론 데모 명령 자체는 LLM·음성·경로 최적화를 호출하지 않는다. 운영 API에는 모킹 검증된 Planner–Critic ContactOps 어댑터와 텍스트·WAV/MP3/M4A 입력 계약이 연결됐다. 모바일은 멀티파트 M4A 업로드 API를 통해 같은 3b 파이프라인을 사용한다. 라이브 텍스트 호출은 명시적 환경 게이트와 OpenAI 또는 Mac mini Codex 브리지 설정이 없으면 닫혀 있다. 브리지 운영 절차는 [`docs/MAC_MINI_CODEX_BRIDGE.md`](docs/MAC_MINI_CODEX_BRIDGE.md)를 따른다. Realtime 통화·실시간 후보 배선은 모킹과 브라우저 테스트를 통과했지만 실제 한국어 전화 음질·실기기 지연시간은 아직 사람 검증 과제다.
+이 명령은 오늘 연락대상 큐 생성, 더미 연락결과 입력, 미응답·후속조치 규칙 검사, 2축 점수의 방문 권고, 담당자 명시 승인까지 텍스트로 보여 준다. 미응답 2회만으로 방문을 직접 권고하지 않는다. 이 결정론 데모 명령 자체는 LLM·음성·경로 최적화를 호출하지 않는다. 운영 API에는 모킹 검증된 Planner–Critic ContactOps 어댑터와 텍스트·WAV/MP3/M4A 입력 계약이 연결됐다. 모바일은 멀티파트 M4A 업로드 API를 통해 같은 3b 파이프라인을 사용한다. 라이브 텍스트 호출은 `ENABLE_LIVE_CONTACT_OPS_AI=1`과 `OPENAI_API_KEY`가 있을 때만 열리며, 배포 환경은 `OPENAI_VOICE_TEXT_MODEL=gpt-5.6-luna`, `OPENAI_CONTACT_OPS_CRITIC_MODEL=gpt-5.6-luna`, 두 reasoning effort `none`을 사용한다. Mac mini Codex 브리지는 운영 경로에서 빠졌고 [`docs/MAC_MINI_CODEX_BRIDGE.md`](docs/MAC_MINI_CODEX_BRIDGE.md)는 보관용 롤백 문서다. Realtime 통화·실시간 후보 배선은 모킹과 브라우저 테스트를 통과했지만 실제 한국어 전화 음질·실기기 지연시간은 아직 사람 검증 과제다.
 
 ## 지표 해석 원칙
 
@@ -182,7 +182,7 @@ docker run --rm -p 8080:8080 \
 
 ## CI/CD
 
-- Pull request와 모든 push에서 Node.js 24로 웹·합성 ContactOps 데이터 결정성, 프론트 타입·빌드, API 커버리지 게이트, `voice/` 골든셋, Mac mini Codex 브리지 경계, Docker 이미지 빌드를 검증한다.
+- Pull request와 모든 push에서 Node.js 24로 웹·합성 ContactOps 데이터 결정성, 프론트 타입·빌드, API 커버리지 게이트, `voice/` 골든셋, OpenAI 직결 LLM 경계, Docker 이미지 빌드를 검증한다.
 - Pull request는 배포하지 않는다. 검증을 통과한 PR이 `main`에 merge되면 프론트와 API 생산 배포를 독립된 병렬 job으로 시작한다.
 - 프론트는 Vercel Production으로, API는 commit SHA 태그의 `linux/amd64` 이미지를 Artifact Registry에 push한 뒤 Cloud Run으로 배포한다.
 - GitHub Actions가 프론트 배포의 단일 소유자다. `vercel.json`의 `git.deploymentEnabled=false`로 Vercel Git 자동 배포와의 중복을 막는다.

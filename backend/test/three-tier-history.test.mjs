@@ -122,19 +122,50 @@ describe('three-tier history summarizer', () => {
   });
 
   test('uses the runtime model output without appending a closing disclaimer', async () => {
+    let requestUrl;
+    let requestBody;
+    const summarizer = createHistorySummarizer({
+      apiKey: 'k',
+      fetchImpl: async (url, init) => {
+        requestUrl = url;
+        requestBody = JSON.parse(init.body);
+        return {
+          ok: true,
+          json: async () => ({
+            output: [{
+              type: 'message',
+              role: 'assistant',
+              content: [{
+                type: 'output_text',
+                text: JSON.stringify({ summary: '기록상 식사 상태가 양호에서 불량으로 바뀌었습니다.' }),
+                annotations: [],
+              }],
+            }],
+          }),
+        };
+      },
+    });
+    const result = await summarizer.summarize(history);
+    assert.equal(requestUrl, 'https://api.openai.com/v1/responses');
+    assert.equal(requestBody.model, 'gpt-5.6-luna');
+    assert.deepEqual(requestBody.reasoning, { effort: 'none' });
+    assert.equal(result.generator, 'openai_runtime_v1');
+    assert.equal(result.label, HISTORY_SUMMARY_LABEL);
+    assert.equal(result.summary_text, '기록상 식사 상태가 양호에서 불량으로 바뀌었습니다.');
+  });
+
+  test('does not depend on the SDK-only output_text convenience property', async () => {
     const summarizer = createHistorySummarizer({
       apiKey: 'k',
       fetchImpl: async () => ({
         ok: true,
         json: async () => ({
-          choices: [{ message: { content: JSON.stringify({ summary: '기록상 식사 상태가 양호에서 불량으로 바뀌었습니다.' }) } }],
+          output_text: JSON.stringify({ summary: 'SDK 편의 필드에만 있는 요약입니다.' }),
+          output: [],
         }),
       }),
     });
-    const result = await summarizer.summarize(history);
-    assert.equal(result.generator, 'openai_runtime_v1');
-    assert.equal(result.label, HISTORY_SUMMARY_LABEL);
-    assert.equal(result.summary_text, '기록상 식사 상태가 양호에서 불량으로 바뀌었습니다.');
+    assert.equal((await summarizer.summarize(history)).generator, 'deterministic_v1');
   });
 
   test('rejects model output that adds forbidden framing', async () => {
