@@ -326,7 +326,6 @@ export function MobilePage() {
                     metric="age_65_plus_one_person_share_of_age_65_plus_population"
                     showFacilities={false}
                     showTransit={false}
-                    showBubbles={false}
                     facilityCategory="전체"
                     selectedZoneId={selected.location.geometry_zone_id}
                     syntheticPoint={{

@@ -5,8 +5,6 @@ import { loadData } from './data'
 import type { DataBundle, DongProperties } from './types'
 import { loadCityOperationsMap } from './threeTierClient'
 import type { CityOperationsMap, CityOperationsMapZone } from './threeTierClient'
-import { loadStructuralContext } from './structuralContext'
-import type { StructuralContext } from './structuralContext'
 import { loadDistrictAggregates, loadDistrictAiSummary } from './threeTierClient'
 import type { DistrictAggregate, DistrictAggregates, DistrictAiSummary } from './threeTierClient'
 
@@ -111,7 +109,6 @@ function DistrictBrief({
 export function CityPage() {
   const [mapData, setMapData] = useState<DataBundle | null>(null)
   const [operationsMap, setOperationsMap] = useState<CityOperationsMap | null>(null)
-  const [structuralContext, setStructuralContext] = useState<StructuralContext | null>(null)
   const [aggregates, setAggregates] = useState<DistrictAggregates | null>(null)
   const [selectedDong, setSelectedDong] = useState<DongProperties | null>(null)
   const [selectedDistrict, setSelectedDistrict] = useState<string>('')
@@ -121,12 +118,11 @@ export function CityPage() {
 
   useEffect(() => {
     let active = true
-    void Promise.all([loadData(), loadCityOperationsMap(), loadStructuralContext(), loadDistrictAggregates()])
-      .then(([bundle, operations, structural, districtAggregates]) => {
+    void Promise.all([loadData(), loadCityOperationsMap(), loadDistrictAggregates()])
+      .then(([bundle, operations, districtAggregates]) => {
         if (!active) return
         setMapData(bundle)
         setOperationsMap(operations)
-        setStructuralContext(structural)
         setAggregates(districtAggregates)
         setSelectedDistrict((current) => current || districtAggregates.districts[0]?.district || '')
       })
@@ -239,11 +235,9 @@ export function CityPage() {
               metric="age_65_plus_one_person_share_of_age_65_plus_population"
               showFacilities={false}
               showTransit={false}
-              showBubbles={false}
               facilityCategory="전체"
               selectedZoneId={selectedDong?.geometry_zone_id ?? null}
               mapMode="operations"
-              structuralScores={structuralContext ? Object.fromEntries(structuralContext.zones.map((zone) => [zone.geometry_zone_id, zone.score_0_50])) : undefined}
               operationsByZone={operationsMap ? Object.fromEntries(operationsMap.zones.map((zone) => [zone.geometry_zone_id, zone.operations])) : undefined}
               ariaLabel="[합성] 인천 전체 운영 오버레이 지도 · 동 단위 롤업 전용"
               onSelectDong={(dong) => {
