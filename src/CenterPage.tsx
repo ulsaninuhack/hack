@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-import { AlertTriangle, CheckCircle2, MapPinned, RefreshCw } from 'lucide-react'
-import MapView from './MapView'
-import { loadData } from './data'
-import type { DataBundle } from './types'
+import { AlertTriangle, CalendarDays, CheckCircle2, History, RefreshCw } from 'lucide-react'
 import {
   CONTACT_OPS_REFERENCE_DATE,
   ContactOpsClientError,
@@ -18,10 +15,20 @@ import {
   acknowledgeReport,
   confirmAssignment,
   escalateCase,
+  loadCaseHistory,
+  loadCaseHistorySummary,
+  loadCenterCalendar,
   loadCenterInbox,
   managementIntakeLabel,
 } from './threeTierClient'
-import type { AssignmentProposalItem, CenterInbox, ReportCard } from './threeTierClient'
+import type {
+  AssignmentProposalItem,
+  CaseHistory,
+  CaseHistorySummary,
+  CenterCalendar,
+  CenterInbox,
+  ReportCard,
+} from './threeTierClient'
 import { caseDisplayName } from './caseDisplayName'
 import { formatScore } from './scoreFormat'
 
@@ -38,6 +45,142 @@ function errorText(cause: unknown, fallback: string) {
 function GradeChip({ grade }: { grade: string | null }) {
   const value = grade ?? '미기록'
   return <span className="grade-chip" data-grade={value}>{value}</span>
+}
+
+// 어르신별 과거 기록 아코디언. 열 때 한 번만 불러오고, 요약은 기록보다
+// 늦게 도착해도 되도록 따로 채운다(런타임 LLM이 느릴 수 있다).
+function CaseHistoryPanel({ caseId }: { caseId: string }) {
+  const [history, setHistory] = useState<CaseHistory | null>(null)
+  const [summary, setSummary] = useState<CaseHistorySummary | null>(null)
+  const [status, setStatus] = useState<'idle' | 'loading' | 'error' | 'ready'>('idle')
+
+  const open = async () => {
+    if (status !== 'idle') return
+    setStatus('loading')
+    try {
+      setHistory(await loadCaseHistory(caseId))
+      setStatus('ready')
+      void loadCaseHistorySummary(caseId).then(setSummary).catch(() => setSummary(null))
+    } catch {
+      setStatus('error')
+    }
+  }
+
+  return (
+    <details
+      className="case-history"
+      onToggle={(event) => { if ((event.target as HTMLDetailsElement).open) void open() }}
+    >
+      <summary><History aria-hidden="true" size={16} /> 지난 기록</summary>
+      {status === 'loading' && <p role="status">지난 기록을 불러오는 중입니다.</p>}
+      {status === 'error' && <p role="alert">지난 기록을 불러오지 못했습니다.</p>}
+      {status === 'ready' && history !== null && (
+        <div className="case-history-body">
+          <p className="case-history-summary">
+            <span className="case-history-ai-label">{summary?.label ?? '기록 요약'}</span>
+            {summary?.summary_text ?? '요약을 만드는 중입니다.'}
+          </p>
+          <ul className="case-history-entries" aria-label="지난 기록 목록">
+            {history.entries.map((entry) => (
+              <li key={`${entry.일자}-${entry.출처}`}>
+                <span className="case-history-date">{entry.일자}</span>
+                <span
+                  className="fact-status"
+                  data-attention={ATTENTION_CONTACT_LABELS.has(entry.결과_라벨) || undefined}
+                >
+                  {entry.결과_라벨}
+                </span>
+                {entry.식사상태 !== null && <span className="case-history-obs">식사 {entry.식사상태}</span>}
+                {entry.위생상태 !== null && <span className="case-history-obs">위생 {entry.위생상태}</span>}
+                {entry.특이_징후_수 > 0 && <span className="case-history-obs">특이 징후 {entry.특이_징후_수}건</span>}
+                <span className="case-history-source">{entry.출처}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="case-history-note">{history.source_note}</p>
+        </div>
+      )}
+    </details>
+  )
+}
+
+const CALENDAR_WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
+
+// 우리 동 기록 캘린더. 참조 월의 일자별 기록 수를 보여주고, 날짜를 누르면
+// 그날의 기록 목록을 펼친다.
+function CenterCalendarPanel({ month }: { month: string }) {
+  const [calendar, setCalendar] = useState<CenterCalendar | null>(null)
+  const [failed, setFailed] = useState(false)
+  const [selectedDay, setSelectedDay] = useState<string | null>(null)
+
+  useEffect(() => {
+    let active = true
+    loadCenterCalendar({ month })
+      .then((next) => { if (active) setCalendar(next) })
+      .catch(() => { if (active) setFailed(true) })
+    return () => { active = false }
+  }, [month])
+
+  const dayMap = useMemo(
+    () => new Map((calendar?.days ?? []).map((day) => [day.일자, day])),
+    [calendar],
+  )
+  const [year, monthNumber] = month.split('-').map(Number)
+  const firstWeekday = new Date(Date.UTC(year, monthNumber - 1, 1)).getUTCDay()
+  const daysInMonth = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate()
+  const selected = selectedDay === null ? null : dayMap.get(selectedDay) ?? null
+
+  return (
+    <section className="center-calendar" aria-label="우리 동 기록 캘린더">
+      <h3><CalendarDays aria-hidden="true" size={18} /> 기록 캘린더 · {year}년 {monthNumber}월</h3>
+      {failed && <p role="alert">기록 캘린더를 불러오지 못했습니다.</p>}
+      {!failed && calendar === null && <p role="status">기록을 불러오는 중입니다.</p>}
+      {!failed && calendar !== null && (
+        <>
+          <div className="calendar-grid">
+            {CALENDAR_WEEKDAYS.map((weekday) => <span key={weekday} className="calendar-weekday">{weekday}</span>)}
+            {Array.from({ length: firstWeekday }, (_, index) => <span key={`pad-${index}`} className="calendar-empty" />)}
+            {Array.from({ length: daysInMonth }, (_, index) => {
+              const iso = `${month}-${String(index + 1).padStart(2, '0')}`
+              const info = dayMap.get(iso)
+              return (
+                <button
+                  key={iso}
+                  className="calendar-day"
+                  data-selected={selectedDay === iso || undefined}
+                  data-has-records={info !== undefined || undefined}
+                  onClick={() => setSelectedDay(selectedDay === iso ? null : iso)}
+                  aria-label={`${iso} 기록 ${info?.기록_수 ?? 0}건`}
+                >
+                  <span className="calendar-day-number">{index + 1}</span>
+                  {info !== undefined && (
+                    <span className="calendar-count" data-attention={info.미응답_수 > 0 || undefined}>{info.기록_수}</span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+          {selected !== null ? (
+            <ul className="calendar-day-list" aria-label={`${selected.일자} 기록 목록`}>
+              {selected.사례.map((entry) => (
+                <li key={entry.case_id}>
+                  <span className="case-id">{entry.display_name} 어르신</span>
+                  <span
+                    className="fact-status"
+                    data-attention={ATTENTION_CONTACT_LABELS.has(entry.결과_라벨) || undefined}
+                  >
+                    {entry.결과_라벨}
+                  </span>
+                  <span className="case-history-source">{entry.출처}</span>
+                </li>
+              ))}
+            </ul>
+          ) : <p className="calendar-hint">날짜를 누르면 그날의 기록이 보입니다.</p>}
+          <p className="calendar-note">{calendar.source_note}</p>
+        </>
+      )}
+    </section>
+  )
 }
 
 function ProposalRow({
@@ -101,6 +244,7 @@ function ProposalRow({
           capacity_exceeded: '일일 방문 용량 초과',
         }[flag] ?? flag)).join(' · ')}</p>
       )}
+      <CaseHistoryPanel caseId={item.case_id} />
       {item.lane === 'phone'
         ? <p className="assignment-confirmed assignment-auto"><CheckCircle2 aria-hidden="true" size={17} /> 자동 배정됨 · {item.worker_display_name ?? '담당 미배정'}</p>
         : item.escalation
@@ -163,6 +307,7 @@ function ReportCardView({
       {card.workflow.transfer_label && (
         <p className="report-transfer">{card.workflow.transfer_label}</p>
       )}
+      <CaseHistoryPanel caseId={card.case_id} />
       <footer className="report-actions">
         {card.acknowledgement.status === '확인'
           ? <p className="report-acknowledged"><CheckCircle2 aria-hidden="true" size={17} /> 확인함 · {card.acknowledgement.acknowledged_by}</p>
@@ -191,8 +336,6 @@ export function CenterPage() {
   const [feedback, setFeedback] = useState('')
   const [busy, setBusy] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [mapData, setMapData] = useState<DataBundle | null>(null)
-  const [mapOpen, setMapOpen] = useState(false)
   const [decision, setDecision] = useState<'approved' | 'rejected' | null>(null)
   const [note, setNote] = useState('')
   const [distance, setDistance] = useState('2')
@@ -221,14 +364,6 @@ export function CenterPage() {
   }, [])
 
   useEffect(() => { void refresh() }, [refresh])
-  useEffect(() => {
-    if (!mapOpen || mapData) return
-    let active = true
-    void loadData().then((bundle) => { if (active) setMapData(bundle) }).catch(() => {
-      // 지도는 보조 위젯이다. 실패해도 텍스트 업무 흐름은 계속된다.
-    })
-    return () => { active = false }
-  }, [mapOpen, mapData])
 
   const proposal = inbox?.assignment_proposal ?? null
   const phoneReports = useMemo(() => (inbox?.report_cards ?? []).filter((card) => card.report_lane !== 'visit'), [inbox])
@@ -441,28 +576,7 @@ export function CenterPage() {
             </div>
 
             <aside className="center-side">
-              <details className="center-map-widget" onToggle={(event) => setMapOpen((event.target as HTMLDetailsElement).open)}>
-                <summary><MapPinned aria-hidden="true" size={18} /> 우리 동 지도 열기</summary>
-                <div className="center-map-frame">
-                  {mapOpen && mapData ? (
-                    <MapView
-                      data={mapData}
-                      metric="age_65_plus_one_person_share_of_age_65_plus_population"
-                      showFacilities={false}
-                      showTransit={false}
-                      facilityCategory="전체"
-                      selectedZoneId={selectedVisit?.household.location.geometry_zone_id ?? 'vworld_sgis_20250630:23010530'}
-                      syntheticPoint={selectedVisit ? {
-                        caseId: selectedVisit.household.id,
-                        longitude: selectedVisit.household.location.longitude,
-                        latitude: selectedVisit.household.location.latitude,
-                      } : null}
-                      ariaLabel="우리 동 대상 위치 참고 지도"
-                      onSelectDong={() => {}}
-                    />
-                  ) : <p role="status">지도를 열면 우리 동 위치를 확인할 수 있습니다.</p>}
-                </div>
-              </details>
+              <CenterCalendarPanel month={CONTACT_OPS_REFERENCE_DATE.slice(0, 7)} />
             </aside>
           </div>
         </>

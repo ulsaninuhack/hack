@@ -7,6 +7,7 @@ import { createFirestoreContactOpsState, createMemoryContactOpsState } from './c
 import { buildDemoPrecontactSeedRecords } from './contact-triage-synthetic-scenario.mjs';
 import { loadDataStore } from './data-store.mjs';
 import { createThreeTierService } from './three-tier-service.mjs';
+import { createHistorySummarizer } from './three-tier-history.mjs';
 import { createVoiceAudioUploader } from './voice-audio-upload.mjs';
 
 const port = Number(process.env.PORT || 8080);
@@ -112,6 +113,8 @@ const threeTierService = createThreeTierService({
   structuralContext,
   workers: await loadSyntheticWorkers(),
   operationsMapProvider: ({ sessionId }) => contactOpsService.getOperationsMap({ sessionId }),
+  // 기록 요약은 키가 있으면 런타임 LLM, 없거나 실패하면 결정론 요약을 쓴다.
+  historySummarizer: createHistorySummarizer({ apiKey: process.env.OPENAI_API_KEY || null }),
 });
 const server = createApiServer({
   store,

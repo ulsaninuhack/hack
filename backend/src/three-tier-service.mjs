@@ -9,6 +9,11 @@ import {
   deriveCaseDisplayName,
   deriveVirtualPhone,
 } from './three-tier-ops.mjs';
+import {
+  buildCaseHistory,
+  buildCenterCalendar,
+  createHistorySummarizer,
+} from './three-tier-history.mjs';
 
 const DONG_CODE_PATTERN = /^\d{10}$/;
 const WORKER_ID_PATTERN = /^SYN-W-\d{10}-01$/;
@@ -159,6 +164,7 @@ export function createThreeTierService({
   aiSummaryAdapter = null,
   operationsMapProvider = null,
   now = () => new Date().toISOString(),
+  historySummarizer = createHistorySummarizer(),
 }) {
   if (!state || typeof state.list !== 'function' || typeof state.get !== 'function') {
     throw new TypeError('state must provide list and get');
@@ -225,6 +231,35 @@ export function createThreeTierService({
         pending_confirmation: { phone: 0, visit: pendingVisit },
         lanes: { phone: toItems('phone'), visit: toItems('visit') },
       };
+    },
+
+    async getCaseHistory({ sessionId, caseId }) {
+      const record = await state.get({ sessionId, caseId });
+      return buildCaseHistory(record);
+    },
+
+    async getCaseHistorySummary({ sessionId, caseId }) {
+      const record = await state.get({ sessionId, caseId });
+      const history = buildCaseHistory(record);
+      const summary = await historySummarizer.summarize(history);
+      return {
+        synthetic: true,
+        displayMarker: '[합성]',
+        case_id: history.case_id,
+        ...summary,
+      };
+    },
+
+    async getCenterCalendar({ sessionId, dongCode, month }) {
+      if (typeof dongCode !== 'string' || !DONG_CODE_PATTERN.test(dongCode)) {
+        throw new TypeError('dongCode must be a 10-digit current admin dong code');
+      }
+      const records = await state.list({ sessionId });
+      const dongRecords = records.filter(
+        ({ household }) => household.location.current_admin_dong_code_20260701 === dongCode,
+      );
+      if (dongRecords.length === 0) throw new TypeError('dongCode is not a synthetic dong');
+      return buildCenterCalendar(dongRecords, { month });
     },
 
     async getReportCard({ sessionId, caseId }) {
