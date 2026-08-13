@@ -175,8 +175,8 @@ export function MobilePage() {
   const [liveCandidatePending, setLiveCandidatePending] = useState(false)
   const [liveCandidateError, setLiveCandidateError] = useState<string | null>(null)
   const liveCandidateRef = useRef<VoiceCandidate | null>(null)
-  const liveCandidateTimerRef = useRef<number | null>(null)
   const liveCandidateGenerationRef = useRef(0)
+  const liveCandidateScopeRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (!visitMapOpen || mapData) return
@@ -203,16 +203,13 @@ export function MobilePage() {
 
   const invalidateLiveCandidateWork = useCallback(() => {
     liveCandidateGenerationRef.current += 1
-    if (liveCandidateTimerRef.current !== null) {
-      window.clearTimeout(liveCandidateTimerRef.current)
-      liveCandidateTimerRef.current = null
-    }
   }, [])
 
   useEffect(() => () => invalidateLiveCandidateWork(), [invalidateLiveCandidateWork])
 
   const resetLiveCandidate = useCallback(() => {
     invalidateLiveCandidateWork()
+    liveCandidateScopeRef.current = null
     liveCandidateRef.current = null
     setLiveCandidate(null)
     setLiveCandidatePending(false)
@@ -221,29 +218,29 @@ export function MobilePage() {
 
   const scheduleLiveCandidate = useCallback((transcript: string) => {
     if (!selected || !transcript.trim()) return
+    const scope = liveCandidateScopeRef.current
+    if (!scope) return
     const generation = liveCandidateGenerationRef.current + 1
     liveCandidateGenerationRef.current = generation
-    if (liveCandidateTimerRef.current !== null) window.clearTimeout(liveCandidateTimerRef.current)
     setLiveCandidatePending(true)
     setLiveCandidateError(null)
-    liveCandidateTimerRef.current = window.setTimeout(() => {
-      liveCandidateTimerRef.current = null
-      void createAiObservationCandidate({
-        caseId: selected.case_id,
-        revision: selected.revision,
-        source: { kind: 'text', text: transcript },
-      }).then((response) => {
-        if (generation !== liveCandidateGenerationRef.current) return
-        const candidate = restrictLiveCandidateToPhoneEvidence(response.candidate)
-        liveCandidateRef.current = candidate
-        setLiveCandidate(candidate)
-        setLiveCandidatePending(false)
-      }).catch(() => {
-        if (generation !== liveCandidateGenerationRef.current) return
-        setLiveCandidatePending(false)
-        setLiveCandidateError('체크리스트 후보를 갱신하지 못했습니다. 자막과 통화는 계속됩니다.')
-      })
-    }, 700)
+    void createAiObservationCandidate({
+      caseId: selected.case_id,
+      revision: selected.revision,
+      source: { kind: 'text', text: transcript },
+    }).then((response) => {
+      if (scope !== liveCandidateScopeRef.current
+          || generation !== liveCandidateGenerationRef.current) return
+      const candidate = restrictLiveCandidateToPhoneEvidence(response.candidate)
+      liveCandidateRef.current = candidate
+      setLiveCandidate(candidate)
+      setLiveCandidatePending(false)
+    }).catch(() => {
+      if (scope !== liveCandidateScopeRef.current
+          || generation !== liveCandidateGenerationRef.current) return
+      setLiveCandidatePending(false)
+      setLiveCandidateError('체크리스트 후보를 갱신하지 못했습니다. 자막과 통화는 계속됩니다.')
+    })
   }, [selected])
 
   const items = useMemo(() => (lane === 'completed' ? [] : lanesData?.lanes[lane] ?? []), [lanesData, lane])
@@ -281,6 +278,7 @@ export function MobilePage() {
       setInputPath('live')
       resetLiveCandidate()
       const credentials = await createLiveCall({ caseId: selected.case_id, revision: selected.revision })
+      liveCandidateScopeRef.current = `${selected.case_id}:${selected.revision}:${credentials.call_id}`
       setLiveCallCredentials(credentials)
       setLiveInviteUrl(buildGuestInviteUrl(credentials))
     } catch (cause) {
@@ -298,7 +296,7 @@ export function MobilePage() {
       setError(null)
       invalidateLiveCandidateWork()
       const current = liveCandidateRef.current
-      const candidate = current?.transcript === transcript
+      const candidate = current?.case_id === selected.case_id && current.transcript === transcript
         ? current
         : (await createAiObservationCandidate({
             caseId: selected.case_id,
@@ -415,20 +413,6 @@ export function MobilePage() {
 
   return (
     <main className="tier-page mobile-page">
-      <header className="tier-header mobile-header">
-        <div>
-          <h1>조사원 화면 · {lanesData?.worker_display_name ?? '연결단원 001'}</h1>
-          <p className="tier-audience">
-            {lanesData?.dong_name ?? '신포동'}
-            <span className="live-indicator"><span className="live-dot" aria-hidden="true" />실시간</span>
-          </p>
-        </div>
-        <nav aria-label="3계층 화면 이동">
-          <a href="/center">동 센터</a>
-          <a href="/">공개 지도</a>
-        </nav>
-      </header>
-
       {error && (
         <div className="ops-state" role="alert">
           <AlertTriangle aria-hidden="true" />
@@ -451,9 +435,7 @@ export function MobilePage() {
               <CheckCircle2 aria-hidden="true" size={18} /> 완료 {lanesData?.completed.length ?? 0}건
             </button>
           </div>
-          {lane !== 'completed' && <p className="lane-rule">{lane === 'phone'
-            ? '정기 연락 일정과 재연락 기한에 따라 오늘 배정된 연락업무입니다.'
-            : '담당자가 승인하고 동 센터가 배치를 확인한 오늘 방문 업무만 표시합니다.'}</p>}
+          {lane === 'visit' && <p className="lane-rule">담당자가 승인하고 동 센터가 배치를 확인한 오늘 방문 업무만 표시합니다.</p>}
           {loading && !lanesData ? <p className="ops-state" role="status">오늘 목록을 불러오는 중입니다.</p> : lane === 'completed' ? (
             <ul className="mobile-task-list" aria-label="오늘 완료 목록">
               {(lanesData?.completed ?? []).length === 0
@@ -775,7 +757,7 @@ export function MobilePage() {
                   <option value="true">어려움 있음</option>
                 </select>
               </label>
-              <label>공과금 2개월 이상 체납
+              <label>공과금 체납
                 <select
                   value={observations.공과금_2개월_이상_체납 === null ? '' : String(observations.공과금_2개월_이상_체납)}
                   onChange={(event) => update('공과금_2개월_이상_체납', event.target.value === '' ? null : event.target.value === 'true')}

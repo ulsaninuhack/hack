@@ -131,7 +131,7 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
   await test.step('조사원이 모바일에서 실시간 통화·수동 체크리스트로 제출한다 (INV14/16)', async () => {
     await page.setViewportSize({ width: 390, height: 844 })
     await page.goto('/m')
-    await expect(page.getByRole('heading', { name: /조사원 화면/ })).toBeVisible()
+    await expect(page.getByRole('heading', { name: '오늘 할당된 연락 대상' })).toBeVisible()
     await expect(page.getByLabel('오늘 전화 목록')).toContainText(CASE_NAME)
     await page.getByRole('tab', { name: /방문 \d+건/ }).click()
     await expect(page.getByLabel('오늘 방문 목록')).not.toContainText(CASE_NAME)
@@ -279,7 +279,7 @@ test('three-tier screenshot matrix and axe sweep (390×844 · 1440×900)', async
   const surfaces: Array<{ route: string; name: string; ready: RegExp }> = [
     { route: '/city', name: 'city', ready: /시·구 배치 브리핑/ },
     { route: '/center', name: 'center', ready: /행정복지센터/ },
-    { route: '/m', name: 'mobile', ready: /조사원 화면/ },
+    { route: '/m', name: 'mobile', ready: /오늘 할당된 연락 대상/ },
   ]
   for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
     await page.setViewportSize(viewport)
@@ -297,4 +297,50 @@ test('three-tier screenshot matrix and axe sweep (390×844 · 1440×900)', async
     }
   }
   await context.close()
+})
+
+test('live checklist remains readable in a 390px mobile viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.setContent(`
+    <main class="tier-page mobile-page">
+      <section class="live-checklist-preview" aria-label="통화 중 확인할 항목">
+        <header><h3>통화 중 확인할 항목</h3></header>
+        <ul class="live-candidate-grid">
+          <li data-candidate="false"><span aria-hidden="true">—</span><strong>최근 외출</strong><em>미확인</em></li>
+          <li data-candidate="true"><span aria-hidden="true">✓</span><strong>식사 상태</strong><em>불량</em></li>
+          <li data-candidate="true"><span aria-hidden="true">✓</span><strong>위생 상태</strong><em>불량</em></li>
+          <li data-candidate="false"><span aria-hidden="true">—</span><strong>도움 관계망</strong><em>미확인</em></li>
+          <li data-candidate="false"><span aria-hidden="true">—</span><strong>건강·마음 어려움</strong><em>미확인</em></li>
+          <li data-candidate="true"><span aria-hidden="true">✓</span><strong>공과금 체납</strong><em>체납 있음</em></li>
+        </ul>
+      </section>
+    </main>
+  `)
+  await page.addStyleTag({ path: 'src/styles.css' })
+
+  const layout = await page.locator('.live-candidate-grid').evaluate((grid) => {
+    const gridBounds = grid.getBoundingClientRect()
+    return {
+      viewportOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      cards: [...grid.querySelectorAll('li')].map((card) => {
+        const cardBounds = card.getBoundingClientRect()
+        const labelBounds = card.querySelector('strong')?.getBoundingClientRect()
+        return {
+          rightOverflow: cardBounds.right - gridBounds.right,
+          height: cardBounds.height,
+          labelWidth: labelBounds?.width ?? 0,
+          labelHeight: labelBounds?.height ?? 0,
+        }
+      }),
+    }
+  })
+  expect(layout.viewportOverflow).toBeLessThanOrEqual(0)
+  expect(layout.cards).toHaveLength(6)
+  for (const card of layout.cards) {
+    expect(card.rightOverflow).toBeLessThanOrEqual(1)
+    expect(card.height).toBeLessThan(90)
+    expect(card.labelWidth).toBeGreaterThan(80)
+    expect(card.labelHeight).toBeLessThan(50)
+  }
+  await page.screenshot({ path: `${SCREENSHOT_DIR}/p9-mobile-live-checklist-390x844.png` })
 })

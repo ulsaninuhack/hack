@@ -3,6 +3,7 @@ import { Check, Copy, HelpCircle, LoaderCircle, Mic, MicOff, PhoneCall, PhoneOff
 import QRCode from 'qrcode'
 
 import type { LiveCallJoin } from './liveCallClient'
+import { selectLiveNextQuestion } from './liveCandidatePolicy'
 import { connectLiveCallSession, type LiveCallSession } from './liveCallSession'
 import { appendCaption, residentTranscript, type LiveCaption } from './liveCallTranscript'
 import type { VoiceCandidate } from './threeTierClient'
@@ -34,13 +35,6 @@ function liveErrorText(cause: unknown) {
     : '실시간 통화를 연결하지 못했습니다. 음성 파일 또는 직접 입력을 사용해 주세요.'
 }
 
-const LIVE_PREVIEW_SIGNS: Array<{
-  key: keyof VoiceCandidate['observations']['관찰_6징후']
-  label: string
-}> = [
-  { key: '외출_없음', label: '최근 외출 없음' },
-]
-
 function LiveChecklistPreview({
   candidate,
   pending,
@@ -50,52 +44,48 @@ function LiveChecklistPreview({
   pending: boolean
   error?: string | null
 }) {
-  const statusRows = candidate ? [
-    { label: '식사 상태', value: candidate.observations.식사상태 },
-    { label: '위생 상태', value: candidate.observations.위생상태 },
-    { label: '도움 관계망', value: candidate.observations.관계망_유무 },
+  const outingMissing = !candidate
+    || candidate.critic.missing_fields.includes('관찰_6징후.외출_없음')
+  const statusRows = [
+    {
+      label: '최근 외출',
+      value: outingMissing
+        ? null
+        : candidate.observations.관찰_6징후.외출_없음 ? '없음' : '있음',
+    },
+    { label: '식사 상태', value: candidate?.observations.식사상태 ?? null },
+    { label: '위생 상태', value: candidate?.observations.위생상태 ?? null },
+    { label: '도움 관계망', value: candidate?.observations.관계망_유무 ?? null },
     {
       label: '건강·마음 어려움',
-      value: candidate.observations.최근_건강_정신_괴로움 === null
+      value: candidate?.observations.최근_건강_정신_괴로움 == null
         ? null
         : candidate.observations.최근_건강_정신_괴로움 ? '어려움 있음' : '어려움 없음',
     },
     {
       label: '공과금 체납',
-      value: candidate.observations.공과금_2개월_이상_체납 === null
+      value: candidate?.observations.공과금_2개월_이상_체납 == null
         ? null
         : candidate.observations.공과금_2개월_이상_체납 ? '체납 있음' : '체납 없음',
     },
-  ] : []
-  const visibleSigns = candidate
-    ? LIVE_PREVIEW_SIGNS.filter((sign) => candidate.observations.관찰_6징후[sign.key])
-    : []
-  const visibleStatusRows = statusRows.filter((row) => row.value !== null)
-  const hasItems = visibleSigns.length > 0 || visibleStatusRows.length > 0
+  ]
 
-  return <section className="live-checklist-preview" aria-label="통화 중 확인된 항목">
+  return <section className="live-checklist-preview" aria-label="통화 중 확인할 항목">
     <header>
-      <h3>통화 중 확인된 항목</h3>
+      <h3>통화 중 확인할 항목</h3>
       {pending && <p role="status">항목 갱신 중</p>}
     </header>
     {error && <p className="live-candidate-error" role="status">{error}</p>}
-    {!candidate || !hasItems ? (
-      <p className="live-candidate-empty">대기 중</p>
-    ) : <>
-      <ul className="live-candidate-grid">
-        {visibleSigns.map((sign) => (
-          <li key={sign.key} data-candidate="true">
-            <Check aria-hidden="true" />
-            <strong>{sign.label}</strong>
-          </li>
-        ))}
-        {visibleStatusRows.map((row) => <li key={row.label} data-candidate="true">
-          <Check aria-hidden="true" />
+    <ul className="live-candidate-grid">
+      {statusRows.map((row) => {
+        const checked = row.value !== null
+        return <li key={row.label} data-candidate={checked}>
+          {checked ? <Check aria-hidden="true" /> : <span aria-hidden="true">—</span>}
           <strong>{row.label}</strong>
-          <em>{row.value}</em>
-        </li>)}
-      </ul>
-    </>}
+          <em>{row.value ?? '미확인'}</em>
+        </li>
+      })}
+    </ul>
   </section>
 }
 
@@ -138,6 +128,7 @@ export function LiveCallPanel({
     () => captions.filter((caption) => caption.role === 'resident' && caption.final).length,
     [captions],
   )
+  const nextQuestion = selectLiveNextQuestion(liveCandidate)
 
   useEffect(() => {
     if (!inviteUrl) {
@@ -324,8 +315,8 @@ export function LiveCallPanel({
                 ))}</ol>}
           </section>
 
-          {join.role === 'surveyor' && liveCandidate?.critic.next_question && (
-            <LiveNextQuestion question={liveCandidate.critic.next_question} pending={candidatePending} />
+          {join.role === 'surveyor' && nextQuestion && (
+            <LiveNextQuestion question={nextQuestion} pending={candidatePending} />
           )}
 
           {join.role === 'surveyor' && (

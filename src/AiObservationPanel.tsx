@@ -67,9 +67,10 @@ function NullableBooleanField({
 }
 
 function CriticList({ title, values }: { title: string; values: string[] }) {
+  const displayValue = (value: string) => value.replaceAll('공과금_2개월_이상_체납', '공과금 체납')
   return <section className="ai-critic-list">
     <h4>{title}</h4>
-    {values.length === 0 ? <p>표시된 항목 없음</p> : <ul>{values.map((value) => <li key={value}>{value}</li>)}</ul>}
+    {values.length === 0 ? <p>표시된 항목 없음</p> : <ul>{values.map((value) => <li key={value}>{displayValue(value)}</li>)}</ul>}
   </section>
 }
 
@@ -133,7 +134,7 @@ function CandidateEditor({
           <option value="">확인하지 못함</option><option>양호</option><option>불량</option>
         </select>
       </label>
-      <NullableBooleanField label="AI 후보 공과금 2개월 이상 체납" value={candidate.observations.공과금_2개월_이상_체납} onChange={(value) => updateObservation('공과금_2개월_이상_체납', value)} />
+      <NullableBooleanField label="AI 후보 공과금 체납" value={candidate.observations.공과금_2개월_이상_체납} onChange={(value) => updateObservation('공과금_2개월_이상_체납', value)} />
       <NullableBooleanField label="AI 후보 최근 건강·정신적 괴로움" value={candidate.observations.최근_건강_정신_괴로움} onChange={(value) => updateObservation('최근_건강_정신_괴로움', value)} />
       <label>AI 후보 도움 관계망
         <select value={candidate.observations.관계망_유무 ?? ''} onChange={(event) => updateObservation('관계망_유무', (event.target.value || null) as CanonicalObservations['관계망_유무'])}>

@@ -674,6 +674,10 @@ describe('three-tier case notes', () => {
 
     const blank = await post('/api/v1/contact-ops/three-tier/case-notes', { case_id: 'SYN-HH-2812551000-0001', note: '   ' }, session);
     assert.equal(blank.response.status, 400);
+    const overlong = await post('/api/v1/contact-ops/three-tier/case-notes', {
+      case_id: 'SYN-HH-2812551000-0001', note: '가'.repeat(2001),
+    }, session);
+    assert.equal(overlong.response.status, 400);
     const badCase = await post('/api/v1/contact-ops/three-tier/case-notes', { case_id: 'NOPE', note: '메모' }, session);
     assert.equal(badCase.response.status, 400);
   });

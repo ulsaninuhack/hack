@@ -81,6 +81,14 @@ const RETRACTED_NO_MEAL_PATTERN = /(?:아무\s*것도|한\s*끼도|전혀|아예
 const RETRACTED_DIRECT_NO_MEAL_PATTERN = /(?:밥|식사|끼니)(?:도|은|는|을|를)?[^.!?\n]{0,12}(?:못\s*먹|안\s*먹|먹지\s*못)[^.!?\n]{0,12}(?:건|것은?|게)\s*아니/;
 const RETRACTED_STARVING_PATTERN = /(?:굶|끼니를?\s*굶)[^.!?\n]{0,16}(?:아니|않)/;
 const CONFLICTING_MEAL_QUESTION = '오늘은 조금 드셨지만 그 전에는 식사를 거의 못 하셨다는 뜻인가요?';
+const UTILITY_NAME_PATTERN = /(?:공과금|공과급|전기세|전기요금|수도세|수도요금|가스비|가스요금|관리비)/;
+const UTILITY_NONPAYMENT_PATTERN = /(?:(?:안|못)\s*(?:내|낸|냈)|내지\s*(?:못|않)|미납|체납|연체|밀(?:렸|려|리|린|리고))/;
+const RETRACTED_UTILITY_NONPAYMENT_PATTERN = /(?:(?:(?:안|못)\s*(?:내|낸|냈)|내지\s*못)[^.!?\n]{0,8}(?:건|것은?|게|적(?:은|이)?)\s*(?:아니|않|없)|(?:미납|체납|연체|밀(?:렸|려|리|린))[^.!?\n]{0,8}(?:건|것은?|게|은|는|이)?\s*(?:아니|않|없))/;
+const UTILITY_PAID_PATTERN = /(?:(?:다|모두|제때|이미)\s*)?(?:냈|납부했|납부하고|완납했)/;
+const UTILITY_NONE_PATTERN = /(?:체납|미납|연체|밀린)[^.!?\n]{0,8}(?:없|아니)/;
+const UTILITY_EXEMPT_PATTERN = /(?:안\s*내도\s*(?:되|된|돼)|낼\s*필요\s*없|면제)/;
+const UTILITY_OBLIGATION_PATTERN = /안\s*내(?:면|서는)\s*안\s*(?:되|된|돼)/;
+const REVERSED_UTILITY_NONPAYMENT_PATTERN = /(?:미납|체납|연체|밀린)[^.!?\n]{0,18}(?:공과금|공과급|전기세|전기요금|수도세|수도요금|가스비|가스요금|관리비)/;
 
 export class ContactOpsAdapterError extends Error {
   constructor(message) {
@@ -273,9 +281,29 @@ function analyzeMealTranscript(value) {
   return { kind: 'none', status: null };
 }
 
-function deterministicCritic(planner, routeCaseId, mealAnalysis) {
+function analyzeUtilityArrearsTranscript(value) {
+  const transcript = value.replace(/\s+/g, ' ').trim();
+  if (!UTILITY_NAME_PATTERN.test(transcript)) return null;
+  const nameMatches = [...transcript.matchAll(new RegExp(UTILITY_NAME_PATTERN.source, 'g'))];
+  const statuses = nameMatches.map((match, index) => {
+    const clause = transcript.slice(match.index, nameMatches[index + 1]?.index ?? transcript.length);
+    if (UTILITY_EXEMPT_PATTERN.test(clause) || UTILITY_OBLIGATION_PATTERN.test(clause)) return null;
+    if (RETRACTED_UTILITY_NONPAYMENT_PATTERN.test(clause) || UTILITY_NONE_PATTERN.test(clause)) return false;
+    if (UTILITY_NONPAYMENT_PATTERN.test(clause)) return true;
+    if (UTILITY_PAID_PATTERN.test(clause)) return false;
+    return null;
+  });
+  if (statuses.includes(true)) return true;
+  if (statuses.includes(false)) return false;
+  if (REVERSED_UTILITY_NONPAYMENT_PATTERN.test(transcript)
+      && !RETRACTED_UTILITY_NONPAYMENT_PATTERN.test(transcript)
+      && !UTILITY_NONE_PATTERN.test(transcript)) return true;
+  return null;
+}
+
+function deterministicCritic(planner, routeCaseId, mealAnalysis, utilityArrears) {
   const observation = planner.contact_result.observation;
-  const canonical = canonicalObservations(planner.contact_result);
+  const canonical = canonicalObservations(planner.contact_result, utilityArrears);
   const critic = {
     missing_fields: [],
     contradictions: [],
@@ -353,6 +381,13 @@ function canonicalBooleanSignal(riskSignals, presentLabel, absentLabel) {
   return hasPresent;
 }
 
+function canonicalBooleanSignalAny(riskSignals, presentLabels, absentLabels) {
+  const hasPresent = presentLabels.some((label) => riskSignals.includes(label));
+  const hasAbsent = absentLabels.some((label) => riskSignals.includes(label));
+  if (hasPresent === hasAbsent) return null;
+  return hasPresent;
+}
+
 function canonicalContactFrequency(riskSignals) {
   const matches = [
     ['연락 빈도 주 1회 이상', '주_1회_이상'],
@@ -362,19 +397,20 @@ function canonicalContactFrequency(riskSignals) {
   return matches.length === 1 ? matches[0][1] : null;
 }
 
-function canonicalObservations(contactResult) {
+function canonicalObservations(contactResult, utilityArrears = null) {
   const { observation, risk_signals: riskSignals } = contactResult;
+  const signaledUtilityArrears = canonicalBooleanSignalAny(
+    riskSignals,
+    ['공과금 체납 있음', '공과금 2개월 이상 체납 있음'],
+    ['공과금 체납 없음', '공과금 2개월 이상 체납 없음'],
+  );
   return {
     '관찰_6징후': Object.fromEntries(
       Object.entries(SIGN_MAP).map(([source, target]) => [target, observation[source] === true]),
     ),
     '식사상태': observation.meal_status,
     '위생상태': observation.hygiene === '심각' ? '불량' : observation.hygiene,
-    '공과금_2개월_이상_체납': canonicalBooleanSignal(
-      riskSignals,
-      '공과금 2개월 이상 체납 있음',
-      '공과금 2개월 이상 체납 없음',
-    ),
+    '공과금_2개월_이상_체납': utilityArrears ?? signaledUtilityArrears,
     '최근_건강_정신_괴로움': canonicalBooleanSignal(
       riskSignals,
       '최근 건강·정신 괴로움 있음',
@@ -385,12 +421,13 @@ function canonicalObservations(contactResult) {
   };
 }
 
-function canonicalContactResult(contactResult) {
+function canonicalContactResult(contactResult, observations) {
   if (!contactResult.reached) return 'no_answer';
   const observation = contactResult.observation;
   const concern = Object.values(observation).some((value) => value === true)
     || ['불량', '심각'].includes(observation.meal_status)
     || ['불량', '심각'].includes(observation.hygiene)
+    || observations.공과금_2개월_이상_체납 === true
     || contactResult.free_text.trim() !== '';
   return concern ? 'connected_concern' : 'connected_ok';
 }
@@ -478,11 +515,12 @@ export async function planContactOpsObservation(input, options = {}) {
   }
 
   const mealAnalysis = analyzeMealTranscript(planner.transcript);
+  const utilityArrears = analyzeUtilityArrearsTranscript(planner.transcript);
   if (planner.contact_result.reached && mealAnalysis.kind !== 'preserve' && mealAnalysis.kind !== 'none') {
     planner.contact_result.observation.meal_status = mealAnalysis.status;
   }
-  const baseCritic = deterministicCritic(planner, input.caseId, mealAnalysis);
-  const observations = canonicalObservations(planner.contact_result);
+  const baseCritic = deterministicCritic(planner, input.caseId, mealAnalysis, utilityArrears);
+  const observations = canonicalObservations(planner.contact_result, utilityArrears);
   const observationCandidate = {
     schema_version: CANDIDATE_SCHEMA_VERSION,
     synthetic: true,
@@ -491,7 +529,7 @@ export async function planContactOpsObservation(input, options = {}) {
     surveyor_id: input.surveyorId,
     source_kind: input.kind,
     transcript: planner.transcript,
-    contact_result: canonicalContactResult(planner.contact_result),
+    contact_result: canonicalContactResult(planner.contact_result, observations),
     observations,
     free_text: planner.contact_result.free_text,
   };

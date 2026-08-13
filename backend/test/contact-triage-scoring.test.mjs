@@ -248,6 +248,10 @@ describe('contact triage acuity rule boundaries', () => {
         acute('최근_건강_정신_괴로움', 12),
       ],
     });
+    assert.equal(
+      result.점수_기여내역.find(({ 코드 }) => 코드 === '공과금_2개월_이상_체납').근거,
+      '공과금 체납 관찰 또는 보고',
+    );
   });
 
   test('원합계가 100을 넘으면 기여내역을 보존하고 최종점수만 100으로 클램프한다', async () => {

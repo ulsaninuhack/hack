@@ -242,7 +242,7 @@ export function calculateAcuityScore(input) {
   if (input.공과금_2개월_이상_체납 === true) {
     contributions.push(contribution({
       code: '공과금_2개월_이상_체납',
-      basis: '공과금 2개월 이상 체납 관찰 또는 보고',
+      basis: '공과금 체납 관찰 또는 보고',
       points: 10,
       source: '현장_관찰',
       documents: ['매뉴얼_p49', '운영_배점표_v0.1.0'],

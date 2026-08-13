@@ -47,7 +47,7 @@
     },
     "공과금_2개월_이상_체납": {
       "type": ["boolean", "null"],
-      "$comment": "Manual p49 observation/report field only. Do not populate from private utility-company anomaly feeds."
+      "$comment": "Legacy-compatible internal key. The current product meaning is any utility arrears observed or reported, without a minimum duration. Do not populate from private utility-company anomaly feeds."
     },
     "최근_건강_정신_괴로움": {
       "type": ["boolean", "null"],
