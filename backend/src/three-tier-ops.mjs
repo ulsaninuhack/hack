@@ -599,7 +599,7 @@ export function renderAuthoredDistrictAiSummary(input) {
   if (!guidance) throw new TypeError('district AI summary has no authored guidance');
   const sentences = [
     `${input.구}는 기준일 ${input.기준일} 관측 집계에서 노인 인구 비율 ${input.노인인구_비율_퍼센트}%, 일인가구 비율 ${input.일인가구_비율_퍼센트}%로 나타납니다.`,
-    `고령 일인세대는 ${input.고령_일인세대_수}세대이고, 기초수급 밀도는 ${input.기초수급_밀도_퍼센트}%로 서로 다른 기준일이 섞인 참고값입니다.`,
+    `고령 일인세대는 ${input.고령_일인세대_수}세대이고, 기초수급 밀도는 ${input.기초수급_밀도_퍼센트}%입니다.`,
     `복지시설은 ${input.복지시설_수}곳, 연결단원은 ${input.연결단원_수}명이 배치되어 있습니다.`,
     `연락업무는 오늘 예정 ${input.오늘_예정_건수}건, 기한 경과 ${input.기한_경과_건수}건, 방문승인 대기 ${input.방문승인_대기_건수}건이며 연결단원 한 명당 오늘 예정은 ${input.연결단원당_오늘_예정}건입니다.`,
     guidance,
