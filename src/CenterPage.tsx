@@ -665,7 +665,11 @@ export function CenterPage({ reviewCaseId = null }: { reviewCaseId?: string | nu
           <div className="center-columns">
             <div className="center-main">
               <section id="center-assignment" className="center-section" aria-labelledby="assignment-heading">
-                <h2 id="assignment-heading">오늘 배치</h2>
+                <button className="center-refresh section-refresh" disabled={loading} onClick={() => void refresh()}>
+                  <RefreshCw aria-hidden="true" size={15} /> 새로고침
+                </button>
+                <details className="center-fold" open>
+                <summary><h2 id="assignment-heading">오늘 배치</h2></summary>
                 <p className="assignment-rule-note">전화는 자동 배정됩니다. 방문은 확인 또는 상급기관 신고로 처리합니다.</p>
                 {proposal === null ? <p className="ops-empty">오늘 예정된 배치 제안이 없습니다.</p> : (
                   <>
@@ -706,28 +710,34 @@ export function CenterPage({ reviewCaseId = null }: { reviewCaseId?: string | nu
                     )}
                   </>
                 )}
+                </details>
               </section>
 
               <section id="center-reports" className="center-section" aria-labelledby="reports-heading">
-                <h2 id="reports-heading">전화 확인</h2>
+                <details className="center-fold" open>
+                <summary><h2 id="reports-heading">전화 확인</h2></summary>
                 {phoneReports.length === 0
                   ? <p className="ops-empty">아직 도착한 전화 보고가 없습니다.</p>
                   : phoneReports.map((card) => (
                     <ReportCardView key={card.card_id} card={card} onAcknowledge={acknowledge} onEscalate={escalateOne} busy={busy} collapsible />
                   ))}
+                </details>
               </section>
 
               <section id="center-visit-reports" className="center-section" aria-labelledby="visit-reports-heading">
-                <h2 id="visit-reports-heading">방문 확인</h2>
+                <details className="center-fold" open>
+                <summary><h2 id="visit-reports-heading">방문 확인</h2></summary>
                  {visitReports.length === 0
                    ? <p className="ops-empty">아직 도착한 방문 보고가 없습니다.</p>
                    : visitReports.map((card) => (
                      <ReportCardView key={card.card_id} card={card} onAcknowledge={acknowledge} onEscalate={escalateOne} busy={busy} />
                    ))}
+                </details>
                </section>
 
               <section id="center-visit-review" className="center-section" aria-labelledby="visit-review-heading">
-                <h2 id="visit-review-heading">방문 승격 대기</h2>
+                <details className="center-fold" open>
+                <summary><h2 id="visit-review-heading">방문 승격 대기</h2></summary>
                 {recommendations.length === 0 ? <p className="ops-empty">현재 승격 대기인 대상이 없습니다.</p> : (
                   <ul className="visit-review-list" aria-label="방문 권고 대기 목록">
                     {recommendations.map((item) => (
@@ -741,6 +751,7 @@ export function CenterPage({ reviewCaseId = null }: { reviewCaseId?: string | nu
                     ))}
                   </ul>
                 )}
+                </details>
               </section>
             </div>
 
