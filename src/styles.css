@@ -813,7 +813,6 @@ select:focus-visible,
 .center-page .case-history-date { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--t-ink); }
 .center-page .case-history-obs { color: var(--t-faint); }
 .center-page .case-history-source { margin-left: auto; font-size: 13px; color: var(--t-faint); }
-.center-page .case-history-note, .center-page .calendar-note { margin: 0; font-size: 13px; color: var(--t-faint); }
 
 /* 우리 동 기록 캘린더 */
 .center-page .center-calendar { background: var(--t-card); border: 1px solid var(--t-line); border-radius: var(--t-radius); padding: 18px 20px; display: grid; gap: 10px; }
@@ -829,7 +828,6 @@ select:focus-visible,
 .center-page .calendar-count { font-size: 13px; font-weight: 700; border-radius: 999px; padding: 0 6px; background: var(--t-blue-soft); color: var(--t-blue-dark); }
 .center-page .calendar-count[data-attention] { background: var(--t-red-soft); color: #c22f2f; }
 .center-page .calendar-day[data-selected] .calendar-count { background: rgba(255, 255, 255, 0.25); color: #ffffff; }
-.center-page .calendar-hint { margin: 0; font-size: 14px; color: var(--t-faint); }
 .center-page .calendar-day-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .center-page .calendar-day-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .center-page .calendar-day-list .case-history-source { margin-left: auto; }
@@ -1025,7 +1023,6 @@ select:focus-visible,
 .center-page .assignment-auto { color: var(--t-faint); }
 .center-page .assignment-actions { display: flex; gap: 8px; }
 .center-page .assignment-escalated { color: #d31530; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
-.center-page .assignment-escalated-note { margin: 0; font-size: 14px; color: var(--t-faint); }
 .center-page .assignment-pager { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 12px; }
 .center-page .assignment-pager button { min-height: 44px; min-width: 76px; border: 1px solid var(--t-line); border-radius: 10px; background: var(--t-card); color: var(--t-sub); font-weight: 700; font-size: 14px; cursor: pointer; transition: background .15s var(--ease), color .15s var(--ease); }
 .center-page .assignment-pager button:hover:not(:disabled) { background: var(--t-blue-soft); color: var(--t-blue); }

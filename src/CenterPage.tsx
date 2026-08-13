@@ -99,7 +99,6 @@ function CaseHistoryPanel({ caseId }: { caseId: string }) {
               </li>
             ))}
           </ul>
-          <p className="case-history-note">{history.source_note}</p>
         </div>
       )}
     </details>
@@ -177,8 +176,7 @@ function CenterCalendarPanel({ month }: { month: string }) {
                 </li>
               ))}
             </ul>
-          ) : <p className="calendar-hint">날짜를 누르면 그날의 기록이 보입니다.</p>}
-          <p className="calendar-note">{calendar.source_note}</p>
+          ) : null}
         </>
       )}
     </section>
@@ -633,7 +631,7 @@ export function CenterPage({ reviewCaseId = null }: { reviewCaseId?: string | nu
             <div className="center-main">
               <section id="center-assignment" className="center-section" aria-labelledby="assignment-heading">
                 <h2 id="assignment-heading">오늘 배치</h2>
-                <p className="assignment-rule-note">전화는 자동 배정됩니다. 방문은 확인 또는 상급기관 신고로 처리합니다. 모든 대상은 연락 동의 기록과 정기 안부확인 중복 확인을 마친 관리 대상입니다.</p>
+                <p className="assignment-rule-note">전화는 자동 배정됩니다. 방문은 확인 또는 상급기관 신고로 처리합니다.</p>
                 {proposal === null ? <p className="ops-empty">오늘 예정된 배치 제안이 없습니다.</p> : (
                   <>
                     <div className="lane-tabs" role="tablist" aria-label="전화 레인과 방문 레인">
@@ -663,7 +661,6 @@ export function CenterPage({ reviewCaseId = null }: { reviewCaseId?: string | nu
                             </li>
                           ))}
                         </ul>
-                        <p className="assignment-escalated-note">신고한 어르신은 방문 목록에서 제외되며, 후속 처리는 신고 기관이 담당합니다.</p>
                       </section>
                     )}
                     {lane === 'visit' && pendingVisitIds.length > 0 && (
