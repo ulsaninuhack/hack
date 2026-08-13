@@ -98,9 +98,10 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
     // #46이 라벨 칩을 제거했다 — 요약 카드 내용만 검증한다.
     const citySummary = page.getByLabel('제물포구 AI 요약')
     await expect(citySummary).toContainText('관측 집계에서')
-    await expect(citySummary).toContainText('증원 검토가 필요합니다')
-    await expect(citySummary).toContainText('담당자가 우선 확인해야 합니다')
-    await expect(citySummary).toContainText('담당자 승인 대기 중이어서 우선 검토가 필요합니다')
+    await expect(citySummary).toContainText('운영 부하')
+    await expect(citySummary).toContainText('현재 연결단원이 적절하게 배치되어 있습니다')
+    await expect(citySummary).not.toContainText('남동구는')
+    await expect(citySummary).not.toContainText('부평구는')
     const cityHtml = await page.content()
     expect(cityHtml).not.toMatch(/SYN-HH-/)
     expect(cityHtml).not.toContain('합성')
