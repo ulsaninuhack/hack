@@ -580,6 +580,7 @@ export function MobilePage() {
             <LiveCallPanel
               join={liveHostJoin}
               inviteUrl={liveInviteUrl}
+              targetDisplayName={`${selected.display_name} 어르신`}
               onFinish={finishLiveCall}
               onTranscriptUpdate={scheduleLiveCandidate}
               liveCandidate={liveCandidate}

@@ -68,18 +68,19 @@ next_question은 가장 중요한 모호성 하나를 줄이는 짧은 한국어
 `.trim();
 const FORBIDDEN_KEY_PATTERN = /(?:risk_?score|visit_?recommended|acute|vulnerability|score|streak|no_?answer_?count|deadline|recontact|approval|approved|rejected|transfer_?(?:completed|status)|route|distance|worker_?ids?)/i;
 const FORBIDDEN_QUESTION_PATTERN = /(?:위험도|고위험|점수|등급|진단|(?:방문|이관).{0,12}(?:할까요|할까|해야|합시다|하시겠|해도|요청|권고|진행|확정|승인|완료)|승인해|결정해)/;
-const AMBIGUOUS_MEAL_PATTERN = /(?:밥|식사|끼니).{0,12}(?:잘\s*(?:못|안)\s*먹|못\s*먹|안\s*먹|거르)|입맛.{0,8}(?:없|떨어)/;
-const EXPLICIT_MEAL_BOUNDARY_PATTERN = /(?:한\s*끼도|이틀째|[2-9]\s*일째|며칠째|전혀|아예|굶|평소보다\s*(?:양|식사량).{0,8}(?:줄|적)|양이\s*(?:줄|적)|절반|몇\s*숟가락)/;
+const AMBIGUOUS_MEAL_PATTERN = /(?:밥|식사|끼니).{0,12}거르|입맛.{0,8}(?:없|떨어)|(?:식사량|먹는\s*양|양이).{0,8}(?:줄|적)/;
+const DIRECT_NO_MEAL_PATTERN = /(?:밥|식사|끼니)(?:도|은|는|을|를)?[^.!?\n]{0,12}(?:못\s*먹|안\s*먹|먹지\s*못)/;
 const AMBIGUOUS_MEAL_QUESTION = '오늘 식사를 한 끼도 하지 못한 건가요, 아니면 평소보다 양이 줄어든 건가요?';
 const MEAL_ABSOLUTE_NONE_PATTERN = /(?:오늘\s*)?(?:아무\s*것도|한\s*끼도|전혀|아예).{0,16}(?:못\s*먹|안\s*먹|먹지\s*못)/;
+const MEAL_REVERSED_ABSOLUTE_NONE_PATTERN = /(?:밥|식사|끼니)(?:도|은|는|을|를)?[^.!?\n]{0,12}(?:아무\s*것도|한\s*끼도|전혀|아예)[^.!?\n]{0,8}(?:못\s*먹|안\s*먹|먹지\s*못)/;
+const MEAL_MULTI_DAY_NONE_PATTERN = /(?:(?:이틀째|[2-9]\s*일째|며칠째)[^.!?\n]{0,20}(?:밥|식사|끼니)[^.!?\n]{0,12}(?:못\s*먹|안\s*먹|먹지\s*못)|(?:밥|식사|끼니)[^.!?\n]{0,20}(?:이틀째|[2-9]\s*일째|며칠째)[^.!?\n]{0,12}(?:못\s*먹|안\s*먹|먹지\s*못))/;
+const MEAL_STARVING_PATTERN = /(?:굶(?:고|어|었|는|다)|끼니를?\s*굶)/;
 const MEAL_SOME_PATTERN = /(?:아침|점심|저녁).{0,16}(?:죽|밥|식사|끼니|빵|과일|국|반찬).{0,16}(?:먹|드셨|들었)/;
 const EXPLICIT_DIFFERENT_DAY_SCOPE_PATTERN = /(?:어제|그제|지난\s*날).{0,80}(?:오늘|오늘\s*아침)/;
 const RETRACTED_NO_MEAL_PATTERN = /(?:아무\s*것도|한\s*끼도|전혀|아예).{0,16}(?:못\s*먹|안\s*먹|먹지\s*못).{0,12}아니/;
+const RETRACTED_DIRECT_NO_MEAL_PATTERN = /(?:밥|식사|끼니)(?:도|은|는|을|를)?[^.!?\n]{0,12}(?:못\s*먹|안\s*먹|먹지\s*못)[^.!?\n]{0,12}(?:건|것은?|게)\s*아니/;
+const RETRACTED_STARVING_PATTERN = /(?:굶|끼니를?\s*굶)[^.!?\n]{0,16}(?:아니|않)/;
 const CONFLICTING_MEAL_QUESTION = '오늘은 조금 드셨지만 그 전에는 식사를 거의 못 하셨다는 뜻인가요?';
-const DETERMINISTIC_MEAL_QUESTIONS = new Set([
-  AMBIGUOUS_MEAL_QUESTION,
-  CONFLICTING_MEAL_QUESTION,
-]);
 
 export class ContactOpsAdapterError extends Error {
   constructor(message) {
@@ -241,7 +242,38 @@ function addUnique(target, values) {
   }
 }
 
-function deterministicCritic(planner, routeCaseId) {
+function analyzeMealTranscript(value) {
+  const transcript = value.replace(/\s+/g, ' ').trim();
+  const retracted = RETRACTED_NO_MEAL_PATTERN.test(transcript)
+    || RETRACTED_DIRECT_NO_MEAL_PATTERN.test(transcript)
+    || RETRACTED_STARVING_PATTERN.test(transcript);
+  if (retracted) return { kind: 'preserve', status: null };
+
+  const absoluteNone = MEAL_ABSOLUTE_NONE_PATTERN.test(transcript)
+    || MEAL_REVERSED_ABSOLUTE_NONE_PATTERN.test(transcript);
+  const hasSome = MEAL_SOME_PATTERN.test(transcript);
+  const differentDayScope = EXPLICIT_DIFFERENT_DAY_SCOPE_PATTERN.test(transcript);
+  if (absoluteNone && hasSome && !differentDayScope) {
+    return { kind: 'conflict', status: null };
+  }
+  if (absoluteNone && hasSome && differentDayScope) {
+    return { kind: 'preserve', status: null };
+  }
+  if (absoluteNone
+      || MEAL_MULTI_DAY_NONE_PATTERN.test(transcript)
+      || MEAL_STARVING_PATTERN.test(transcript)) {
+    return { kind: 'severe', status: '심각' };
+  }
+  if (AMBIGUOUS_MEAL_PATTERN.test(transcript)) {
+    return { kind: 'ambiguous', status: null };
+  }
+  if (DIRECT_NO_MEAL_PATTERN.test(transcript)) {
+    return { kind: 'poor', status: '불량' };
+  }
+  return { kind: 'none', status: null };
+}
+
+function deterministicCritic(planner, routeCaseId, mealAnalysis) {
   const observation = planner.contact_result.observation;
   const canonical = canonicalObservations(planner.contact_result);
   const critic = {
@@ -291,21 +323,17 @@ function deterministicCritic(planner, routeCaseId) {
     critic.low_confidence_fields.push('위생상태');
     critic.warnings.push('위생상태 심각은 서버의 기존 가중치를 바꾸지 않고 정규화된 불량으로 매핑됨');
   }
-  const transcript = planner.transcript.replace(/\s+/g, ' ').trim();
-  const conflictingMealStatements = MEAL_ABSOLUTE_NONE_PATTERN.test(transcript)
-    && MEAL_SOME_PATTERN.test(transcript)
-    && !EXPLICIT_DIFFERENT_DAY_SCOPE_PATTERN.test(transcript)
-    && !RETRACTED_NO_MEAL_PATTERN.test(transcript);
-  if (planner.contact_result.reached && conflictingMealStatements) {
+  if (planner.contact_result.reached && mealAnalysis.kind === 'conflict') {
     addUnique(critic.low_confidence_fields, ['식사상태']);
     critic.contradictions.push('식사 발화가 서로 달라 추가 확인이 필요함');
     critic.warnings.push('상충하는 식사 발화는 등급 후보로 확정하지 않음');
     critic.next_question = CONFLICTING_MEAL_QUESTION;
-  } else if (planner.contact_result.reached
-      && AMBIGUOUS_MEAL_PATTERN.test(transcript)
-      && !EXPLICIT_MEAL_BOUNDARY_PATTERN.test(transcript)) {
+  } else if (planner.contact_result.reached && mealAnalysis.kind === 'ambiguous') {
     addUnique(critic.low_confidence_fields, ['식사상태']);
     critic.warnings.push('모호한 식사 표현은 등급 후보로 확정하지 않음');
+    critic.next_question = AMBIGUOUS_MEAL_QUESTION;
+  } else if (planner.contact_result.reached && mealAnalysis.kind === 'poor') {
+    critic.warnings.push('직접적인 결식 발화는 불량 후보로 두고 지속 정도를 추가 확인함');
     critic.next_question = AMBIGUOUS_MEAL_QUESTION;
   }
   return critic;
@@ -449,9 +477,12 @@ export async function planContactOpsObservation(input, options = {}) {
     throw new ContactOpsAdapterError('ContactOps observations require a contact_result intent.');
   }
 
-  const baseCritic = deterministicCritic(planner, input.caseId);
+  const mealAnalysis = analyzeMealTranscript(planner.transcript);
+  if (planner.contact_result.reached && mealAnalysis.kind !== 'preserve' && mealAnalysis.kind !== 'none') {
+    planner.contact_result.observation.meal_status = mealAnalysis.status;
+  }
+  const baseCritic = deterministicCritic(planner, input.caseId, mealAnalysis);
   const observations = canonicalObservations(planner.contact_result);
-  if (DETERMINISTIC_MEAL_QUESTIONS.has(baseCritic.next_question)) observations.식사상태 = null;
   const observationCandidate = {
     schema_version: CANDIDATE_SCHEMA_VERSION,
     synthetic: true,

@@ -38,12 +38,14 @@ vi.mock('./AiObservationClient', () => ({
   createAiObservationCandidate: mocks.createAiObservationCandidate,
 }))
 vi.mock('./LiveCallPanel', () => ({
-  LiveCallPanel: ({ onFinish, onTranscriptUpdate, liveCandidate }: {
+  LiveCallPanel: ({ onFinish, onTranscriptUpdate, liveCandidate, targetDisplayName }: {
     onFinish: (transcript: string) => Promise<void>
     onTranscriptUpdate: (transcript: string) => void
     liveCandidate?: { critic: { next_question: string | null } } | null
+    targetDisplayName?: string
   }) => (
     <section aria-label="실시간 통화 테스트">
+      <p>통화 상대: {targetDisplayName}</p>
       <button type="button" onClick={() => onTranscriptUpdate('밥을 잘 못 먹어요.')}>실시간 발화 테스트</button>
       {liveCandidate?.critic.next_question && <p>{liveCandidate.critic.next_question}</p>}
       <button type="button" onClick={() => void onFinish('밥을 잘 못 먹어요.')}>통화 종료 테스트</button>
@@ -353,7 +355,7 @@ describe('MobilePage (조사원 /m)', () => {
         contact_result: voiceCandidateConcernResult,
         observations: {
           관찰_6징후: { 우편물_고지서_적체: true, 악취_벌레: true, 쓰레기_술병: true, 인기척_없이_TV_불: true, 외출_없음: true, 연락_두절: true },
-          식사상태: null, 위생상태: null, 공과금_2개월_이상_체납: null,
+          식사상태: '불량', 위생상태: null, 공과금_2개월_이상_체납: null,
           최근_건강_정신_괴로움: true, 관계망_유무: '없음', 연락_빈도: null,
         },
         transcript: '밥을 잘 못 먹어요.',
@@ -369,6 +371,7 @@ describe('MobilePage (조사원 /m)', () => {
     await waitFor(() => expect(mocks.createLiveCall).toHaveBeenCalledWith({
       caseId: 'SYN-HH-2812551000-0001', revision: 0,
     }))
+    expect(screen.getByText('통화 상대: 김영자 어르신')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '실시간 발화 테스트' }))
     expect(await screen.findByText('오늘 식사를 한 끼도 하지 못한 건가요, 아니면 평소보다 양이 줄어든 건가요?', {}, { timeout: 2_000 })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '통화 종료 테스트' }))
@@ -379,7 +382,7 @@ describe('MobilePage (조사원 /m)', () => {
     }))
     expect(await screen.findByLabelText('통화(또는 방문) 결과')).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: '다음 확인 질문' })).toBeNull()
-    expect(screen.getByLabelText('식사 상태')).toHaveValue('')
+    expect(screen.getByLabelText('식사 상태')).toHaveValue('불량')
     expect(screen.getByRole('checkbox', { name: '최근 외출 없음' })).toBeChecked()
     for (const label of ['우편물·고지서 적체', '악취·벌레', '쓰레기·술병', '인기척 없이 TV·불 켜짐', '주변에서 확인한 연락 두절']) {
       expect(screen.getByRole('checkbox', { name: label })).not.toBeChecked()

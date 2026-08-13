@@ -92,7 +92,7 @@ describe('LiveCallPanel', () => {
     const onFinish = vi.fn()
     const onTranscriptUpdate = vi.fn()
     const user = userEvent.setup()
-    render(<LiveCallPanel join={hostJoin} inviteUrl="https://demo.example/call?invite=shortcode012345678901234567" onFinish={onFinish} onTranscriptUpdate={onTranscriptUpdate} />)
+    render(<LiveCallPanel join={hostJoin} inviteUrl="https://demo.example/call?invite=shortcode012345678901234567" targetDisplayName="김영자 어르신" onFinish={onFinish} onTranscriptUpdate={onTranscriptUpdate} />)
     await user.click(screen.getByRole('button', { name: '통화 연결' }))
 
     act(() => {
@@ -103,13 +103,14 @@ describe('LiveCallPanel', () => {
     })
 
     expect(screen.getByText('연결단원')).toBeInTheDocument()
-    expect(screen.getByText('연락 대상')).toBeInTheDocument()
+    expect(screen.getByText('김영자 어르신')).toBeInTheDocument()
+    expect(screen.queryByText('연락 대상')).toBeNull()
     expect(screen.getByText('밥은 안 먹고 누워만 있었고 사람도 안 만났어요.')).toBeInTheDocument()
     expect(onFinish).not.toHaveBeenCalled()
     expect(onTranscriptUpdate).toHaveBeenCalledTimes(1)
     expect(onTranscriptUpdate).toHaveBeenCalledWith('밥은 안 먹고 누워만 있었고 사람도 안 만났어요.')
 
-    await user.click(screen.getByRole('button', { name: '통화 종료하고 체크리스트 만들기' }))
+    await user.click(screen.getByRole('button', { name: '통화 종료' }))
     await waitFor(() => expect(mocks.finish).toHaveBeenCalled())
     await waitFor(() => expect(mocks.disconnect).toHaveBeenCalled())
     expect(onFinish).toHaveBeenCalledWith('밥은 안 먹고 누워만 있었고 사람도 안 만났어요.')
@@ -148,7 +149,7 @@ describe('LiveCallPanel', () => {
     await waitFor(() => expect(transcript.scrollTop).toBe(640))
   })
 
-  it('renders streamed Planner-Critic state as unconfirmed checklist candidates', async () => {
+  it('places the next question directly below the transcript without AI uncertainty copy', async () => {
     mocks.toDataUrl.mockResolvedValue('data:image/png;base64,qr')
     mocks.connect.mockResolvedValue({
       roomName: 'care-call-abc123',
@@ -166,7 +167,7 @@ describe('LiveCallPanel', () => {
         최근_건강_정신_괴로움: null, 관계망_유무: null, 연락_빈도: null,
       },
       critic: {
-        missing_fields: ['식사상태'], contradictions: [], low_confidence_fields: ['식사상태'], warnings: [],
+        missing_fields: [], contradictions: [], low_confidence_fields: [], warnings: [],
         next_question: '오늘 식사를 한 끼도 하지 못한 건가요, 아니면 평소보다 양이 줄어든 건가요?',
       },
     } satisfies Pick<VoiceCandidate, 'contact_result' | 'transcript' | 'observations' | 'critic'>
@@ -174,10 +175,15 @@ describe('LiveCallPanel', () => {
     render(<LiveCallPanel join={hostJoin} liveCandidate={liveCandidate} candidatePending={false} />)
     await user.click(screen.getByRole('button', { name: '통화 연결' }))
 
-    expect(screen.getByRole('region', { name: '통화 중 체크리스트 후보' })).toHaveTextContent('AI 후보 · 미확정')
+    const captions = screen.getByRole('region', { name: '실시간 자막' })
+    const question = screen.getByRole('heading', { name: '다음 확인 질문' }).closest('section')
+    const preview = screen.getByRole('region', { name: '통화 중 확인된 항목' })
+    expect(captions.nextElementSibling).toBe(question)
+    expect(preview).not.toHaveTextContent('AI 후보')
+    expect(preview).not.toHaveTextContent('미확정')
+    expect(preview).not.toHaveTextContent('근거 발화')
     expect(screen.getByText('식사 상태')).toBeInTheDocument()
-    expect(screen.getByText('불량 · 후보')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: '다음 확인 질문' })).toBeInTheDocument()
+    expect(screen.getByText('불량')).toBeInTheDocument()
     expect(screen.getByText(liveCandidate.critic.next_question)).toBeInTheDocument()
   })
 
@@ -203,14 +209,14 @@ describe('LiveCallPanel', () => {
     render(<LiveCallPanel join={hostJoin} liveCandidate={liveCandidate} />)
     await user.click(screen.getByRole('button', { name: '통화 연결' }))
 
-    const preview = screen.getByRole('region', { name: '통화 중 체크리스트 후보' })
+    const preview = screen.getByRole('region', { name: '통화 중 확인된 항목' })
     expect(within(preview).getByText('최근 외출 없음')).toBeInTheDocument()
     for (const label of ['우편물·고지서 적체', '악취·벌레', '쓰레기·술병', '인기척 없이 TV·불', '연락 두절']) {
       expect(within(preview).queryByText(label)).toBeNull()
     }
   })
 
-  it('shows turn-linked evidence and preserves conflicting meal statements for review', async () => {
+  it('keeps evidence utterances out of the compact call view while retaining the next question', async () => {
     let onCaption: ((value: LiveCaption) => void) | undefined
     mocks.toDataUrl.mockResolvedValue('data:image/png;base64,qr')
     mocks.connect.mockImplementation(async (input: { onCaption: (value: LiveCaption) => void }) => {
@@ -248,12 +254,41 @@ describe('LiveCallPanel', () => {
       onCaption?.(caption({ itemId: 'resident-2', role: 'resident', text: '아침에는 죽을 조금 먹었죠.', receivedAt: 2 }))
     })
 
-    const contradiction = screen.getByRole('region', { name: '추가 확인이 필요한 상충 정보' })
-    expect(contradiction).toHaveTextContent('식사 정보가 서로 다릅니다')
-    expect(contradiction).toHaveTextContent('발화 1 · 오늘 아무것도 못 먹었어요.')
-    expect(contradiction).toHaveTextContent('발화 2 · 아침에는 죽을 조금 먹었죠.')
-    expect(contradiction).toHaveTextContent(liveCandidate.critic.next_question)
-    expect(screen.getByRole('region', { name: '통화 근거 원장' })).toHaveTextContent('근거 발화')
+    expect(screen.queryByRole('region', { name: '추가 확인이 필요한 상충 정보' })).toBeNull()
+    expect(screen.queryByRole('region', { name: '통화 근거 원장' })).toBeNull()
+    expect(screen.queryByText('근거 발화')).toBeNull()
+    expect(screen.getByText(liveCandidate.critic.next_question)).toBeInTheDocument()
+  })
+
+  it('shows a finishing state until the final AI checklist calculation resolves', async () => {
+    let onCaption: ((value: LiveCaption) => void) | undefined
+    let resolveFinish: (() => void) | undefined
+    const finishCalculation = new Promise<void>((resolve) => { resolveFinish = resolve })
+    mocks.connect.mockImplementation(async (input: { onCaption: (value: LiveCaption) => void }) => {
+      onCaption = input.onCaption
+      return {
+        roomName: 'care-call-abc123',
+        localRole: 'surveyor',
+        setMuted: mocks.setMuted,
+        finish: mocks.finish,
+        disconnect: mocks.disconnect,
+      }
+    })
+    const user = userEvent.setup()
+    render(<LiveCallPanel join={hostJoin} onFinish={() => finishCalculation} />)
+    await user.click(screen.getByRole('button', { name: '통화 연결' }))
+    act(() => {
+      onCaption?.(caption({ itemId: 'resident-1', role: 'resident', text: '오늘 밥을 못 먹었어요.' }))
+    })
+
+    await user.click(screen.getByRole('button', { name: '통화 종료' }))
+
+    expect(await screen.findByText('마지막 대화 정리 중')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '마지막 대화 정리 중' })).toBeDisabled()
+    expect(screen.queryByText('통화가 종료되었습니다.')).toBeNull()
+
+    resolveFinish?.()
+    expect(await screen.findByText('통화가 종료되었습니다.')).toBeInTheDocument()
   })
 
   it('keeps live-call copy terse for the demo surface', async () => {
