@@ -286,6 +286,20 @@ Recommended `main` branch protection requires pull requests and the
 workflow as a required check. Select the check after it has completed at least
 once in this repository.
 
+## Mac mini Codex text transport
+
+The optional home Mac mini bridge is administered over SSH but serves Cloud Run through a bounded
+authenticated HTTPS endpoint. It does not expose a shell or the raw Codex app-server protocol.
+Provisioning, Secret Manager wiring, live smoke, rotation, and rollback are documented in
+[`MAC_MINI_CODEX_BRIDGE.md`](MAC_MINI_CODEX_BRIDGE.md). Do not add its Cloud Run environment
+variables to the production workflow until the Funnel and end-to-end synthetic smoke both pass;
+the configured bridge intentionally fails closed.
+
+The `backend-production` environment requires
+`CONTACT_OPS_CODEX_BRIDGE_URL=https://macmini.taild33a67.ts.net/incheon-care-codex-bridge`.
+The workflow injects `CONTACT_OPS_CODEX_BRIDGE_TOKEN` directly from the
+`codex-bridge-token` Secret Manager secret; the bearer token is never stored in GitHub.
+
 ## Official references
 
 - [Vercel GitHub Actions deployment](https://vercel.com/docs/git/vercel-for-github#using-github-actions)

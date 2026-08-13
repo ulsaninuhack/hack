@@ -39,6 +39,7 @@ jobs:
             package-lock.json
             backend/package-lock.json
             voice/package-lock.json
+            macmini-llm-bridge/package-lock.json
 
       - name: Install frontend dependencies
         run: npm ci
@@ -109,6 +110,12 @@ jobs:
 
       - name: Test text/file voice contracts and golden sets
         run: npm --prefix voice test
+
+      - name: Install Mac mini Codex bridge dependencies
+        run: npm --prefix macmini-llm-bridge ci
+
+      - name: Test Mac mini Codex bridge boundaries
+        run: npm --prefix macmini-llm-bridge test
 
       - name: Build backend container
         run: docker build --file backend/Dockerfile --tag incheon-care-api:ci .
@@ -302,6 +309,7 @@ jobs:
       GCP_WORKLOAD_IDENTITY_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
       GCP_SERVICE_ACCOUNT: ${{ vars.GCP_SERVICE_ACCOUNT }}
       GCP_RUNTIME_SERVICE_ACCOUNT: ${{ vars.GCP_RUNTIME_SERVICE_ACCOUNT }}
+      CONTACT_OPS_CODEX_BRIDGE_URL: ${{ vars.CONTACT_OPS_CODEX_BRIDGE_URL }}
       REGISTRY_HOST: ${{ vars.GCP_REGION }}-docker.pkg.dev
       IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/${{ vars.GCP_ARTIFACT_REPOSITORY }}/api:${{ github.sha }}
 
@@ -322,6 +330,7 @@ jobs:
             GCP_WORKLOAD_IDENTITY_PROVIDER
             GCP_SERVICE_ACCOUNT
             GCP_RUNTIME_SERVICE_ACCOUNT
+            CONTACT_OPS_CODEX_BRIDGE_URL
           )
           for name in "${required[@]}"; do
             if [[ -z "${!name}" ]]; then
@@ -392,9 +401,12 @@ jobs:
             CONTACT_OPS_STATE_BACKEND=firestore
             CONTACT_OPS_FIRESTORE_COLLECTION=synthetic_contact_ops_sessions
             ENABLE_LIVE_CONTACT_OPS_AI=1
+            CONTACT_OPS_CODEX_BRIDGE_URL=${{ env.CONTACT_OPS_CODEX_BRIDGE_URL }}
+            CONTACT_OPS_CODEX_BRIDGE_TIMEOUT_MS=25000
           env_vars_update_strategy: overwrite
           secrets: |-
             OPENAI_API_KEY=openai-api-key:latest
+            CONTACT_OPS_CODEX_BRIDGE_TOKEN=codex-bridge-token:latest
             LIVEKIT_URL=livekit-url:latest
             LIVEKIT_API_KEY=livekit-api-key:latest
             LIVEKIT_API_SECRET=livekit-api-secret:latest
