@@ -256,15 +256,25 @@ export function createThreeTierService({
       );
       if (dongRecords.length === 0) throw new TypeError('dongCode is not a synthetic dong');
       const memory = memoryStore.forSession(sessionId);
+      const recordByCase = new Map(dongRecords.map((record) => [record.household.id, record]));
       const cards = dongRecords
         .map((record) => buildReportCard(record))
         .filter((card) => card !== null)
         .sort((left, right) => right.급성도_점수 - left.급성도_점수
           || left.case_id.localeCompare(right.case_id))
-        .map((card) => ({
-          ...card,
-          acknowledgement: currentAcknowledgement(memory, card),
-        }));
+        .map((card) => {
+          // 전화 확인 / 방문 확인 분리: 승인된 방문·방문 선호 업무의 보고는
+          // 방문 확인으로, 나머지는 전화 확인으로 흐른다.
+          const household = recordByCase.get(card.case_id).household;
+          const reportLane = household.workflow.visit_approval_status === 'approved'
+            || household.contact.preferred_contact_method === 'visit' ? 'visit' : 'phone';
+          return {
+            ...card,
+            report_lane: reportLane,
+            escalation: memory.escalations.get(card.case_id) ?? null,
+            acknowledgement: currentAcknowledgement(memory, card),
+          };
+        });
       const acknowledgedCount = cards.filter((card) => card.acknowledgement.status === '확인').length;
       const batches = buildAssignmentProposals({ records: dongRecords, workers, referenceDate, dongCode });
       const confirmedBatch = batches[0] ? applyConfirmation(batches[0], memory) : null;

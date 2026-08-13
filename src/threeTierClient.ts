@@ -39,6 +39,7 @@ export const ATTENTION_CONTACT_LABELS: ReadonlySet<string> = new Set([
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '')
 const SESSION_KEY = 'care-ops-demo-session-id'
+const SHARED_DEMO_SESSION_ID = 'incheon-care-shared-demo-floor'
 
 export const DEMO_CENTER_DONG_CODE = '2812551000'
 export const DEMO_CENTER_DONG_NAME = '신포동'
@@ -52,9 +53,9 @@ export function demoWorkerIdForDong(dongCode: string): string {
 function demoSessionId(): string {
   const existing = sessionStorage.getItem(SESSION_KEY)
   if (existing) return existing
-  const generated = `ui-demo-${crypto.randomUUID().replaceAll('-', '')}`
-  sessionStorage.setItem(SESSION_KEY, generated)
-  return generated
+  // 기본은 기기 간 공유 데모 세션. e2e·격리 시나리오는 sessionStorage 주입으로 덮어쓴다.
+  sessionStorage.setItem(SESSION_KEY, SHARED_DEMO_SESSION_ID)
+  return SHARED_DEMO_SESSION_ID
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -225,6 +226,9 @@ export interface ReportCard {
   }
   virtual_phone: VirtualPhone
   acknowledgement: ReportAcknowledgement
+  // center-inbox 응답에서만 채워진다: 전화/방문 확인 분리와 기관 연락 상태.
+  report_lane?: 'phone' | 'visit'
+  escalation?: CaseEscalation | null
 }
 
 export interface CaseEscalation {

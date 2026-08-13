@@ -180,14 +180,15 @@ export class ContactOpsClientError extends Error {
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '')
 const SESSION_KEY = 'care-ops-demo-session-id'
+const SHARED_DEMO_SESSION_ID = 'incheon-care-shared-demo-floor'
 
 function demoSessionId() {
   const existing = sessionStorage.getItem(SESSION_KEY)
   if (existing) return existing
-  const randomPart = crypto.randomUUID().replaceAll('-', '')
-  const value = `ui-demo-${randomPart}`
-  sessionStorage.setItem(SESSION_KEY, value)
-  return value
+  // 여러 기기(동 센터 데스크톱·조사원 모바일)가 같은 데모 상태를 봐야
+  // 파이프라인이 이어진다. 기본은 공유 세션, e2e는 sessionStorage로 격리한다.
+  sessionStorage.setItem(SESSION_KEY, SHARED_DEMO_SESSION_ID)
+  return SHARED_DEMO_SESSION_ID
 }
 
 function apiUrl(path: string) {

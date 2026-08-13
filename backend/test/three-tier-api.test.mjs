@@ -292,6 +292,9 @@ describe('three-tier center inbox and explicit confirmations (INV14)', () => {
     const card = inbox.body.data.report_cards[0];
     assert.deepEqual(inbox.body.data.report_cards.map((item) => item.등급), ['방문권고', '정상'],
       'inbox sorts report cards by acute score descending');
+    // 전화 확인 / 방문 확인 분리: 전화 업무 보고는 phone, 방문 선호 업무 보고는 visit
+    assert.deepEqual(inbox.body.data.report_cards.map((item) => item.report_lane), ['phone', 'visit']);
+    assert.deepEqual(inbox.body.data.report_cards.map((item) => item.escalation), [null, null]);
     assert.equal(card.등급, '방문권고');
     assert.equal(card.acknowledgement.status, '미확인');
     assert.ok(card.권고_기관.some((item) => item.기관 === '보건소·의료 연계'));
