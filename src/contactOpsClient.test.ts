@@ -9,7 +9,7 @@ describe('ContactOps API client', () => {
   it('uses the real today route and sends a stable demo session header', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(response({ synthetic: true, displayMarker: '[합성]', items: [] }))
     await loadTodayQueue()
-    expect(fetchMock).toHaveBeenCalledWith('/api/v1/contact-ops/today?referenceDate=2026-08-12&workerId=SYN-W-2812551000-01', expect.objectContaining({ headers: expect.objectContaining({ 'X-Demo-Session-ID': expect.stringMatching(/^ui-demo-/) }) }))
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/contact-ops/today?referenceDate=2026-08-12&workerId=SYN-W-2812551000-01', expect.objectContaining({ headers: expect.objectContaining({ 'X-Demo-Session-ID': 'incheon-care-shared-demo-floor' }) }))
   })
 
   it('posts canonical contact and manager decision bodies only to real operation routes', async () => {
@@ -30,7 +30,7 @@ describe('ContactOps API client', () => {
     }))
     await loadManagerBreadth()
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/contact-ops/manager-breadth', expect.objectContaining({
-      headers: expect.objectContaining({ 'X-Demo-Session-ID': expect.stringMatching(/^ui-demo-/) }),
+      headers: expect.objectContaining({ 'X-Demo-Session-ID': 'incheon-care-shared-demo-floor' }),
     }))
   })
 
@@ -40,7 +40,7 @@ describe('ContactOps API client', () => {
     }))
     await loadOperationsMap()
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/contact-ops/operations-map', expect.objectContaining({
-      headers: expect.objectContaining({ 'X-Demo-Session-ID': expect.stringMatching(/^ui-demo-/) }),
+      headers: expect.objectContaining({ 'X-Demo-Session-ID': 'incheon-care-shared-demo-floor' }),
     }))
   })
 })

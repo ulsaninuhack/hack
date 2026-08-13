@@ -76,6 +76,12 @@
       "state": "[검증 화면] empty 상태 · 연락업무 API 가로채기"
     },
     {
+      "file": "artifacts/screenshots/error-mobile.png",
+      "width": 390,
+      "height": 844,
+      "state": "[검증 화면] error 상태 · 연락업무 API 가로채기"
+    },
+    {
       "file": "artifacts/screenshots/empty-loading-error-mobile.png",
       "width": 390,
       "height": 844,

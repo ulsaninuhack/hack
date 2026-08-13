@@ -92,6 +92,8 @@ const reportCard: ReportCard = {
   },
   virtual_phone: virtualPhone,
   acknowledgement: { status: '미확인' },
+  report_lane: 'phone',
+  escalation: null,
 }
 
 const proposal: AssignmentProposal = {
@@ -197,8 +199,9 @@ describe('CenterPage (동 행정복지센터)', () => {
     expect(await screen.findByRole('heading', { name: /신포동 행정복지센터/ })).toBeInTheDocument()
     expect(document.body.textContent).not.toMatch(/SYN-HH-|\[합성\]/)
     const summary = screen.getByLabelText('오늘 처리 요약과 다음 행동')
-    expect(within(summary).getByText('보고 확인 대기')).toBeInTheDocument()
-    expect(within(summary).getByText('방문 검토 대기')).toBeInTheDocument()
+    expect(within(summary).getByText('전화 확인 대기')).toBeInTheDocument()
+    expect(within(summary).getByText('방문 확인 대기')).toBeInTheDocument()
+    expect(within(summary).getByText('방문 승격 대기')).toBeInTheDocument()
     const card = await screen.findByLabelText('김영자 어르신 보고 카드')
     expect(within(card).getByText('인천광역시 제물포구 답동로 7-2')).toBeInTheDocument()
     expect(within(card).getByText('방문권고')).toBeInTheDocument()
@@ -243,6 +246,31 @@ describe('CenterPage (동 행정복지센터)', () => {
     await waitFor(() => expect(mocks.confirmAssignment).toHaveBeenCalledWith({
       dongCode: '2812551000', referenceDate: '2026-08-12',
       confirmedBy: '동센터 담당자', caseIds: ['SYN-HH-2812551000-0002'],
+    }))
+  })
+
+  it('routes visit-lane reports to 방문 확인 with a 기관 연락 action', async () => {
+    arrange()
+    const user = userEvent.setup()
+    const withVisitReport = structuredClone(inbox)
+    withVisitReport.report_cards.push({
+      ...structuredClone(reportCard),
+      card_id: 'RPT-SYN-HH-2812551000-0002-r1',
+      case_id: 'SYN-HH-2812551000-0002',
+      display_name: '이순자',
+      report_lane: 'visit',
+      등급: '정상',
+    })
+    mocks.loadCenterInbox.mockResolvedValue(withVisitReport)
+    render(<CenterPage />)
+    const visitSection = (await screen.findByRole('heading', { name: '방문 확인' })).closest('section') as HTMLElement
+    const visitCard = within(visitSection).getByLabelText('이순자 어르신 보고 카드')
+    const phoneSection = screen.getByRole('heading', { name: '전화 확인' }).closest('section') as HTMLElement
+    expect(within(phoneSection).getByLabelText('김영자 어르신 보고 카드')).toBeInTheDocument()
+    expect(within(phoneSection).queryByLabelText('이순자 어르신 보고 카드')).toBeNull()
+    await user.click(within(visitCard).getByRole('button', { name: '기관 연락' }))
+    await waitFor(() => expect(mocks.escalateCase).toHaveBeenCalledWith({
+      caseId: 'SYN-HH-2812551000-0002', reportedBy: '동센터 담당자',
     }))
   })
 

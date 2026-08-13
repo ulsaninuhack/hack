@@ -837,3 +837,8 @@ select:focus-visible,
 .center-page .escalate-one:hover { background: #fde3e5; }
 .center-page .escalate-one:active { transform: scale(0.95); }
 .center-page .escalate-one:disabled { opacity: 0.5; cursor: default; }
+
+/* /center — 보고 카드 기관 연락 액션 */
+.center-page .report-actions .report-escalate { background: #fef2f2; color: #d31530; border: 1px solid #f5c2c7; }
+.center-page .report-actions .report-escalate:hover { background: #fde3e5; }
+.center-page .report-actions .assignment-escalated { font-size: 14px; }

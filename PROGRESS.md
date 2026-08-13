@@ -514,3 +514,17 @@ hostile follow-up, commit, preview, and blockers. Existing entries are never rew
 - 직전 커밋의 "조사원 화면 이동" 링크 버튼은 컨셉 폐기로 제거.
 - 검증: 백엔드 커버리지 게이트(97.24/90.72/100), 프런트 61, copy 게이트,
   빌드, E2E 5/5 그린(골든 재작성: 자동 배정·방문 일괄 확인·신고 버튼).
+
+## 2026-08-13 — 전화 확인·방문 확인 실데이터 연동 + 공유 데모 세션
+
+- 세션 격리 때문에 조사원 모바일 제출이 센터 데스크톱에 안 보이던 문제 해결:
+  두 클라이언트 모두 기본 세션을 공유 데모 세션(incheon-care-shared-demo-floor)
+  으로 통일. e2e·격리 시나리오는 기존처럼 sessionStorage 주입으로 덮어씀.
+- center-inbox 보고 카드에 report_lane(phone/visit)·escalation 상태를 부여해
+  /center를 전화 확인 / 방문 확인 / 방문 승격 세 섹션으로 재구성. 워딩 변경
+  (보고 확인→전화 확인, 방문 검토→방문 승격) 및 카드에 [기관 연락] 액션 추가.
+- 조사원이 /m에서 제출(POST contact-results)하면 센터 GET center-inbox에 즉시
+  반영 — 목데이터 아님을 명시. 위험 신호 카드는 방문 승격(기존 승인 플로우)
+  또는 기관 연락(escalations POST)으로 처리.
+- 검증: 백엔드 커버리지 게이트(97.33/90.9/100), 프런트 62, copy 게이트, 빌드,
+  E2E 5/5 그린.
