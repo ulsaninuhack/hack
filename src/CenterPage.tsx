@@ -234,7 +234,12 @@ function ProposalRow({
         </>}
       </dl>
       {item.lane === 'visit' && item.급성도_기여내역.length > 0 && <ul className="mobile-acute-contributions" aria-label="급성도 주요 기여내역">
-        {item.급성도_기여내역.map((entry) => <li key={entry.코드}>{entry.근거} · +{formatScore(entry.가산점)}점</li>)}
+        {item.급성도_기여내역.map((entry) => (
+          <li key={entry.코드}>
+            <span className="acute-reason">{entry.근거}</span>
+            <strong className="acute-points">+{formatScore(entry.가산점)}점</strong>
+          </li>
+        ))}
       </ul>}
       {item.adjustment_flags.length > 0 && (
         <p className="assignment-flags" role="note">조정 필요: {item.adjustment_flags.map((flag) => ({

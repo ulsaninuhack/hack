@@ -143,7 +143,7 @@ Every backend production revision applies:
 | Ingress | `all` |
 | Runtime identity | dedicated runtime service account |
 | `CORS_ORIGINS` | `https://incheon-care-map.vercel.app` |
-| `RATE_LIMIT_PER_MINUTE` | `30` |
+| `RATE_LIMIT_PER_MINUTE` | `350` |
 
 Realtime calls additionally require four Cloud Run runtime secrets. The standard OpenAI
 key remains shared with the existing Planner-Critic runtime; LiveKit credentials never
@@ -167,8 +167,10 @@ The deployment uses the Cloud Run action's `overwrite` environment-variable
 strategy. Each revision therefore receives exactly the application variables
 declared by this workflow instead of retaining stale revision-level variables.
 
-`RATE_LIMIT_PER_MINUTE=30` is a coarse in-process, per-instance demo limit. The
-maximum of two instances is a cost ceiling, not a distributed abuse-control layer.
+`RATE_LIMIT_PER_MINUTE=350` is a coarse in-process, per-instance demo limit. With two
+warm instances the aggregate ceiling can approach 700 requests per minute, but traffic
+distribution and autoscaling mean this is not a guaranteed shared quota. The maximum
+of two instances is a cost ceiling, not a distributed abuse-control layer.
 Add an edge-level distributed limit before opening the API to sustained untrusted
 traffic.
 
