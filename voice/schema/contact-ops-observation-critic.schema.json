@@ -11,7 +11,7 @@
   "properties": {
     "missing_fields": {
       "type": "array",
-      "items": { "type": "string", "minLength": 1 }
+      "items": { "$ref": "#/$defs/observationField" }
     },
     "contradictions": {
       "type": "array",
@@ -19,7 +19,7 @@
     },
     "low_confidence_fields": {
       "type": "array",
-      "items": { "type": "string", "minLength": 1 }
+      "items": { "$ref": "#/$defs/observationField" }
     },
     "warnings": {
       "type": "array",
@@ -30,6 +30,25 @@
       "minLength": 2,
       "maxLength": 160,
       "pattern": "^[^\\r\\n?]{1,159}\\?$"
+    }
+  },
+  "$defs": {
+    "observationField": {
+      "type": "string",
+      "enum": [
+        "관찰_6징후.우편물_고지서_적체",
+        "관찰_6징후.악취_벌레",
+        "관찰_6징후.쓰레기_술병",
+        "관찰_6징후.인기척_없이_TV_불",
+        "관찰_6징후.외출_없음",
+        "관찰_6징후.연락_두절",
+        "식사상태",
+        "위생상태",
+        "공과금_2개월_이상_체납",
+        "최근_건강_정신_괴로움",
+        "관계망_유무",
+        "연락_빈도"
+      ]
     }
   }
 }

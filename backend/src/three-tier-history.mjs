@@ -124,10 +124,22 @@ const SUMMARY_SYSTEM_PROMPT = [
   '기록에 없는 사실, 위험 평가, 미래 예측, 점수는 절대 쓰지 마세요.',
 ].join(' ');
 
+function rawResponseOutputText(payload) {
+  if (!payload || typeof payload !== 'object' || !Array.isArray(payload.output)) return null;
+  const parts = payload.output.flatMap((item) => (
+    item?.type === 'message' && Array.isArray(item.content)
+      ? item.content
+        .filter((part) => part?.type === 'output_text' && typeof part.text === 'string')
+        .map((part) => part.text)
+      : []
+  ));
+  return parts.length === 0 ? null : parts.join('');
+}
+
 export function createHistorySummarizer({
   apiKey = null,
   fetchImpl = globalThis.fetch,
-  model = 'gpt-4o-mini',
+  model = 'gpt-5.6-luna',
   timeoutMs = 6000,
 } = {}) {
   return Object.freeze({
@@ -139,15 +151,14 @@ export function createHistorySummarizer({
       };
       if (!apiKey || history.entries.length === 0) return fallback;
       try {
-        const response = await fetchImpl('https://api.openai.com/v1/chat/completions', {
+        const response = await fetchImpl('https://api.openai.com/v1/responses', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
           signal: AbortSignal.timeout(timeoutMs),
           body: JSON.stringify({
             model,
-            temperature: 0.2,
-            max_tokens: 220,
-            messages: [
+            reasoning: { effort: 'none' },
+            input: [
               { role: 'system', content: SUMMARY_SYSTEM_PROMPT },
               {
                 role: 'user',
@@ -157,9 +168,9 @@ export function createHistorySummarizer({
                 }),
               },
             ],
-            response_format: {
-              type: 'json_schema',
-              json_schema: {
+            text: {
+              format: {
+                type: 'json_schema',
                 name: 'history_summary',
                 strict: true,
                 schema: {
@@ -170,11 +181,12 @@ export function createHistorySummarizer({
                 },
               },
             },
+            store: false,
           }),
         });
         if (!response.ok) return fallback;
         const payload = await response.json();
-        const summary = JSON.parse(payload.choices?.[0]?.message?.content ?? '{}').summary;
+        const summary = JSON.parse(rawResponseOutputText(payload) ?? '{}').summary;
         if (typeof summary !== 'string' || summary.trim() === '' || summary.length > 600
             || FORBIDDEN_SUMMARY_PATTERN.test(summary)) {
           return fallback;

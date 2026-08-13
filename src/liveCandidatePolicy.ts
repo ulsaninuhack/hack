@@ -23,6 +23,21 @@ export function restrictLiveCandidateToPhoneEvidence(candidate: VoiceCandidate):
 }
 
 type LiveQuestionCandidate = Pick<VoiceCandidate, 'observations' | 'critic'>
+type CandidateScalarField = Exclude<keyof VoiceCandidate['observations'], '관찰_6징후'>
+
+/**
+ * Keep a populated Planner value visible when Critic wants a second look.
+ * Missing values already render as `미확인`, so they do not also get a
+ * pending marker.
+ */
+export function isCandidateValuePending(
+  candidate: LiveQuestionCandidate,
+  field: CandidateScalarField,
+): boolean {
+  return candidate.observations[field] !== null
+    && !candidate.critic.missing_fields.includes(field)
+    && candidate.critic.low_confidence_fields.includes(field)
+}
 
 /**
  * Keep the call moving through facts that are still unknown. A concrete

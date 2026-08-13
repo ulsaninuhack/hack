@@ -74,21 +74,28 @@ LiveKit participant token in browser history, share previews, or Vercel request 
 Operations mutations require `X-Demo-Session-ID` (16–128 opaque alphanumeric, `_`, or
 `-` characters) and optimistic `expected_revision`. The AI endpoint first produces a
 non-authoritative candidate with Critic arrays and one nullable next-confirmation question;
-candidate generation does not mutate state. Ambiguous meal wording cannot become a meal grade until
-the field worker confirms a concrete answer.
+candidate generation does not mutate state. Luna Planner is the source of semantic observation
+values. Deterministic code validates schema/enums, removes server-owned fields, enforces phone-only
+observation limits, and keeps the candidate unconfirmed; it does not reinterpret meal or utility
+status with local regex rules. Ambiguous or conflicting meal wording is surfaced through the
+parallel Luna Critic result. If Critic names exact `low_confidence_fields`, the UI keeps non-null
+Planner values and may display `(보류)` beside them; `null` values still display as `미확인`.
+Direct select edits clear the marker. That marker does not block submission by itself, because the
+field worker reviews and edits before confirming.
 Only an explicit confirmation request can feed the validated canonical observations into
 the existing deterministic rules. It cannot approve a visit or complete an institution
 transfer.
 
-Live Planner/Critic calls are fail-closed unless `ENABLE_LIVE_CONTACT_OPS_AI=1` and one text
-transport is configured: either the authenticated `CONTACT_OPS_CODEX_BRIDGE_URL` plus bearer
-token, or `OPENAI_API_KEY`. Bridge configuration takes precedence. When both are configured,
-network errors, timeouts, HTTP 503/504, and non-JSON gateway 502 responses retry through the same `OPENAI_API_KEY` already used for
-WAV/MP3/M4A transcription. Authentication, rate-limit, model-output, and response-contract failures
-remain closed rather than being masked by fallback.
-CI proves the graph and bridge boundaries with deterministic clients; it does not prove live-model
-quality or home-network availability. Secrets belong in Google Secret Manager and public exposure
-must stay bounded by the configured request limit.
+Live Planner/Critic calls are fail-closed unless `ENABLE_LIVE_CONTACT_OPS_AI=1` and
+`OPENAI_API_KEY` are configured. Text analysis uses the direct OpenAI Responses API only; stale
+`CONTACT_OPS_CODEX_BRIDGE_*` settings are ignored. The production deploy sets
+`OPENAI_VOICE_TEXT_MODEL=gpt-5.6-luna`, `OPENAI_CONTACT_OPS_CRITIC_MODEL=gpt-5.6-luna`, and both
+reasoning effort variables to `none`. Planner and transcript Critic start concurrently, then the
+server merges the structured outputs into the same confirmation-required candidate boundary.
+Authentication, rate-limit, model-output, and response-contract failures remain closed.
+CI proves the graph and direct OpenAI transport boundary with deterministic clients; it does not
+prove live-model quality or telephone-audio accuracy. Secrets belong in Google Secret Manager and
+public exposure must stay bounded by the configured request limit.
 
 From the repository root:
 

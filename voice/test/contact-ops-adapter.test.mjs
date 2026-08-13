@@ -153,7 +153,7 @@ test('Critic exposes missing and low-confidence fields instead of silently conve
   assert.equal(result.critic.next_question, null);
 });
 
-test('reduced-meal speech becomes a poor-meal candidate and keeps one severity question', async () => {
+test('Planner meal semantics stay authoritative for reduced-meal speech', async () => {
   const transcript = '요즘 밥을 잘 못 먹어요.';
   const result = await planContactOpsObservation(
     { kind: 'text', text: transcript, surveyorId: SURVEYOR_ID, caseId: ROUTE_CASE_ID },
@@ -168,18 +168,55 @@ test('reduced-meal speech becomes a poor-meal candidate and keeps one severity q
     },
   );
 
-  assert.equal(result.observations.식사상태, '불량');
+  assert.equal(result.observations.식사상태, '심각');
   assert.ok(!result.critic.missing_fields.includes('식사상태'));
-  assert.ok(result.critic.warnings.includes('직접적인 결식 발화는 불량 후보로 두고 지속 정도를 추가 확인함'));
-  assert.equal(
-    result.critic.next_question,
-    '오늘 식사를 한 끼도 하지 못한 건가요, 아니면 평소보다 양이 줄어든 건가요?',
-  );
+  assert.equal(result.critic.next_question, null);
   assert.equal(result.requires_user_confirmation, true);
   assert.equal(result.confirmed, false);
 });
 
-test('explicit repeated no-meal speech becomes at least a poor-meal candidate even when Planner misses it', async () => {
+test('Luna meal semantics stay authoritative when a Korean clause heuristic would disagree', async () => {
+  const transcript = '요즘 밥을 잘 못 먹어요.';
+  const result = await planContactOpsObservation(
+    { kind: 'text', text: transcript, surveyorId: SURVEYOR_ID, caseId: ROUTE_CASE_ID },
+    {
+      plannerClient: mockPlanner(plannerOutput({
+        transcript,
+        caseId: null,
+        observation: { meal_status: '심각', hygiene: null },
+        riskSignals: [],
+        freeText: '식사 상태가 심각하다고 판단함',
+      })),
+    },
+  );
+
+  assert.equal(result.observations.식사상태, '심각');
+  assert.equal(result.critic.next_question, null);
+  assert.equal(result.requires_user_confirmation, true);
+  assert.equal(result.confirmed, false);
+});
+
+test('Luna utility semantics stay authoritative instead of transcript regex inference', async () => {
+  const transcript = '공과금을 못 냈어요.';
+  const result = await planContactOpsObservation(
+    { kind: 'text', text: transcript, surveyorId: SURVEYOR_ID, caseId: ROUTE_CASE_ID },
+    {
+      plannerClient: mockPlanner(plannerOutput({
+        transcript,
+        caseId: null,
+        observation: { meal_status: null, hygiene: null },
+        riskSignals: ['공과금 체납 없음'],
+        freeText: '',
+      })),
+    },
+  );
+
+  assert.equal(result.observations.공과금_2개월_이상_체납, false);
+  assert.equal(result.requires_user_confirmation, true);
+  assert.equal(result.confirmed, false);
+});
+
+test('does not invent meal status when Planner leaves explicit no-meal speech unknown', async () => {
   const transcript = [
     '어, 나 밥도 못 먹고 친구도 없어. 나가지도 않고 씻지도 않았고.',
     '어, 나 밥 안 먹고 요새 안 먹고 있어.',
@@ -198,17 +235,14 @@ test('explicit repeated no-meal speech becomes at least a poor-meal candidate ev
     },
   );
 
-  assert.equal(result.observations.식사상태, '불량');
-  assert.ok(!result.critic.missing_fields.includes('식사상태'));
-  assert.equal(
-    result.critic.next_question,
-    '오늘 식사를 한 끼도 하지 못한 건가요, 아니면 평소보다 양이 줄어든 건가요?',
-  );
+  assert.equal(result.observations.식사상태, null);
+  assert.ok(result.critic.missing_fields.includes('식사상태'));
+  assert.equal(result.critic.next_question, null);
   assert.equal(result.requires_user_confirmation, true);
   assert.equal(result.confirmed, false);
 });
 
-test('unpaid utility speech becomes a generic arrears candidate even when Planner omits the signal', async () => {
+test('does not invent utility arrears when Planner leaves bill speech unknown', async () => {
   const transcript = '밥도 안 먹고 있고 씻지도 않고 있고 공과금도 안 내고 있고 돈도 없고.';
   const result = await planContactOpsObservation(
     { kind: 'text', text: transcript, surveyorId: SURVEYOR_ID, caseId: ROUTE_CASE_ID },
@@ -223,15 +257,15 @@ test('unpaid utility speech becomes a generic arrears candidate even when Planne
     },
   );
 
-  assert.equal(result.observations.식사상태, '불량');
+  assert.equal(result.observations.식사상태, null);
   assert.equal(result.observations.위생상태, '불량');
-  assert.equal(result.observations.공과금_2개월_이상_체납, true);
-  assert.ok(!result.critic.missing_fields.includes('공과금_2개월_이상_체납'));
+  assert.equal(result.observations.공과금_2개월_이상_체납, null);
+  assert.ok(result.critic.missing_fields.includes('공과금_2개월_이상_체납'));
   assert.equal(result.requires_user_confirmation, true);
   assert.equal(result.confirmed, false);
 });
 
-test('paid or immediately corrected utility speech does not become an arrears candidate', async () => {
+test('Planner paid-utility signal maps to no arrears without transcript heuristics', async () => {
   for (const transcript of [
     '공과금을 안 낸 건 아니고 이번 달 것도 제때 냈어요.',
     '전기세가 밀린 건 아니고 모두 납부했어요.',
@@ -243,7 +277,7 @@ test('paid or immediately corrected utility speech does not become an arrears ca
           transcript,
           caseId: null,
           observation: { meal_status: null, hygiene: null },
-          riskSignals: [],
+          riskSignals: ['공과금 체납 없음'],
           freeText: '',
         })),
       },
@@ -253,18 +287,16 @@ test('paid or immediately corrected utility speech does not become an arrears ca
   }
 });
 
-test('utility arrears analyzer keeps one unpaid bill and ignores unrelated or exempt statements', async () => {
+test('maps only Planner utility risk signals into the canonical checklist', async () => {
   const fixtures = [
-    ['전기세는 밀렸지만 수도세는 제때 냈어요.', true],
-    ['공과금을 못 냈어요.', true],
-    ['공과금을 안 냈어요.', true],
-    ['전기세 밀린 건 아니고 수도세는 못 냈어요.', true],
-    ['수도세는 면제인데 전기세를 못 냈어요.', true],
-    ['공과금이 비싸서 걱정이에요.', null],
-    ['공과금은 지원 대상이라 안 내도 된대요.', null],
-    ['공과금을 안 내면 안 돼요.', null],
+    [['공과금 체납 있음'], true],
+    [['공과금 2개월 이상 체납 있음'], true],
+    [['공과금 체납 없음'], false],
+    [[], null],
+    [['공과금 체납 있음', '공과금 체납 없음'], null],
   ];
-  for (const [transcript, expected] of fixtures) {
+  for (const [riskSignals, expected] of fixtures) {
+    const transcript = '공과금 상태를 확인했습니다.';
     const result = await planContactOpsObservation(
       { kind: 'text', text: transcript, surveyorId: SURVEYOR_ID, caseId: ROUTE_CASE_ID },
       {
@@ -272,18 +304,18 @@ test('utility arrears analyzer keeps one unpaid bill and ignores unrelated or ex
           transcript,
           caseId: null,
           observation: { meal_status: null, hygiene: null },
-          riskSignals: [],
+          riskSignals,
           freeText: '',
         })),
       },
     );
 
-    assert.equal(result.observations.공과금_2개월_이상_체납, expected, transcript);
+    assert.equal(result.observations.공과금_2개월_이상_체납, expected, JSON.stringify(riskSignals));
     if (expected === true) assert.equal(result.contact_result, 'connected_concern');
   }
 });
 
-test('explicit all-day or multi-day no-meal speech becomes serious even when Planner misses it', async () => {
+test('preserves Planner serious meal judgment for explicit no-meal speech', async () => {
   for (const transcript of ['오늘 한 끼도 못 먹었어요.', '이틀째 밥을 안 먹었어요.']) {
     const result = await planContactOpsObservation(
       { kind: 'text', text: transcript, surveyorId: SURVEYOR_ID, caseId: ROUTE_CASE_ID },
@@ -291,7 +323,7 @@ test('explicit all-day or multi-day no-meal speech becomes serious even when Pla
         plannerClient: mockPlanner(plannerOutput({
           transcript,
           caseId: null,
-          observation: { meal_status: null, hygiene: null },
+          observation: { meal_status: '심각', hygiene: null },
           riskSignals: [],
           freeText: '',
         })),
@@ -302,6 +334,25 @@ test('explicit all-day or multi-day no-meal speech becomes serious even when Pla
     assert.ok(!result.critic.missing_fields.includes('식사상태'), transcript);
     assert.equal(result.critic.next_question, null, transcript);
   }
+});
+
+test('preserves Planner meal judgment when duration follows the verb', async () => {
+  const transcript = '밥을 못 먹은 지 며칠 됐어.';
+  const result = await planContactOpsObservation(
+    { kind: 'text', text: transcript, surveyorId: SURVEYOR_ID, caseId: ROUTE_CASE_ID },
+    {
+      plannerClient: mockPlanner(plannerOutput({
+        transcript,
+        caseId: null,
+        observation: { meal_status: '심각', hygiene: null },
+        riskSignals: [],
+        freeText: '',
+      })),
+    },
+  );
+
+  assert.equal(result.observations.식사상태, '심각');
+  assert.ok(!result.critic.missing_fields.includes('식사상태'));
 });
 
 test('cooking-only speech does not become a meal-status candidate', async () => {
@@ -378,7 +429,7 @@ test('Critic does not ask a redundant question when the meal severity is explici
   assert.equal(result.critic.next_question, null);
 });
 
-test('Critic preserves conflicting meal statements and asks one time-scope clarification', async () => {
+test('Critic marks a Planner meal value pending without overwriting it', async () => {
   const transcript = '오늘 아무것도 못 먹었어요. 아침에는 죽을 조금 먹었죠.';
   const result = await planContactOpsObservation(
     { kind: 'text', text: transcript, surveyorId: SURVEYOR_ID, caseId: ROUTE_CASE_ID },
@@ -389,10 +440,17 @@ test('Critic preserves conflicting meal statements and asks one time-scope clari
         observation: { meal_status: '심각', hygiene: null },
         riskSignals: ['식사 심각'],
       })),
+      critic: async () => ({
+        missing_fields: [],
+        contradictions: ['식사 발화가 서로 달라 추가 확인이 필요함'],
+        low_confidence_fields: ['식사상태'],
+        warnings: ['식사 값은 유지하고 사용자 확인을 기다림'],
+        next_question: '오늘은 조금 드셨지만 그 전에는 식사를 거의 못 하셨다는 뜻인가요?',
+      }),
     },
   );
 
-  assert.equal(result.observations.식사상태, null);
+  assert.equal(result.observations.식사상태, '심각');
   assert.ok(result.critic.contradictions.includes('식사 발화가 서로 달라 추가 확인이 필요함'));
   assert.ok(result.critic.low_confidence_fields.includes('식사상태'));
   assert.equal(
@@ -481,8 +539,8 @@ test('selected-case memo context maps AI social-isolation signals into the canon
   assert.equal(result.case_id, ROUTE_CASE_ID);
   assert.equal(result.contact_result, 'connected_concern');
   assert.equal(result.observations.관찰_6징후.외출_없음, true);
-  assert.equal(result.observations.식사상태, '불량');
-  assert.equal(result.critic.next_question, '오늘 식사를 한 끼도 하지 못한 건가요, 아니면 평소보다 양이 줄어든 건가요?');
+  assert.equal(result.observations.식사상태, '심각');
+  assert.equal(result.critic.next_question, null);
   assert.equal(result.observations.공과금_2개월_이상_체납, true);
   assert.equal(result.observations.최근_건강_정신_괴로움, true);
   assert.equal(result.observations.관계망_유무, '없음');
@@ -690,6 +748,139 @@ test('the live gate adds a second Structured Outputs Critic node without exposin
     if (previous === undefined) delete process.env.ENABLE_LIVE_CONTACT_OPS_AI;
     else process.env.ENABLE_LIVE_CONTACT_OPS_AI = previous;
   }
+});
+
+test('live Planner and transcript Critic start together on GPT-5.6 Luna', async () => {
+  const previousGate = process.env.ENABLE_LIVE_CONTACT_OPS_AI;
+  const previousPlannerModel = process.env.OPENAI_VOICE_TEXT_MODEL;
+  const previousCriticModel = process.env.OPENAI_CONTACT_OPS_CRITIC_MODEL;
+  process.env.ENABLE_LIVE_CONTACT_OPS_AI = '1';
+  delete process.env.OPENAI_VOICE_TEXT_MODEL;
+  delete process.env.OPENAI_CONTACT_OPS_CRITIC_MODEL;
+
+  const transcript = `${ROUTE_CASE_ID} 연락은 됐지만 상태는 잘 모르겠어요.`;
+  let plannerRequest;
+  let criticRequest;
+  let resolvePlanner;
+  let resolveCritic;
+  const plannerResponse = new Promise((resolve) => { resolvePlanner = resolve; });
+  const criticResponse = new Promise((resolve) => { resolveCritic = resolve; });
+
+  const pending = planContactOpsObservation(
+    { kind: 'text', text: transcript, surveyorId: SURVEYOR_ID, caseId: ROUTE_CASE_ID },
+    {
+      plannerClient: {
+        responses: {
+          create(request) {
+            plannerRequest = request;
+            return plannerResponse;
+          },
+        },
+      },
+      criticClient: {
+        responses: {
+          create(request) {
+            criticRequest = request;
+            return criticResponse;
+          },
+        },
+      },
+    },
+  );
+
+  await new Promise((resolve) => setImmediate(resolve));
+  const startedTogether = plannerRequest !== undefined && criticRequest !== undefined;
+  resolvePlanner({
+    status: 'completed',
+    output_text: JSON.stringify(plannerOutput({ transcript })),
+  });
+  resolveCritic({
+    status: 'completed',
+    output_text: JSON.stringify({
+      missing_fields: ['최근_건강_정신_괴로움'],
+      contradictions: [],
+      low_confidence_fields: ['식사상태'],
+      warnings: ['발화 근거를 사용자가 확인해야 함'],
+      next_question: '오늘 식사는 평소와 같았나요, 아니면 양이 줄었나요?',
+    }),
+  });
+
+  try {
+    const result = await pending;
+    assert.equal(startedTogether, true, 'Planner and Critic must both start before either resolves');
+    assert.equal(plannerRequest.model, 'gpt-5.6-luna');
+    assert.equal(criticRequest.model, 'gpt-5.6-luna');
+    assert.deepEqual(plannerRequest.reasoning, { effort: 'none' });
+    assert.deepEqual(criticRequest.reasoning, { effort: 'none' });
+    assert.deepEqual(JSON.parse(criticRequest.input[1].content), {
+      case_id: ROUTE_CASE_ID,
+      surveyor_id: SURVEYOR_ID,
+      source_kind: 'text',
+      transcript,
+    });
+    assert.ok(result.critic.warnings.includes('발화 근거를 사용자가 확인해야 함'));
+  } finally {
+    if (previousGate === undefined) delete process.env.ENABLE_LIVE_CONTACT_OPS_AI;
+    else process.env.ENABLE_LIVE_CONTACT_OPS_AI = previousGate;
+    if (previousPlannerModel === undefined) delete process.env.OPENAI_VOICE_TEXT_MODEL;
+    else process.env.OPENAI_VOICE_TEXT_MODEL = previousPlannerModel;
+    if (previousCriticModel === undefined) delete process.env.OPENAI_CONTACT_OPS_CRITIC_MODEL;
+    else process.env.OPENAI_CONTACT_OPS_CRITIC_MODEL = previousCriticModel;
+  }
+});
+
+test('a failed live Critic keeps the successful Planner candidate and marks its values pending', async () => {
+  const previousGate = process.env.ENABLE_LIVE_CONTACT_OPS_AI;
+  process.env.ENABLE_LIVE_CONTACT_OPS_AI = '1';
+  const transcript = '밥을 며칠째 못 먹었고 공과금도 밀렸어요.';
+
+  try {
+    const result = await planContactOpsObservation(
+      { kind: 'text', text: transcript, surveyorId: SURVEYOR_ID, caseId: ROUTE_CASE_ID },
+      {
+        plannerClient: mockPlanner(plannerOutput({
+          transcript,
+          caseId: null,
+          observation: { meal_status: '심각', hygiene: null },
+          riskSignals: ['공과금 체납 있음'],
+        })),
+        criticClient: {
+          responses: { create: async () => { throw new Error('429'); } },
+        },
+      },
+    );
+
+    assert.equal(result.observations.식사상태, '심각');
+    assert.equal(result.observations.공과금_2개월_이상_체납, true);
+    assert.ok(result.critic.low_confidence_fields.includes('식사상태'));
+    assert.ok(result.critic.low_confidence_fields.includes('공과금_2개월_이상_체납'));
+    assert.ok(result.critic.warnings.includes('Critic 검토를 완료하지 못해 AI 후보 값을 직접 확인해야 함'));
+    assert.equal(result.requires_user_confirmation, true);
+    assert.equal(result.confirmed, false);
+  } finally {
+    if (previousGate === undefined) delete process.env.ENABLE_LIVE_CONTACT_OPS_AI;
+    else process.env.ENABLE_LIVE_CONTACT_OPS_AI = previousGate;
+  }
+});
+
+test('Critic field lists reject non-canonical labels that cannot drive the pending UI', async () => {
+  const transcript = '밥을 잘 못 먹어요.';
+  await assert.rejects(
+    planContactOpsObservation(
+      { kind: 'text', text: transcript, surveyorId: SURVEYOR_ID, caseId: ROUTE_CASE_ID },
+      {
+        plannerClient: mockPlanner(plannerOutput({ transcript })),
+        critic: async () => ({
+          missing_fields: [],
+          contradictions: [],
+          low_confidence_fields: ['식사 여부'],
+          warnings: [],
+          next_question: null,
+        }),
+      },
+    ),
+    ContactOpsAdapterError,
+  );
 });
 
 test('confirmation validator returns a detached clone and rejects client mutation or forbidden fields', async () => {

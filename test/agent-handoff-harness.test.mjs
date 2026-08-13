@@ -53,6 +53,13 @@ test('production voice AI uses Secret Manager behind a live gate and finite requ
 
   assert.match(workflow, /OPENAI_API_KEY=openai-api-key:latest/)
   assert.match(workflow, /ENABLE_LIVE_CONTACT_OPS_AI=1/)
+  assert.match(workflow, /OPENAI_VOICE_TEXT_MODEL=gpt-5\.6-luna/)
+  assert.match(workflow, /OPENAI_VOICE_TEXT_REASONING_EFFORT=none/)
+  assert.match(workflow, /OPENAI_CONTACT_OPS_CRITIC_MODEL=gpt-5\.6-luna/)
+  assert.match(workflow, /OPENAI_CONTACT_OPS_CRITIC_REASONING_EFFORT=none/)
+  assert.match(workflow, /secrets_update_strategy: overwrite/)
+  assert.doesNotMatch(workflow, /CONTACT_OPS_CODEX_BRIDGE/)
+  assert.doesNotMatch(workflow, /macmini-llm-bridge/)
   assert.doesNotMatch(workflow, /OPENAI_API_KEY=sk-/)
 
   const rateLimit = workflow.match(/RATE_LIMIT_PER_MINUTE=([0-9]+)/)

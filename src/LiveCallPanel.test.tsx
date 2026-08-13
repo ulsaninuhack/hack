@@ -167,7 +167,7 @@ describe('LiveCallPanel', () => {
         최근_건강_정신_괴로움: null, 관계망_유무: null, 연락_빈도: null,
       },
       critic: {
-        missing_fields: [], contradictions: [], low_confidence_fields: [], warnings: [],
+        missing_fields: [], contradictions: [], low_confidence_fields: ['식사상태'], warnings: [],
         next_question: '오늘 식사를 한 끼도 하지 못한 건가요, 아니면 평소보다 양이 줄어든 건가요?',
       },
     } satisfies Pick<VoiceCandidate, 'contact_result' | 'transcript' | 'observations' | 'critic'>
@@ -183,7 +183,7 @@ describe('LiveCallPanel', () => {
     expect(preview).not.toHaveTextContent('미확정')
     expect(preview).not.toHaveTextContent('근거 발화')
     expect(screen.getByText('식사 상태')).toBeInTheDocument()
-    expect(screen.getByText('불량')).toBeInTheDocument()
+    expect(screen.getByText('불량 (보류)')).toBeInTheDocument()
     expect(screen.getByText('최근 몸이 아프거나 마음이 힘든 일은 없으세요?')).toBeInTheDocument()
     expect(screen.queryByText(liveCandidate.critic.next_question)).toBeNull()
   })

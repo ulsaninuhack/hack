@@ -21,7 +21,7 @@
 
 트리아지 경계를 지키기 위해 `risk_score`는 발화에 숫자 점수가 직접 등장할 때만 옮기고 기본값은 `0`이다. `visit_recommended`도 연결단원이 방문 필요를 직접 권고·요청했을 때만 `true`다. 이 값은 방문 확정이 아니며 최종 규칙과 담당자 승인은 메인 시스템의 책임이다.
 
-ContactOps 확인 후보 `contact-ops-observation-candidate/v2`는 기존 음성 계약의 `risk_score`와 `visit_recommended`를 항상 제거하고 제거 내역만 남긴다. 미응답 연속 횟수, 재연락 기한, 점수, 방문 승인, 이관 완료, 경로 제약은 후보 스키마가 받지 않는 서버 소유 필드다. `위생상태: 심각`은 새 가중치를 만들지 않고 `불량`으로 매핑하며 Critic 경고를 남긴다. `요즘 밥을 잘 못 먹어요`처럼 등급 경계가 모호한 식사 표현은 식사 등급 후보를 `null`로 되돌리고, 한 문장의 `next_question`으로 구체적 사실을 다시 확인하게 한다. `오늘 아무것도 못 먹었다` 뒤에 `아침에는 죽을 조금 먹었다`가 이어지면 기존 값을 조용히 덮지 않고 식사 후보를 `null`로 유지한 채 모순과 시간 범위 확인 질문을 반환한다. 서로 다른 날짜가 명시된 경우에는 모순으로 만들지 않는다.
+ContactOps 확인 후보 `contact-ops-observation-candidate/v2`는 기존 음성 계약의 `risk_score`와 `visit_recommended`를 항상 제거하고 제거 내역만 남긴다. 미응답 연속 횟수, 재연락 기한, 점수, 방문 승인, 이관 완료, 경로 제약은 후보 스키마가 받지 않는 서버 소유 필드다. Luna Planner의 구조화 결과가 식사·위생·공과금 같은 의미 판단의 원본이다. 결정론 코드는 schema와 enum을 검증하고, 서버 소유 필드를 제거하고, 전화 발화만으로 자동 채울 수 없는 관찰 항목을 막고, 후보를 `confirmed: false` 경계에 둔다. 식사 모순·모호성·추가 확인 질문은 병렬 Luna Critic 결과를 후보에 합쳐 표시한다. Critic이 정확한 `low_confidence_fields` 항목으로 재확인을 요구하면 UI는 값이 있는 Planner 필드에만 `(보류)`를 붙인다. Critic 호출만 실패한 경우에도 Planner 후보를 유지하고 채워진 정규 필드를 모두 보류 처리한다. 값이 `null`이면 기존 `미확인` 표시를 유지한다. 조사원이 해당 select를 직접 변경하면 보류 표시는 해제된다. 보류 표시는 제출 강제 차단이 아니라 조사원의 검토·수정 신호다.
 
 ## 설치와 오프라인 테스트
 
@@ -51,15 +51,14 @@ npm run audio -- \
   --surveyor-id '연결단원 001'
 ```
 
-텍스트 Planner/Critic은 기본적으로 `OPENAI_API_KEY`를 쓰지만,
-`CONTACT_OPS_CODEX_BRIDGE_URL`과 32자 이상의 `CONTACT_OPS_CODEX_BRIDGE_TOKEN`을 설정하면
-인증된 Mac mini Codex 브리지를 우선 사용한다. 두 transport가 모두 설정된 경우에만 네트워크
-연결 실패, 타임아웃, HTTP 503/504 또는 본문 없는 게이트웨이 502에 기존 `OPENAI_API_KEY`를 재사용한다. 인증 실패, 사용량 제한,
-모델 출력 오류, 응답 계약 오류는 OpenAI로 가리지 않고 그대로 실패한다. 외부 브리지 URL은
-HTTPS만 허용한다. 운영 방법은
-[`../docs/MAC_MINI_CODEX_BRIDGE.md`](../docs/MAC_MINI_CODEX_BRIDGE.md)를 따른다.
-`OPENAI_VOICE_TEXT_MODEL`은 OpenAI text transport의 Structured Outputs 모델을 바꾼다.
-브리지 사용 시 실제 모델은 Mac mini의 `CODEX_BRIDGE_MODEL`이 결정한다.
+텍스트 Planner/Critic은 `OPENAI_API_KEY`로 OpenAI Responses API를 직접 호출한다.
+기본 Structured Outputs 모델은 `gpt-5.6-luna`이고 기본 reasoning effort는 `none`이다.
+`OPENAI_VOICE_TEXT_MODEL`, `OPENAI_VOICE_TEXT_REASONING_EFFORT`,
+`OPENAI_CONTACT_OPS_CRITIC_MODEL`, `OPENAI_CONTACT_OPS_CRITIC_REASONING_EFFORT`로 각각
+Planner와 Critic 설정을 바꿀 수 있다. 오래된 `CONTACT_OPS_CODEX_BRIDGE_*` 환경변수는
+무시된다. Mac mini Codex 브리지는 운영 경로에서 제거됐고
+[`../docs/MAC_MINI_CODEX_BRIDGE.md`](../docs/MAC_MINI_CODEX_BRIDGE.md)는 보관용 롤백
+문서다.
 
 파일 전사 모델은 `OPENAI_VOICE_TRANSCRIPTION_MODEL`로 바꾼다. 기본값은 `gpt-4o-mini-transcribe`이며 `whisper-1`, `gpt-4o-transcribe` 계열로 교체할 수 있다. 입력 언어 힌트는 `OPENAI_VOICE_TRANSCRIPTION_LANGUAGE`이고 기본값은 `ko`다. 이 어댑터는 제품 범위에 맞춰 WAV/MP3/M4A 정규 파일만 받으며, OpenAI 파일 전사 제한에 맞춰 25MB 이하만 허용한다. 구현은 OpenAI의 [파일 전사 가이드](https://developers.openai.com/api/docs/guides/speech-to-text)처럼 `audio.transcriptions.create`에 파일 스트림을 전달한다.
 
@@ -98,9 +97,9 @@ ContactOps는 `planContactOpsObservation(input, options)`로 텍스트 또는 �
 체크리스트의 `관계망_유무=없음`으로 변환한다. 발화에 다른 case ID가 명시되면
 선택된 case와의 불일치를 Critic에 남긴다.
 
-같은 정규 신호 방식으로 공과금 체납, 최근 건강·마음 괴로움, 관계망,
-평소 연락 빈도를 기존 체크리스트 후보에 채운다. AI가 별도 숫자 점수를 만들지는
-않는다. 조사원이 후보를 확인·제출하면 기존 결정론 점수표가 해당 항목을 계산한다.
+Planner가 구조화한 공과금 체납, 최근 건강·마음 괴로움, 관계망, 평소 연락 빈도를
+기존 체크리스트 후보에 채운다. AI가 별도 숫자 점수를 만들지는 않는다. 조사원이
+후보를 확인·제출하면 기존 결정론 점수표가 해당 항목을 계산한다.
 체크리스트로 바로 표현되지 않는 `free_text`는 모바일의 `기타 특이사항 확인`에
 노출해 조사원이 관련 항목을 수동으로 확인할 수 있게 한다.
 
@@ -130,9 +129,16 @@ npm run test:live
 
 `RUN_LIVE_WHISPER=1`이 설정된 이 명령만 실제 전사 API와 3a API를 호출한다. 전사 결과의 문구 일치는 단언하지 않고, 비어 있지 않은 마스킹 전사와 최종 계약 통과만 확인한다. `.env`, 원시 전사, 오디오 경로는 커밋하거나 로그로 남기지 않는다.
 
-ContactOps 실제 Planner–Critic 그래프는 `ENABLE_LIVE_CONTACT_OPS_AI=1`이 명시되고 OpenAI 또는 Mac mini text transport가 설정된 경우에만 열린다. Planner 호출 후 두 번째 Structured Outputs Critic 호출이 실행되며, Critic은 `missing_fields`, `contradictions`, `low_confidence_fields`, `warnings` 배열과 `next_question` 하나만 반환할 수 있다. 질문은 160자 이하의 단일 확인 질문 또는 `null`이며 점수·등급·진단·방문·이관·승인을 결정할 수 없다. 기본값 `0`에서는 외부 호출을 막고 주입된 모킹 Planner/Critic만 실행한다. 오디오 파일 전사는 브리지 대상이 아니므로 계속 `OPENAI_API_KEY`가 필요하다.
+ContactOps 실제 Planner–Critic 그래프는 `ENABLE_LIVE_CONTACT_OPS_AI=1`과
+`OPENAI_API_KEY`가 명시된 경우에만 열린다. Planner와 transcript Critic은 같은 누적
+전사문으로 동시에 시작하고, 둘 다 Structured Outputs를 `store: false`로 호출한다.
+Critic은 `missing_fields`, `contradictions`, `low_confidence_fields`, `warnings` 배열과
+`next_question` 하나만 반환할 수 있다. 질문은 160자 이하의 단일 확인 질문 또는
+`null`이며 점수·등급·진단·방문·이관·승인을 결정할 수 없다. 기본값 `0`에서는 외부
+호출을 막고 주입된 모킹 Planner/Critic만 실행한다. 오디오 파일 전사는 별도 OpenAI
+전사 어댑터를 사용하므로 계속 `OPENAI_API_KEY`가 필요하다.
 
-3c는 조사원과 연락 대상에게 각각 서버 서명 역할 토큰을 발급한다. 두 브라우저는 LiveKit으로 서로의 음성을 듣고, 각자 자기 마이크만 OpenAI Realtime 전사에 보낸다. 자막은 두 역할 모두 화면에 표시하지만 기존 3a/ContactOps 후보에는 연락 대상의 확정 발화만 전달한다. 확정 발화가 추가될 때 누적 전사문을 디바운스해 Planner–Critic 상태를 다시 계산하고, 통화 화면에는 체크리스트와 `next_question`을 `AI 후보 · 미확정`으로 스트리밍한다. 세션 로컬 근거 원장은 분석된 전사문에 실제 포함된 확정 발화 ID만 후보 항목에 연결한다. Critic이 식사 모순을 반환하면 두 발화를 모두 보존한 상충 카드가 표시된다. 늦게 끝난 과거 응답과 중복 확정 자막은 버리며, 확정 자막은 늦은 중간 자막으로 되돌아가지 않는다. 통화 종료 후 조사원이 체크리스트를 확인하고 제출해야 기존 결정론 점수와 보고가 실행된다. 폴백 순서는 3c 실패 시 3b 파일 업로드, 그다음 문답·수동 입력이다. 근거 원장은 브라우저 통화 세션의 읽기 전용 투영이며 서버 영속 그래프나 자동 확정 기록이 아니다.
+3c는 조사원과 연락 대상에게 각각 서버 서명 역할 토큰을 발급한다. 두 브라우저는 LiveKit으로 서로의 음성을 듣고, 각자 자기 마이크만 OpenAI Realtime 전사에 보낸다. 자막은 두 역할 모두 화면에 표시하지만 기존 3a/ContactOps 후보에는 연락 대상의 확정 발화만 전달한다. 확정 발화가 추가될 때 누적 전사문을 디바운스해 Planner–Critic 상태를 다시 계산하고, 통화 화면에는 체크리스트와 `next_question`을 `AI 후보 · 미확정`으로 스트리밍한다. 브라우저는 후보 갱신 요청을 앞단에서 병렬로 보낼 뿐 아니라 서버의 Planner/Critic도 병렬로 실행한다. 늦게 끝난 과거 성공은 이미 적용한 후보보다 오래된 경우에만 버리고, 최신 성공 후보는 이후 더 새 요청이 실패해도 유지한다. 세션 로컬 근거 원장은 분석된 전사문에 실제 포함된 확정 발화 ID만 후보 항목에 연결한다. Luna Critic이 식사 모순을 반환하면 두 발화를 모두 보존한 상충 카드가 표시된다. 중복 확정 자막은 버리며, 확정 자막은 늦은 중간 자막으로 되돌아가지 않는다. 통화 종료 후 조사원이 체크리스트를 확인하고 제출해야 기존 결정론 점수와 보고가 실행된다. 폴백 순서는 3c 실패 시 3b 파일 업로드, 그다음 문답·수동 입력이다. 근거 원장은 브라우저 통화 세션의 읽기 전용 투영이며 서버 영속 그래프나 자동 확정 기록이 아니다.
 
 `gpt-live-transcribe`를 전용 `type: transcription` 세션에서 쓰면서 `server_vad`를
 지정하면 `Turn detection is not supported for this transcription model.` 오류가 난다.

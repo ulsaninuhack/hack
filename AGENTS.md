@@ -21,8 +21,8 @@ publication. Do not confuse package publication protection with repository visib
 - `data/scripts/build_synthetic_residential_address_anchors.py`, `scripts/generate_synthetic_care_ops.py`, `data/schemas/synthetic-*.schema.json`, `backend/src/contact-ops.mjs`, `backend/scripts/demo-contact-ops.mjs`, and `docs/SYNTHETIC_CARE_OPS_DATA.md`: deterministic contact-first fixtures and rule-graph slice for 162 current dongs. The task locations use public residential-building address references and representative coordinates; the records remain synthetic operational tasks, not resident records.
 - `backend/src/contact-triage-scoring.mjs`, `data/schemas/contact-triage-*.schema.json`, and `docs/CONTACT_TRIAGE_SCORING.md`: separate acute/vulnerability operational scores, contribution traces, queue ordering, recommendation-only handoff, and a deterministic mild-signal accumulation audit. A composite score is prohibited.
 - `backend/src/contact-triage-synthetic-scenario.mjs`: fresh-session map preview selects one deterministic scenario example per current admin dong (162 examples covering 156 geometry zones). The UI labels it `데모 예시`; it is display-only and never observed resident data. The same module also builds one `demo_precontact_record` baseline per dong for center review; those 162 records are recommendation-only and must never create approval decisions or route constraints.
-- `voice/`: isolated Node 24 voice-input module. Stage 3a converts consented, PII-masked text to a fixed JSON contract through OpenAI or the authenticated Mac mini Responses-compatible transport. Stage 3b adds validated OpenAI WAV/MP3/M4A file transcription and immediately reuses 3a. The P3 adapter maps that output into a Critic-reviewed, confirmation-required ContactOps candidate. Stage 3c has an env-gated LiveKit browser call and OpenAI Realtime transcription adapter; guest sharing uses a short `/call?invite=...` code whose hash and non-personal room metadata are stored server-side before a resident token is issued. Only the contact target's finalized turns enter the existing candidate path, and explicit surveyor confirmation remains required.
-- `macmini-llm-bridge/`: bounded authenticated text transport backed by a persistent, locally logged-in `codex app-server`. It binds only to localhost, accepts only the two ContactOps schema names, validates model JSON, denies all tools/commands/network, and starts a fresh ephemeral thread per request. Tailscale Funnel is the intended TLS edge; SSH is administration only. Audio transcription and Realtime remain on their OpenAI adapters.
+- `voice/`: isolated Node 24 voice-input module. Stage 3a converts consented, PII-masked text to a fixed JSON contract through the direct OpenAI Responses API. The default production text model is `gpt-5.6-luna` with reasoning effort `none`. Stage 3b adds validated OpenAI WAV/MP3/M4A file transcription and immediately reuses 3a. The P3 adapter starts the Planner and transcript Critic concurrently, then maps the results into a Critic-reviewed, confirmation-required ContactOps candidate. Luna Planner output is the source of semantic observations such as meal and utility-arrears status; deterministic code validates schema/enums, removes server-owned fields, enforces phone-observation limits, and keeps the candidate unconfirmed. If Luna Critic names exact `low_confidence_fields`, UI may mark only non-null Planner values as `(보류)` but must not null them out or block submission solely for that reason; `null` still renders as `미확인`, and direct select edits clear the hold marker. Stage 3c has an env-gated LiveKit browser call and OpenAI Realtime transcription adapter; guest sharing uses a short `/call?invite=...` code whose hash and non-personal room metadata are stored server-side before a resident token is issued. Only the contact target's finalized turns enter the existing candidate path, and explicit surveyor confirmation remains required.
+- `macmini-llm-bridge/`: retired text transport backed by a persistent, locally logged-in `codex app-server`. It is not part of CI, deployment, or the production runtime path. Keep the directory and `docs/MAC_MINI_CODEX_BRIDGE.md` as archival rollback material only; do not start or wire it without an explicit new architecture decision.
 
 The frontend production URL is `https://incheon-care-map.vercel.app`. The Cloud Run production URL is `https://incheon-care-api-vy3v2ludma-du.a.run.app`; `/health` is the canonical external health endpoint. `/healthz` remains a source-level compatibility alias, but the Cloud Run frontend intercepts that path before it reaches the container, so deployment smoke tests must use `/health`. Match the latest successful `main` run, Cloud Run revision label, and deployed digest before claiming that a specific commit is live.
 
@@ -71,7 +71,7 @@ Large raw and processed source files are part of the private reproducibility pac
 GitHub Actions owns deployment.
 
 - Every pull request and push runs frontend and synthetic-data validation, backend coverage,
-  the voice-contract goldens, the Mac mini bridge security/schema tests, and the backend Docker build on Node.js 24. CI also runs
+  the voice-contract goldens, the direct OpenAI text-transport boundary tests, and the backend Docker build on Node.js 24. CI also runs
   the built image as a non-root user and smokes health, manager breadth, and the
   156-zone/162-dong operations map so container-only data-path regressions fail before merge.
 - To keep pull-request feedback near one minute, the Playwright browser E2E suite runs in CI
@@ -105,13 +105,12 @@ git status --short --branch
 ```
 
 Then read `README.md`, `AGENTS.md`, `docs/AGENT_HANDOFF.md`, and the task-specific sources.
-Use Node 24, install the four locked dependency trees, and run the shared takeover gate:
+Use Node 24, install the locked dependency trees, and run the shared takeover gate:
 
 ```sh
 npm ci
 npm --prefix backend ci
 npm --prefix voice ci
-npm --prefix macmini-llm-bridge ci
 npm run agent:check
 ```
 
@@ -140,8 +139,6 @@ npm --prefix backend run demo:contact-ops
 npm --prefix backend run report:contact-triage
 npm --prefix voice ci
 npm --prefix voice test
-npm --prefix macmini-llm-bridge ci
-npm --prefix macmini-llm-bridge test
 npm run agent:check
 ```
 

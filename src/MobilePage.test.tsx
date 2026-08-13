@@ -311,7 +311,7 @@ describe('MobilePage (조사원 /m)', () => {
         },
         transcript: '[마스킹] 통화 내용',
         free_text: '최근 약 복용을 자주 빠뜨린다고 말함',
-        critic: { missing_fields: ['관계망_유무'], contradictions: [], low_confidence_fields: [], warnings: ['악취 관련 후보 확인 필요'], next_question: null },
+        critic: { missing_fields: ['관계망_유무'], contradictions: [], low_confidence_fields: ['식사상태'], warnings: ['악취 관련 후보 확인 필요'], next_question: null },
         requires_user_confirmation: true,
       },
     })
@@ -328,6 +328,12 @@ describe('MobilePage (조사원 /m)', () => {
     expect(screen.getByLabelText('기타사항')).toHaveValue('최근 약 복용을 자주 빠뜨린다고 말함')
     expect(screen.queryByText(/해당하는 체크리스트를 확인하면 제출 후 점수에 반영됩니다/)).toBeNull()
     expect(screen.getByLabelText('통화(또는 방문) 결과')).toHaveValue('우려 사항 있음')
+    expect(screen.getByText('식사 상태 (보류)')).toBeInTheDocument()
+    expect(screen.getByLabelText('식사 상태')).toHaveValue('불량')
+    expect(screen.getByRole('button', { name: '확인하고 제출' })).toBeEnabled()
+    await user.selectOptions(screen.getByLabelText('식사 상태'), '심각')
+    expect(screen.queryByText('식사 상태 (보류)')).toBeNull()
+    expect(screen.getByLabelText('식사 상태')).toHaveValue('심각')
     expect(screen.getByRole('checkbox', { name: '악취·벌레' })).toBeChecked()
     expect(mocks.submitContact).not.toHaveBeenCalled()
   })
@@ -480,6 +486,56 @@ describe('MobilePage (조사원 /m)', () => {
     )))
     expect(screen.getByText('필요할 때 연락하거나 도움을 청할 분이 계세요?')).toBeInTheDocument()
     expect(screen.queryByText('오늘 식사를 한 끼도 하지 못한 건가요?')).toBeNull()
+  })
+
+  it('keeps the newest successful checklist when a later parallel refresh fails', async () => {
+    arrange()
+    mocks.createLiveCall.mockResolvedValue({
+      provider: 'livekit', call_id: 'call123', room_name: 'care-call-call123',
+      server_url: 'wss://example.livekit.cloud', expires_at: '2030-08-13T12:00:00.000Z',
+      transcription: { provider: 'openai', model: 'gpt-live-transcribe', language: 'ko' },
+      host: { role: 'surveyor', participant_token: 'host.token.signature' },
+      guest: { role: 'resident', invite_code: 'invitecode0123456789abcdef012345' },
+    })
+    mocks.buildGuestInviteUrl.mockReturnValue('https://demo.example/call?invite=invitecode0123456789abcdef012345')
+
+    let resolveFirst!: (value: unknown) => void
+    let rejectSecond!: (reason: unknown) => void
+    mocks.createAiObservationCandidate
+      .mockImplementationOnce(() => new Promise((resolve) => { resolveFirst = resolve }))
+      .mockImplementationOnce(() => new Promise((_resolve, reject) => { rejectSecond = reject }))
+
+    const firstQuestion = '오늘 식사를 한 끼도 하지 못한 건가요?'
+    const firstResponse = {
+      revision: 0,
+      candidate: {
+        case_id: 'SYN-HH-2812551000-0001',
+        contact_result: voiceCandidateConcernResult,
+        transcript: '밥을 잘 못 먹어요.',
+        observations: {
+          관찰_6징후: { 우편물_고지서_적체: false, 악취_벌레: false, 쓰레기_술병: false, 인기척_없이_TV_불: false, 외출_없음: false, 연락_두절: false },
+          식사상태: '불량', 위생상태: null, 공과금_2개월_이상_체납: null,
+          최근_건강_정신_괴로움: null, 관계망_유무: null, 연락_빈도: null,
+        },
+        free_text: '',
+        critic: { missing_fields: [], contradictions: [], low_confidence_fields: [], warnings: [], next_question: firstQuestion },
+        requires_user_confirmation: true,
+      },
+    }
+
+    const user = userEvent.setup()
+    render(<MobilePage />)
+    await user.click(await screen.findByText('김영자 어르신'))
+    await user.click(screen.getByRole('button', { name: '실시간 통화 시작' }))
+    await user.click(screen.getByRole('button', { name: '실시간 발화 테스트' }))
+    await waitFor(() => expect(mocks.createAiObservationCandidate).toHaveBeenCalledTimes(1))
+    await user.click(screen.getByRole('button', { name: '실시간 발화 2 테스트' }))
+    await waitFor(() => expect(mocks.createAiObservationCandidate).toHaveBeenCalledTimes(2))
+
+    await act(async () => resolveFirst(firstResponse))
+    await act(async () => rejectSecond(new Error('latest refresh unavailable')))
+
+    expect(await screen.findByText(firstQuestion)).toBeInTheDocument()
   })
 
   it('uses concise labels for health and utility answers', async () => {

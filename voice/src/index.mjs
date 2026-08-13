@@ -7,7 +7,8 @@ import { maskPii, maskPiiDeep } from './privacy.mjs';
 import { VOICE_EXTRACTION_INSTRUCTIONS } from './prompt.mjs';
 import { createTextLlmClient } from './llm-client.mjs';
 
-const DEFAULT_MODEL = 'gpt-4o-mini';
+const DEFAULT_MODEL = 'gpt-5.6-luna';
+const DEFAULT_REASONING_EFFORT = 'none';
 const SURVEYOR_ID_PATTERN = /^연결단원 [0-9]{3}$/;
 const CASE_ID_PATTERN = /(?:\bCASE-[0-9]{4,8}\b|\bSYN-HH-[0-9]{10}-[0-9]{4}\b)/g;
 const SINGLE_CASE_ID_PATTERN = /^(?:CASE-[0-9]{4,8}|SYN-HH-[0-9]{10}-[0-9]{4})$/;
@@ -128,9 +129,13 @@ export async function processVoiceInput(input, options = {}) {
   const caseId = extractCaseId(transcript) || contactContext?.selected_case_id || null;
   const client = options.client || createClient();
   const model = options.model || process.env.OPENAI_VOICE_TEXT_MODEL || DEFAULT_MODEL;
+  const reasoningEffort = options.reasoningEffort
+    || process.env.OPENAI_VOICE_TEXT_REASONING_EFFORT
+    || (model.startsWith('gpt-5.6') ? DEFAULT_REASONING_EFFORT : null);
 
   const response = await client.responses.create({
     model,
+    ...(reasoningEffort === null ? {} : { reasoning: { effort: reasoningEffort } }),
     input: [
       { role: 'system', content: VOICE_EXTRACTION_INSTRUCTIONS },
       {
