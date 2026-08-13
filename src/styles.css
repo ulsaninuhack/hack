@@ -957,8 +957,8 @@ ul.mobile-acute-contributions { list-style: none; display: grid; gap: 6px; }
 .mobile-page h2 { font-size: 19px; font-weight: 700; letter-spacing: -0.01em; display: flex; align-items: center; gap: 9px; }
 .mobile-page h2::before { content: ''; width: 6px; height: 18px; border-radius: 3px; background: var(--t-blue); }
 
-.mobile-page .lane-tabs { display: inline-flex; gap: 0; background: var(--t-track); border-radius: 10px; padding: 3px; margin: 0 0 10px; }
-.mobile-page .lane-tabs button { flex: none; min-width: 132px; min-height: 48px; border: none; border-radius: 8px; background: transparent; color: var(--t-faint); font-weight: 600; font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: background .15s var(--ease), color .15s var(--ease), box-shadow .15s var(--ease); }
+.mobile-page .lane-tabs { display: flex; width: 100%; gap: 0; background: var(--t-track); border-radius: 10px; padding: 3px; margin: 0 0 10px; }
+.mobile-page .lane-tabs button { flex: 1 1 0; min-width: 0; white-space: nowrap; min-height: 48px; border: none; border-radius: 8px; background: transparent; color: var(--t-faint); font-weight: 600; font-size: 15px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: background .15s var(--ease), color .15s var(--ease), box-shadow .15s var(--ease); }
 .mobile-page .lane-tabs button[aria-selected="true"] { background: var(--t-card); color: var(--t-blue); font-weight: 700; box-shadow: 0 1px 4px rgba(25, 27, 30, 0.1); }
 .mobile-page .lane-rule { color: var(--t-faint); font-size: 14px; margin: 0 0 12px; }
 

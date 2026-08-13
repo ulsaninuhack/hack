@@ -136,6 +136,8 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
     await page.getByRole('tab', { name: /방문 \d+건/ }).click()
     await expect(page.getByLabel('오늘 방문 목록')).not.toContainText(CASE_NAME)
     await page.getByRole('tab', { name: /전화 \d+건/ }).click()
+    // 목록 화면도 폭·터치 타깃을 측정한다(탭이 3개로 늘며 넘친 적이 있다).
+    await expectTierMobileMeasurements(page)
     await page.screenshot({ path: `${SCREENSHOT_DIR}/p9-mobile-list.png` })
 
     await page.getByRole('button', { name: new RegExp(CASE_NAME) }).click()
