@@ -301,7 +301,6 @@ export async function submitDecision(input: {
   decision: 'approved' | 'rejected'
   note: string
   workerIds?: string[]
-  distance?: number
 }) {
   const common = {
     expected_revision: input.revision,
@@ -314,7 +313,6 @@ export async function submitDecision(input: {
     ? {
         ...common,
         assigned_worker_ids: input.workerIds,
-        max_route_distance_km: input.distance,
       }
     : common
   return request<CaseDetail>(

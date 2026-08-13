@@ -51,6 +51,10 @@ const FACILITY_GROUPS = ['전체', '노인복지', '장애인복지', '지역복
 export default function App() {
   if (window.location.pathname === '/ops/surveyor') return <SurveyorPage />
   if (window.location.pathname === '/ops/manager') return <ManagerPage />
+  if (window.location.pathname.startsWith('/center/visit-review/')) {
+    const caseId = decodeURIComponent(window.location.pathname.slice('/center/visit-review/'.length))
+    return <CenterPage reviewCaseId={caseId} />
+  }
   if (window.location.pathname === '/center') return <CenterPage />
   if (window.location.pathname === '/m') return <MobilePage />
   if (window.location.pathname === '/city') return <CityPage />

@@ -257,7 +257,7 @@ describe('P2 manager flow', () => {
     expect(screen.queryByText('0_24')).not.toBeInTheDocument()
   })
 
-  it('requires a decision and reason, and exposes distance only for approval', async () => {
+  it('requires a decision and reason without asking for a case-by-case distance limit', async () => {
     const user = userEvent.setup()
     mocks.loadRecommendations.mockResolvedValue({ synthetic: true, displayMarker: '[합성]', items: [detail] })
     mocks.loadData.mockResolvedValue({})
@@ -267,14 +267,13 @@ describe('P2 manager flow', () => {
     expect(screen.queryByLabelText('승인된 방문 거리 제한 (km)')).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: '방문 권고 승인 기록' })).toBeDisabled()
     await user.click(screen.getByLabelText('방문 권고 승인'))
-    expect(screen.getByLabelText('승인된 방문 거리 제한 (km)')).toBeInTheDocument()
+    expect(screen.queryByLabelText('승인된 방문 거리 제한 (km)')).not.toBeInTheDocument()
     await user.type(screen.getByLabelText('결정 사유'), '합성 데모 승인 사유')
     await user.click(screen.getByRole('button', { name: '방문 권고 승인 기록' }))
     await waitFor(() => expect(mocks.submitDecision).toHaveBeenCalledWith(expect.objectContaining({
       decision: 'approved',
       note: '합성 데모 승인 사유',
       workerIds: ['SYN-W-2812551000-01'],
-      distance: 2,
     })))
   })
 

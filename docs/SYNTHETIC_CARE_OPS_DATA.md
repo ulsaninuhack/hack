@@ -155,7 +155,7 @@ task.approved_visit_constraints !== null
 - 승인 방문업무: `approved_visit_constraints.max_route_distance_km`, `approved_visit_constraints.assigned_worker_ids`, `visit_context.preferred_visit_time_window`, `visit_context.service_duration_minutes`, `visit_context.stairs_present`, `visit_context.preferred_worker_gender`, `visit_context.requires_two_person_team`, `visit_context.requires_public_official_companion`
 - 공간: 연결단원·업무의 `location.longitude`, `location.latitude`, `location.geometry_zone_id`, `location.current_admin_dong_code_20260701`
 
-`max_route_distance_km`는 연결단원 전역 제약이 아니라 담당자 승인 후 생성되는 승인 방문업무 제약이다. `max_walking_distance_m` 필드는 현재 v2 스키마에 없다.
+`max_route_distance_km`는 연결단원 전역 제약이 아니라 담당자 승인 후 서버 배차 정책이 생성하는 승인 방문업무 제약이다. 담당자가 건별로 입력하지 않으며 `max_walking_distance_m` 필드는 현재 v2 스키마에 없다.
 
 `requires_public_official_companion=true`인 업무는 항상 `requires_two_person_team=true`다. 이후 OR-Tools 같은 경로 엔진을 붙일 때 이 조건은 LLM 프롬프트가 아니라 하드 제약으로 유지한다.
 

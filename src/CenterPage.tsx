@@ -26,6 +26,7 @@ import { caseDisplayName } from './caseDisplayName'
 import { formatScore } from './scoreFormat'
 
 const CENTER_ACTOR = '동센터 담당자'
+const CENTER_REFRESH_INTERVAL_MS = 5_000
 const TRANSFER_TRACK_MESSAGE = '안부확인 트랙에서 사례관리·전문기관 트랙으로 전환하는 권고입니다. 전환 확정은 별도 행정 절차로 진행합니다.'
 
 function errorText(cause: unknown, fallback: string) {
@@ -122,20 +123,24 @@ function ReportCardView({
   onAcknowledge,
   onEscalate,
   busy,
+  collapsible = false,
 }: {
   card: ReportCard
   onAcknowledge: (card: ReportCard) => void
   onEscalate: (caseId: string) => void
   busy: boolean
+  collapsible?: boolean
 }) {
   const [showTransfer, setShowTransfer] = useState(false)
-  return (
-    <article className="report-card" data-grade={card.등급} aria-label={`${card.display_name} 어르신 보고 카드`}>
-      <header>
+  const heading = (
+    <>
         <GradeChip grade={card.등급} />
         <span className="case-id">{card.display_name} 어르신</span>
         <span className="report-meta">{card.evidence.마지막_연락_결과_라벨} · {card.evidence.마지막_연락_일자 ?? '기록 없음'}</span>
-      </header>
+    </>
+  )
+  const cardBody = (
+    <>
       {card.road_address !== null && <p className="report-address">{card.road_address}</p>}
       <dl className="report-scores">
         <div><dt>급성도</dt><dd>{formatScore(card.급성도_점수)}</dd></div>
@@ -168,7 +173,7 @@ function ReportCardView({
           ? <p className="report-acknowledged"><CheckCircle2 aria-hidden="true" size={17} /> 확인함 · {card.acknowledgement.acknowledged_by}</p>
           : <button disabled={busy} onClick={() => onAcknowledge(card)}>보고 확인</button>}
         {card.workflow.visit_approval_status === 'recommended' && (
-          <a className="report-jump" href="#center-visit-review">방문 승격으로 이동</a>
+          <a className="report-jump" href={`/center/visit-review/${encodeURIComponent(card.case_id)}`}>방문 승격 검토</a>
         )}
         {card.escalation
           ? <p className="assignment-escalated"><AlertTriangle aria-hidden="true" size={17} /> 기관 연락됨 · {card.escalation.agency}</p>
@@ -178,14 +183,28 @@ function ReportCardView({
         )}
       </footer>
       {showTransfer && <p className="report-transfer-note" role="note">{TRANSFER_TRACK_MESSAGE}</p>}
+    </>
+  )
+
+  const article = (
+    <article className="report-card" data-grade={card.등급} aria-label={`${card.display_name} 어르신 보고 카드`}>
+      {!collapsible && <header>{heading}</header>}
+      {cardBody}
     </article>
   )
+
+  return collapsible ? (
+    <details className="report-accordion" data-grade={card.등급}>
+      <summary>{heading}<span className="report-accordion-score">급성도 {formatScore(card.급성도_점수)}</span></summary>
+      {article}
+    </details>
+  ) : article
 }
 
-export function CenterPage() {
+export function CenterPage({ reviewCaseId = null }: { reviewCaseId?: string | null }) {
   const [inbox, setInbox] = useState<CenterInbox | null>(null)
   const [recommendations, setRecommendations] = useState<CaseDetail[]>([])
-  const [selectedVisitId, setSelectedVisitId] = useState<string | null>(null)
+  const [selectedVisitId, setSelectedVisitId] = useState<string | null>(reviewCaseId)
   const [lane, setLane] = useState<'phone' | 'visit'>('phone')
   const [error, setError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState('')
@@ -195,7 +214,6 @@ export function CenterPage() {
   const [mapOpen, setMapOpen] = useState(false)
   const [decision, setDecision] = useState<'approved' | 'rejected' | null>(null)
   const [note, setNote] = useState('')
-  const [distance, setDistance] = useState('2')
 
   const refresh = useCallback(async () => {
     try {
@@ -210,17 +228,38 @@ export function CenterPage() {
         (item) => item.household.location.current_admin_dong_code_20260701 === DEMO_CENTER_DONG_CODE,
       )
       setRecommendations(dongRecommendations)
-      setSelectedVisitId((current) => dongRecommendations.some((item) => item.household.id === current)
-        ? current
-        : dongRecommendations[0]?.household.id ?? null)
+      setSelectedVisitId((current) => {
+        if (reviewCaseId !== null) {
+          return dongRecommendations.some((item) => item.household.id === reviewCaseId) ? reviewCaseId : null
+        }
+        return dongRecommendations.some((item) => item.household.id === current)
+          ? current
+          : dongRecommendations[0]?.household.id ?? null
+      })
     } catch (cause) {
       setError(errorText(cause, '동 행정복지센터 인박스를 불러오지 못했습니다.'))
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [reviewCaseId])
 
   useEffect(() => { void refresh() }, [refresh])
+  useEffect(() => {
+    let syncing = false
+    const syncWhenVisible = () => {
+      if (document.visibilityState !== 'visible' || syncing) return
+      syncing = true
+      void refresh().finally(() => { syncing = false })
+    }
+    const intervalId = window.setInterval(syncWhenVisible, CENTER_REFRESH_INTERVAL_MS)
+    window.addEventListener('focus', syncWhenVisible)
+    document.addEventListener('visibilitychange', syncWhenVisible)
+    return () => {
+      window.clearInterval(intervalId)
+      window.removeEventListener('focus', syncWhenVisible)
+      document.removeEventListener('visibilitychange', syncWhenVisible)
+    }
+  }, [refresh])
   useEffect(() => {
     if (!mapOpen || mapData) return
     let active = true
@@ -238,6 +277,7 @@ export function CenterPage() {
     .filter((item) => item.status !== 'confirmed' && !item.escalation)
     .map((item) => item.case_id), [proposal])
   const selectedVisit = recommendations.find((item) => item.household.id === selectedVisitId) ?? null
+  const selectedVisitReport = inbox?.report_cards.find((card) => card.case_id === selectedVisitId) ?? null
   const displayNameForCase = (caseId: string) => {
     const reportName = inbox?.report_cards.find((card) => card.case_id === caseId)?.display_name
     if (reportName) return reportName
@@ -286,8 +326,6 @@ export function CenterPage() {
   const submitVisitDecision = async (event: FormEvent) => {
     event.preventDefault()
     if (!selectedVisit || !decision || !note.trim()) return
-    const numericDistance = Number(distance)
-    if (decision === 'approved' && (!Number.isFinite(numericDistance) || numericDistance <= 0)) return
     await act(
       async () => {
         await submitDecision({
@@ -295,7 +333,7 @@ export function CenterPage() {
           revision: selectedVisit.revision,
           decision,
           note: note.trim(),
-          ...(decision === 'approved' ? { workerIds: [workerId], distance: numericDistance } : {}),
+          ...(decision === 'approved' ? { workerIds: [workerId] } : {}),
         })
         setDecision(null)
         setNote('')
@@ -326,7 +364,95 @@ export function CenterPage() {
       {feedback && <p className="ops-feedback" role="status" aria-live="polite">{feedback}</p>}
       {loading && !inbox && <p className="ops-state" role="status">불러오는 중입니다.</p>}
 
-      {inbox && (
+      {inbox && reviewCaseId !== null && (
+        <section className="center-review-page" aria-labelledby="center-review-title">
+          <a className="center-review-back" href="/center" aria-label="센터 업무로 돌아가기">← 센터 업무로 돌아가기</a>
+          <div className="center-review-heading">
+            <div>
+              <span>{inbox.district} {inbox.dong_name}</span>
+              <h2 id="center-review-title">방문 승격 검토</h2>
+            </div>
+            {selectedVisit && <GradeChip grade={selectedVisit.triage?.급성도_등급 ?? selectedVisitReport?.등급 ?? null} />}
+          </div>
+
+          {selectedVisit === null ? (
+            <div className="ops-empty center-review-empty">
+              <p>이미 처리되었거나 현재 검토 목록에 없는 대상입니다.</p>
+              <a href="/center">센터 업무 목록 확인</a>
+            </div>
+          ) : (
+            <div className="center-review-grid">
+              <article className="center-review-context" aria-label={`${selectedVisitDisplayName} 어르신 방문 승격 근거`}>
+                <header>
+                  <div>
+                    <span className="center-review-kicker">검토 대상</span>
+                    <h3>{selectedVisitDisplayName} 어르신</h3>
+                  </div>
+                  <div className="center-review-scores" aria-label="급성도와 취약도">
+                    <span>급성도 <strong>{formatScore(selectedVisit.triage?.급성도_점수)}</strong></span>
+                    <span>취약도 <strong>{formatScore(selectedVisit.triage?.취약도_점수)}</strong></span>
+                  </div>
+                </header>
+                <p className="center-review-address">{selectedVisitReport?.road_address ?? selectedVisit.household.location.road_address}</p>
+                {selectedVisitReport && (
+                  <dl className="center-review-contact">
+                    <div><dt>최근 결과</dt><dd>{selectedVisitReport.evidence.마지막_연락_결과_라벨}</dd></div>
+                    <div><dt>확인 일자</dt><dd>{selectedVisitReport.evidence.마지막_연락_일자 ?? '기록 없음'}</dd></div>
+                  </dl>
+                )}
+                <section className="center-review-evidence">
+                  <h4>판단 근거</h4>
+                  {selectedVisit.triage?.점수_기여내역.length ? (
+                    <ul>{selectedVisit.triage.점수_기여내역.map((entry) => (
+                      <li key={`${entry.축}-${entry.코드 ?? entry.근거}`}>
+                        <span>{entry.근거}</span><strong>+{formatScore(entry.가산점)}점</strong>
+                      </li>
+                    ))}</ul>
+                  ) : <p>기록된 점수 근거가 없습니다.</p>}
+                </section>
+                <section className="center-review-observations">
+                  <h4>확인된 내용</h4>
+                  <dl>
+                    <div><dt>연속 미응답</dt><dd>{selectedVisitReport?.evidence.연속_미응답_횟수 ?? 0}회</dd></div>
+                    <div><dt>식사 상태</dt><dd>{selectedVisit.observations.식사상태 ?? '확인하지 못함'}</dd></div>
+                    <div><dt>위생 상태</dt><dd>{selectedVisit.observations.위생상태 ?? '확인하지 못함'}</dd></div>
+                    <div><dt>관계망</dt><dd>{selectedVisit.observations.관계망_유무 ?? '확인하지 못함'}</dd></div>
+                  </dl>
+                </section>
+                {selectedVisitReport && selectedVisitReport.권고_기관.length > 0 && (
+                  <section className="center-review-agencies">
+                    <h4>연계 검토</h4>
+                    <ul>{selectedVisitReport.권고_기관.map((agency) => (
+                      <li key={agency.기관}><strong>{agency.기관}</strong><span>{agency.사유}</span></li>
+                    ))}</ul>
+                  </section>
+                )}
+              </article>
+
+              <form className="ops-form center-review-decision" onSubmit={submitVisitDecision}>
+                <fieldset>
+                  <legend>담당자 결정</legend>
+                  <label className="ops-choice"><input checked={decision === 'approved'} onChange={() => setDecision('approved')} type="radio" name="center-review-decision" /><span>방문 권고 승인</span></label>
+                  <label className="ops-choice"><input checked={decision === 'rejected'} onChange={() => setDecision('rejected')} type="radio" name="center-review-decision" /><span>방문 권고 반려</span></label>
+                  {decision === 'approved' && (
+                    <label>연결단원 배정
+                      <select value={workerId} onChange={() => {}}><option value={workerId}>{inbox.assignment_proposal?.worker_display_name ?? '연결단원 001'}</option></select>
+                    </label>
+                  )}
+                  <label>결정 사유
+                    <textarea value={note} onChange={(event) => setNote(event.target.value)} required placeholder="확인한 근거와 결정 내용을 입력하세요." />
+                  </label>
+                  <button className={decision === 'rejected' ? 'reject' : 'approve'} disabled={busy || !decision || !note.trim()} type="submit">
+                    {decision === 'rejected' ? '방문 권고 반려 기록' : '방문 권고 승인 기록'}
+                  </button>
+                </fieldset>
+              </form>
+            </div>
+          )}
+        </section>
+      )}
+
+      {inbox && reviewCaseId === null && (
         <>
           <section className="center-hero" aria-label="오늘 처리 요약과 다음 행동">
             <div className="center-hero-lead">
@@ -337,7 +463,7 @@ export function CenterPage() {
               <a href="#center-reports"><strong>{phoneReports.filter((card) => card.acknowledgement.status !== '확인' && !card.escalation).length}건</strong><span>전화 확인 대기</span></a>
               <a href="#center-visit-reports"><strong>{visitReports.filter((card) => card.acknowledgement.status !== '확인' && !card.escalation).length}건</strong><span>방문 확인 대기</span></a>
               <a href="#center-assignment"><strong>{(proposal?.lanes.visit.length ?? 0) === 0 ? '없음' : pendingVisitIds.length === 0 ? '완료' : `대기 ${pendingVisitIds.length}건`}</strong><span>방문 배정</span></a>
-              <a href="#center-visit-review"><strong>{inbox.summary.방문승인_대기_수}건</strong><span>방문 승격 대기</span></a>
+              <a href={recommendations[0] ? `/center/visit-review/${encodeURIComponent(recommendations[0].household.id)}` : '#center-visit-review'}><strong>{inbox.summary.방문승인_대기_수}건</strong><span>방문 승격 대기</span></a>
               <div
                 className="center-hero-ring"
                 role="img"
@@ -377,17 +503,15 @@ export function CenterPage() {
 
               <section id="center-reports" className="center-section" aria-labelledby="reports-heading">
                 <h2 id="reports-heading">전화 확인</h2>
-                <p className="assignment-rule-note">조사원이 전화 결과를 제출하면 바로 나타납니다. 위험 신호 보고는 모두 확인하고, 방문 승격 또는 기관 연락으로 처리합니다.</p>
                 {phoneReports.length === 0
                   ? <p className="ops-empty">아직 도착한 전화 보고가 없습니다.</p>
                   : phoneReports.map((card) => (
-                    <ReportCardView key={card.card_id} card={card} onAcknowledge={acknowledge} onEscalate={escalateOne} busy={busy} />
+                    <ReportCardView key={card.card_id} card={card} onAcknowledge={acknowledge} onEscalate={escalateOne} busy={busy} collapsible />
                   ))}
               </section>
 
               <section id="center-visit-reports" className="center-section" aria-labelledby="visit-reports-heading">
                 <h2 id="visit-reports-heading">방문 확인</h2>
-                <p className="assignment-rule-note">조사원이 방문 결과를 제출하면 바로 나타납니다. 모든 방문 보고를 확인 또는 기관 연락으로 처리합니다.</p>
                  {visitReports.length === 0
                    ? <p className="ops-empty">아직 도착한 방문 보고가 없습니다.</p>
                    : visitReports.map((card) => (
@@ -396,46 +520,19 @@ export function CenterPage() {
                </section>
 
               <section id="center-visit-review" className="center-section" aria-labelledby="visit-review-heading">
-                <h2 id="visit-review-heading">방문 승격</h2>
-                <p className="assignment-rule-note">위험 신호가 확인된 전화 대상을 방문으로 올립니다. 승격 확정은 담당자 결정으로만 이루어집니다.</p>
+                <h2 id="visit-review-heading">방문 승격 대기</h2>
                 {recommendations.length === 0 ? <p className="ops-empty">현재 승격 대기인 대상이 없습니다.</p> : (
-                  <div className="visit-review">
-                    <ul className="visit-review-list" aria-label="방문 권고 대기 목록">
-                      {recommendations.map((item) => (
-                        <li key={item.household.id}>
-                          <button aria-pressed={item.household.id === selectedVisitId} onClick={() => { setSelectedVisitId(item.household.id); setDecision(null) }}>
-                            <span className="case-id">{displayNameForCase(item.household.id)} 어르신</span>
-                            <span>급성도 {formatScore(item.triage?.급성도_점수)} · 취약도 {formatScore(item.triage?.취약도_점수)}</span>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                    {selectedVisit && (
-                      <form className="ops-form center-decision-form" onSubmit={submitVisitDecision}>
-                        <fieldset>
-                          <legend>담당자 결정 · {selectedVisitDisplayName} 어르신</legend>
-                          <label className="ops-choice"><input checked={decision === 'approved'} onChange={() => setDecision('approved')} type="radio" name="center-decision" /><span>방문 권고 승인</span></label>
-                          <label className="ops-choice"><input checked={decision === 'rejected'} onChange={() => setDecision('rejected')} type="radio" name="center-decision" /><span>방문 권고 반려</span></label>
-                          {decision === 'approved' && (
-                            <>
-                              <label>연결단원 배정
-                                <select value={workerId} onChange={() => {}}><option value={workerId}>{proposal?.worker_display_name ?? '연결단원 001'}</option></select>
-                              </label>
-                              <label>승인된 방문 거리 제한 (km)
-                                <input min="0.1" max="50" step="0.1" type="number" value={distance} onChange={(event) => setDistance(event.target.value)} required />
-                              </label>
-                            </>
-                          )}
-                          <label>결정 사유
-                            <textarea value={note} onChange={(event) => setNote(event.target.value)} required />
-                          </label>
-                          <button className={decision === 'rejected' ? 'reject' : 'approve'} disabled={busy || !decision || !note.trim()} type="submit">
-                            {decision === 'rejected' ? '방문 권고 반려 기록' : '방문 권고 승인 기록'}
-                          </button>
-                        </fieldset>
-                      </form>
-                    )}
-                  </div>
+                  <ul className="visit-review-list" aria-label="방문 권고 대기 목록">
+                    {recommendations.map((item) => (
+                      <li key={item.household.id}>
+                        <a href={`/center/visit-review/${encodeURIComponent(item.household.id)}`}>
+                          <span className="case-id">{displayNameForCase(item.household.id)} 어르신</span>
+                          <span>급성도 {formatScore(item.triage?.급성도_점수)} · 취약도 {formatScore(item.triage?.취약도_점수)}</span>
+                          <strong>검토하기 →</strong>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
                 )}
               </section>
             </div>

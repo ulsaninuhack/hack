@@ -654,6 +654,18 @@ select:focus-visible,
 
 .center-page .report-card { border: 1px solid var(--t-line); border-radius: 12px; padding: 18px 20px; transition: border-color .15s var(--ease), box-shadow .15s var(--ease); }
 .center-page .report-card:hover { border-color: #c1b7ff; box-shadow: 0 4px 14px rgba(90, 66, 238, 0.08); }
+.center-page .report-accordion { border: 1px solid var(--t-line); border-left: 4px solid var(--t-line); border-radius: 12px; margin-bottom: 12px; overflow: clip; background: var(--t-card); transition: border-color .15s var(--ease), box-shadow .15s var(--ease); }
+.center-page .report-accordion[data-grade="주시"] { border-left-color: #9f90f9; }
+.center-page .report-accordion[data-grade="방문권고"] { border-left-color: #ff5252; }
+.center-page .report-accordion[data-grade="방문권고-우선"] { border-left-color: #ee173c; }
+.center-page .report-accordion:hover, .center-page .report-accordion[open] { border-color: #c1b7ff; box-shadow: 0 4px 14px rgba(90, 66, 238, 0.08); }
+.center-page .report-accordion > summary { display: flex; align-items: center; gap: 10px; min-height: 72px; padding: 14px 50px 14px 18px; cursor: pointer; list-style: none; position: relative; }
+.center-page .report-accordion > summary::-webkit-details-marker { display: none; }
+.center-page .report-accordion > summary::after { content: '⌄'; position: absolute; right: 20px; top: 50%; transform: translateY(-55%); color: var(--t-faint); font-size: 22px; transition: transform .15s var(--ease); }
+.center-page .report-accordion[open] > summary::after { transform: translateY(-35%) rotate(180deg); }
+.center-page .report-accordion-score { margin-left: auto; color: var(--t-sub); font-weight: 700; white-space: nowrap; }
+.center-page .report-accordion > .report-card { border: 0; border-top: 1px solid var(--t-line); border-radius: 0; margin: 0; box-shadow: none; }
+.center-page .report-accordion > .report-card:hover { border-color: var(--t-line); box-shadow: none; }
 .center-page .report-meta { color: var(--t-faint); font-size: 14px; }
 .center-page .report-scores dd { font-family: inherit; font-weight: 800; letter-spacing: -0.02em; }
 .center-page .report-scores dt { font-size: 14px; color: var(--t-faint); }
@@ -671,10 +683,39 @@ select:focus-visible,
 .center-page .report-acknowledged { color: var(--t-blue); font-weight: 600; font-size: 15px; }
 .center-page .report-transfer-note { background: #f8f9fa; color: var(--t-sub); font-size: 14px; }
 
-.center-page .visit-review-list button { border: 1px solid var(--t-line); border-radius: 10px; padding: 14px 16px; transition: border-color .15s var(--ease), background .15s var(--ease); }
-.center-page .visit-review-list button:hover { border-color: #c1b7ff; }
-.center-page .visit-review-list button[aria-pressed="true"] { border-color: var(--t-blue); background: var(--t-blue-soft); box-shadow: none; }
-.center-page .visit-review-list button span:last-child { color: var(--t-sub); font-size: 15px; }
+.center-page .visit-review-list a { display: grid; grid-template-columns: minmax(150px, 1fr) minmax(180px, auto) auto; align-items: center; gap: 14px; border: 1px solid var(--t-line); border-radius: 10px; padding: 14px 16px; color: var(--t-ink); text-decoration: none; transition: border-color .15s var(--ease), background .15s var(--ease); }
+.center-page .visit-review-list a:hover { border-color: #c1b7ff; background: var(--t-blue-soft); }
+.center-page .visit-review-list a span:nth-child(2) { color: var(--t-sub); font-size: 15px; }
+.center-page .visit-review-list a strong { color: var(--t-blue); font-size: 14px; }
+
+.center-page .center-review-page { max-width: 1180px; margin: 0 auto; }
+.center-page .center-review-back { display: inline-flex; align-items: center; min-height: 44px; margin-bottom: 12px; color: var(--t-blue); font-weight: 700; text-decoration: none; }
+.center-page .center-review-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.center-page .center-review-heading span { color: var(--t-faint); font-size: 14px; }
+.center-page .center-review-heading h2 { margin: 4px 0 0; font-size: clamp(26px, 4vw, 36px); }
+.center-page .center-review-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(340px, .65fr); gap: 20px; align-items: start; }
+.center-page .center-review-context, .center-page .center-review-decision, .center-page .center-review-empty { background: var(--t-card); border: 1px solid var(--t-line); border-radius: var(--t-radius); padding: 24px; }
+.center-page .center-review-context { display: grid; gap: 22px; }
+.center-page .center-review-context > header { display: flex; justify-content: space-between; align-items: start; gap: 16px; }
+.center-page .center-review-kicker { color: var(--t-faint); font-size: 13px; font-weight: 700; }
+.center-page .center-review-context h3 { margin: 4px 0 0; font-size: 24px; }
+.center-page .center-review-scores { display: flex; gap: 16px; }
+.center-page .center-review-scores span { color: var(--t-faint); white-space: nowrap; }
+.center-page .center-review-scores strong { margin-left: 4px; color: var(--t-ink); font-size: 24px; }
+.center-page .center-review-address { margin: -10px 0 0; color: var(--t-sub); }
+.center-page .center-review-contact, .center-page .center-review-observations dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; }
+.center-page .center-review-contact div, .center-page .center-review-observations dl div { background: var(--t-track); border-radius: 10px; padding: 12px 14px; }
+.center-page .center-review-contact dt, .center-page .center-review-observations dt { color: var(--t-faint); font-size: 13px; }
+.center-page .center-review-contact dd, .center-page .center-review-observations dd { margin: 4px 0 0; font-weight: 700; }
+.center-page .center-review-context h4 { margin: 0 0 10px; font-size: 17px; }
+.center-page .center-review-evidence ul, .center-page .center-review-agencies ul { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.center-page .center-review-evidence li, .center-page .center-review-agencies li { display: flex; justify-content: space-between; gap: 14px; border-bottom: 1px solid var(--t-line); padding: 9px 0; }
+.center-page .center-review-evidence li strong { color: var(--t-blue); white-space: nowrap; }
+.center-page .center-review-agencies li { justify-content: flex-start; }
+.center-page .center-review-agencies li span { color: var(--t-sub); }
+.center-page .center-review-decision { position: sticky; top: 18px; }
+.center-page .center-review-decision textarea { min-height: 150px; }
+.center-page .center-review-empty a { color: var(--t-blue); font-weight: 700; }
 
 .center-page .ops-form fieldset { border: none; padding: 0; margin: 0; display: grid; gap: 12px; }
 .center-page .ops-form legend { font-weight: 700; font-size: 17px; margin-bottom: 6px; }
@@ -734,6 +775,7 @@ select:focus-visible,
 .center-page .report-card[data-grade="주시"] { border-left-color: #9f90f9; }
 .center-page .report-card[data-grade="방문권고"] { border-left-color: #ff5252; }
 .center-page .report-card[data-grade="방문권고-우선"] { border-left-color: #ee173c; }
+.center-page .report-accordion > .report-card { border-left: 0; }
 
 @keyframes center-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 .center-page .center-hero { animation: center-rise .4s var(--ease) backwards; }
@@ -747,6 +789,14 @@ select:focus-visible,
   .center-hero-count { font-size: 24px; }
   .center-hero-pills { width: 100%; }
   .center-hero-pills a { flex: 1 1 40%; }
+  .center-page .report-accordion > summary { align-items: flex-start; flex-wrap: wrap; padding-right: 44px; }
+  .center-page .report-accordion-score { width: 100%; margin-left: 0; }
+  .center-page .visit-review-list a { grid-template-columns: 1fr; gap: 5px; }
+  .center-page .center-review-grid { grid-template-columns: 1fr; }
+  .center-page .center-review-decision { position: static; }
+  .center-page .center-review-context > header { display: grid; }
+  .center-page .center-review-scores { flex-wrap: wrap; }
+  .center-page .center-review-contact, .center-page .center-review-observations dl { grid-template-columns: 1fr; }
 }
 
 /* /center v5 — 가명·주소 중심 행, 지도 격리·페이지 스크롤 픽스와 함께 */
