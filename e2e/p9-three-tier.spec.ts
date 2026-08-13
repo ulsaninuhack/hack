@@ -155,6 +155,7 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
     await page.getByLabel('통화(또는 방문) 결과').selectOption({ label: '미응답' })
     await page.getByRole('checkbox', { name: '우편물·고지서 적체' }).check()
     await page.getByLabel('식사 상태').selectOption({ label: '심각' })
+    await page.getByLabel('기타사항').fill('문 앞에 우유가 쌓여 있었어요')
     await page.screenshot({ path: `${SCREENSHOT_DIR}/p9-mobile-checklist.png` })
     await page.getByRole('button', { name: '확인하고 제출' }).click()
 
@@ -178,6 +179,7 @@ test('three-tier golden spine: city → center batch confirm → mobile submit �
     await expect(accordion).toContainText('연락 안 됨')
     await expect(card).toContainText('보건소·의료 연계')
     await expect(card).toContainText('현장 확인')
+    await expect(card).toContainText('문 앞에 우유가 쌓여 있었어요')
     await page.waitForTimeout(500)
     await page.screenshot({ path: `${SCREENSHOT_DIR}/p9-center-report-desktop.png` })
     await card.getByRole('button', { name: '보고 확인' }).click()

@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   uploadVoiceObservationAudio: vi.fn(),
   createAiObservationCandidate: vi.fn(),
   submitContact: vi.fn(),
+  submitCaseNote: vi.fn(),
   loadData: vi.fn(),
   createLiveCall: vi.fn(),
   buildGuestInviteUrl: vi.fn(),
@@ -24,6 +25,7 @@ vi.mock('./threeTierClient', async (importOriginal) => {
     loadTodayLanes: mocks.loadTodayLanes,
     loadReportCard: mocks.loadReportCard,
     uploadVoiceObservationAudio: mocks.uploadVoiceObservationAudio,
+    submitCaseNote: mocks.submitCaseNote,
   }
 })
 vi.mock('./contactOpsClient', async (importOriginal) => {
@@ -81,6 +83,7 @@ function arrange() {
   mocks.loadTodayLanes.mockResolvedValue(structuredClone(lanes))
   mocks.loadReportCard.mockResolvedValue({ report_card: structuredClone(reportCard), destination: '동 행정복지센터 인박스' })
   mocks.submitContact.mockResolvedValue({ revision: 1 })
+  mocks.submitCaseNote.mockResolvedValue({ case_id: 'SYN-HH-2812551000-0001', 기타사항: '기록됨' })
   mocks.loadData.mockResolvedValue({ dongs: { features: [] }, summary: {} })
 }
 
@@ -167,9 +170,14 @@ describe('MobilePage (조사원 /m)', () => {
     await user.selectOptions(screen.getByLabelText('통화(또는 방문) 결과'), '미응답')
     await user.click(screen.getByRole('checkbox', { name: '우편물·고지서 적체' }))
     await user.selectOptions(screen.getByLabelText('식사 상태'), '심각')
+    await user.type(screen.getByLabelText('기타사항'), '문 앞에 우유가 쌓여 있었어요')
     expect(mocks.submitContact).not.toHaveBeenCalled()
+    expect(mocks.submitCaseNote).not.toHaveBeenCalled()
     await user.click(screen.getByRole('button', { name: '확인하고 제출' }))
     await waitFor(() => expect(mocks.submitContact).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(mocks.submitCaseNote).toHaveBeenCalledWith({
+      caseId: 'SYN-HH-2812551000-0001', note: '문 앞에 우유가 쌓여 있었어요',
+    }))
     const payload = mocks.submitContact.mock.calls[0][0]
     expect(payload.caseId).toBe('SYN-HH-2812551000-0001')
     expect(payload.resultLabel).toBe('미응답')
@@ -305,7 +313,7 @@ describe('MobilePage (조사원 /m)', () => {
     expect(await screen.findByLabelText('통화(또는 방문) 결과')).toBeInTheDocument()
     expect(screen.queryByText('악취 관련 후보 확인 필요')).toBeNull()
     expect(screen.queryByText('누락 확인: 관계망_유무')).toBeNull()
-    expect(screen.getByRole('region', { name: '기타 특이사항' })).toHaveTextContent('최근 약 복용을 자주 빠뜨린다고 말함')
+    expect(screen.getByLabelText('기타사항')).toHaveValue('최근 약 복용을 자주 빠뜨린다고 말함')
     expect(screen.queryByText(/해당하는 체크리스트를 확인하면 제출 후 점수에 반영됩니다/)).toBeNull()
     expect(screen.getByLabelText('통화(또는 방문) 결과')).toHaveValue('우려 사항 있음')
     expect(screen.getByRole('checkbox', { name: '악취·벌레' })).toBeChecked()
@@ -346,7 +354,7 @@ describe('MobilePage (조사원 /m)', () => {
     expect(screen.queryByText('오늘 식사를 한 끼도 하지 못한 건가요, 아니면 평소보다 양이 줄어든 건가요?')).toBeNull()
     expect(screen.getByLabelText('통화(또는 방문) 결과')).toHaveValue('미응답')
     expect(screen.getByRole('checkbox', { name: '우편물·고지서 적체' })).toBeChecked()
-    expect(screen.getByRole('region', { name: '기타 특이사항' })).toHaveTextContent('우편함에 고지서가 쌓여 있었음')
+    expect(screen.getByLabelText('기타사항')).toHaveValue('우편함에 고지서가 쌓여 있었음')
     expect(mocks.submitContact).not.toHaveBeenCalled()
   })
 

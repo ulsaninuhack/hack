@@ -315,6 +315,7 @@ export interface ReportCard {
   }
   virtual_phone: VirtualPhone
   acknowledgement: ReportAcknowledgement
+  기타사항?: string | null
   // center-inbox 응답에서만 채워진다: 전화/방문 확인 분리와 기관 연락 상태.
   report_lane?: 'phone' | 'visit'
   escalation?: CaseEscalation | null
@@ -594,6 +595,17 @@ export async function confirmAssignment(input: {
       confirmed_by: input.confirmedBy,
       case_ids: input.caseIds,
     }),
+  })
+}
+
+export async function submitCaseNote(input: {
+  caseId: string
+  note: string
+}): Promise<{ case_id: string; 기타사항: string }> {
+  return request(`/api/v1/contact-ops/three-tier/case-notes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ case_id: input.caseId, note: input.note }),
   })
 }
 

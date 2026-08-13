@@ -636,6 +636,11 @@ async function routeThreeTier(request, url, threeTierService) {
     if (!CASE_ID_PATTERN.test(body.case_id || '')) throw new ApiError(400, 'INVALID_BODY', 'case_id must be a synthetic case ID');
     return threeTierService.escalateCase({ sessionId, caseId: body.case_id, reportedBy: body.reported_by });
   }
+  if (url.pathname === `${THREE_TIER_PREFIX}case-notes`) {
+    exactBody(body, ['case_id', 'note']);
+    if (!CASE_ID_PATTERN.test(body.case_id || '')) throw new ApiError(400, 'INVALID_BODY', 'case_id must be a synthetic case ID');
+    return threeTierService.recordCaseNote({ sessionId, caseId: body.case_id, note: body.note });
+  }
   throw new ApiError(404, 'NOT_FOUND', 'Route not found');
 }
 

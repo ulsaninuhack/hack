@@ -17,6 +17,7 @@ import {
   laneItemDisplaySeverity,
   loadReportCard,
   loadTodayLanes,
+  submitCaseNote,
   managementIntakeLabel,
   uploadVoiceObservationAudio,
 } from './threeTierClient'
@@ -391,6 +392,9 @@ export function MobilePage() {
         resultLabel,
         observations,
       })
+      if (candidateFreeText !== null && candidateFreeText.trim() !== '') {
+        await submitCaseNote({ caseId: selected.case_id, note: candidateFreeText.trim() })
+      }
       const preview = await loadReportCard(selected.case_id)
       setReportCard(preview.report_card)
       setStep('done')
@@ -694,12 +698,14 @@ export function MobilePage() {
 
           {inputPath === 'manual' && (
             <form className="mobile-checklist" onSubmit={(event) => { event.preventDefault(); void submit() }}>
-              {candidateFreeText && (
-                <section className="mobile-extra-note" aria-label="기타 특이사항">
-                  <h3>기타 특이사항</h3>
-                  <p>{candidateFreeText}</p>
-                </section>
-              )}
+              <label className="mobile-extra-note-field">기타사항
+                <textarea
+                  rows={2}
+                  value={candidateFreeText ?? ''}
+                  onChange={(event) => setCandidateFreeText(event.target.value)}
+                  placeholder="통화 중 특이사항이 있으면 적어 주세요"
+                />
+              </label>
               <label>통화(또는 방문) 결과
                 <select value={resultLabel} onChange={(event) => setResultLabel(event.target.value as ContactResultLabel | '')} required>
                   <option value="">선택해 주세요</option>
