@@ -58,16 +58,16 @@
       "state": "실제 156구역 연락업무 모드와 투명한 구조 맥락"
     },
     {
-      "file": "artifacts/screenshots/loading-mobile.png",
-      "width": 390,
-      "height": 844,
-      "state": "[검증 화면] loading 상태 · 연락업무 API 가로채기"
-    },
-    {
       "file": "artifacts/screenshots/empty-mobile.png",
       "width": 390,
       "height": 844,
       "state": "[검증 화면] empty 상태 · 연락업무 API 가로채기"
+    },
+    {
+      "file": "artifacts/screenshots/loading-mobile.png",
+      "width": 390,
+      "height": 844,
+      "state": "[검증 화면] loading 상태 · 연락업무 API 가로채기"
     },
     {
       "file": "artifacts/screenshots/error-mobile.png",
