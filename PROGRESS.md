@@ -450,3 +450,16 @@ hostile follow-up, commit, preview, and blockers. Existing entries are never rew
   test:e2e:ops 의무는 유지). Markdown·artifacts만 바뀐 커밋은 파이프라인 전체
   스킵(paths-ignore). 연속 푸시 취소(concurrency)는 기존 구성 확인.
 - AGENTS.md 배포 계약 문단에 동일 내용 기록. agent:check 그린.
+
+## 2026-08-13 — 자연어 대상 표시와 구별 분석 문장 반영
+
+- 내부 `SYN-HH-*` 식별 계약은 유지하되 API 표시값 `display_name`을 추가하고,
+  모바일·동 센터·기존 운영 화면에는 `김영자 어르신` 같은 결정적 한국어 이름만
+  표시. 동별 최대 50건 이름 중복 방지 테스트를 추가.
+- 프로덕션 UI에서 내부 식별자와 `합성` 표식을 제거하고, 다시 들어오지 못하도록
+  UI copy gate를 확장. 실제 주민 상태가 아니라는 설명은 `고정 운영 예시`로 유지.
+- 런타임 OpenAI 호출과 키 요구를 제거. Codex가 작성한 인천 11개 구별 분석 문장에
+  서버가 고령비율·일인가구비율·기초수급 밀도·시설 수·업무 부하 집계값을 주입하는
+  `codex_authored_v1` 어댑터로 고정.
+- 검증: `agent:check` 전체 그린(프런트 55, 백엔드 218·라인 97.29%·브랜치
+  90.99%·함수 100%, 음성 50 통과·라이브 1 skip), P9 실브라우저 골든 2/2 통과.

@@ -40,7 +40,7 @@ vi.mock('./contactOpsClient', async (importOriginal) => {
 })
 vi.mock('./data', () => ({ loadData: mocks.loadData }))
 vi.mock('./structuralContext', () => ({ loadStructuralContext: mocks.loadStructuralContext }))
-vi.mock('./MapView', () => ({ default: ({ onSelectDong }: { onSelectDong: (dong: { geometry_zone_id: string }) => void }) => <><div role="region" aria-label="[합성] 연락업무 위치와 공개 동단위 맥락 지도" data-map-ready="true" /><button type="button" onClick={() => onSelectDong({ geometry_zone_id: 'zone:other' })}>지도 구역 선택</button></> }))
+vi.mock('./MapView', () => ({ default: ({ onSelectDong }: { onSelectDong: (dong: { geometry_zone_id: string }) => void }) => <><div role="region" aria-label="연락업무 위치와 공개 동단위 맥락 지도" data-map-ready="true" /><button type="button" onClick={() => onSelectDong({ geometry_zone_id: 'zone:other' })}>지도 구역 선택</button></> }))
 
 import { ManagerPage, SurveyorPage } from './Operations'
 
@@ -87,7 +87,7 @@ describe('P2 surveyor flow', () => {
     mocks.loadTodayQueue.mockResolvedValue(queue)
     mocks.loadCase.mockResolvedValue(detail)
     render(<SurveyorPage />)
-    expect(await screen.findByRole('option', { name: /SYN-HH-2812551000-0001/ })).toHaveAttribute('aria-selected', 'true')
+    expect(await screen.findByRole('option', { name: /김영자 어르신/ })).toHaveAttribute('aria-selected', 'true')
     expect(await screen.findByText('방문 권고 · 담당자 승인 대기')).toBeInTheDocument()
     expect(screen.getByText('급성도 근거 보기')).toBeInTheDocument()
     expect(screen.getByText('취약도 근거 보기')).toBeInTheDocument()
@@ -98,7 +98,7 @@ describe('P2 surveyor flow', () => {
     mocks.loadTodayQueue.mockResolvedValue(queue)
     mocks.loadCase.mockResolvedValue({ ...detail, triage: null })
     render(<SurveyorPage />)
-    expect(await screen.findByRole('option', { name: /SYN-HH-2812551000-0001/ })).toBeInTheDocument()
+    expect(await screen.findByRole('option', { name: /김영자 어르신/ })).toBeInTheDocument()
     expect(await screen.findByText('55')).toBeInTheDocument()
     expect(screen.getByText('25')).toBeInTheDocument()
     expect(screen.getByText('급성도 근거 보기')).toBeInTheDocument()
@@ -167,7 +167,7 @@ describe('P2 manager flow', () => {
     render(<ManagerPage />)
     expect(await screen.findByText('담당자 승인 대기')).toBeInTheDocument()
     expect(screen.getByRole('listbox', { name: '방문 권고 목록' })).toBeInTheDocument()
-    expect(await screen.findByRole('region', { name: '[합성] 연락업무 위치와 공개 동단위 맥락 지도' })).toBeInTheDocument()
+    expect(await screen.findByRole('region', { name: '연락업무 위치와 공개 동단위 맥락 지도' })).toBeInTheDocument()
     expect(screen.getByText(/키보드 접근 가능 목록/)).toBeInTheDocument()
   })
 
@@ -177,7 +177,8 @@ describe('P2 manager flow', () => {
     mocks.loadData.mockResolvedValue({})
     render(<ManagerPage />)
     expect(await screen.findByText('행정복지센터 이관 권고')).toBeInTheDocument()
-    expect(screen.getByText('합성 배점 튜닝 경고')).toBeInTheDocument()
+    expect(screen.getByText('배점 점검')).toBeInTheDocument()
+    expect(screen.getByText('점수 규칙 점검값이며 실제 개인 판정이 아닙니다.')).toBeInTheDocument()
     expect(screen.getByText('647건')).toBeInTheDocument()
     expect(screen.getByText('승인된 방문 13건')).toBeInTheDocument()
     expect(screen.getByText('단순 근접 순서 · VRP 아님(차량 경로 최적화 미사용)')).toBeInTheDocument()
@@ -209,7 +210,7 @@ describe('P2 manager flow', () => {
     render(<ManagerPage />)
     expect(await screen.findByText('[MODEL OUTPUT — UNVALIDATED]')).toBeInTheDocument()
     expect(screen.getByText('공개 인구 맥락')).toBeInTheDocument()
-    expect(screen.getByText('[합성] 연락업무')).toBeInTheDocument()
+    expect(screen.getByText('연락업무')).toBeInTheDocument()
     expect(screen.getByText('39.3 / 50')).toBeInTheDocument()
     expect(screen.getByText(/4\s*\/\s*4\s*\(100%\)/)).toBeInTheDocument()
     expect(screen.getByText('65세 이상 인구 비율')).toBeInTheDocument()
@@ -229,7 +230,7 @@ describe('P2 manager flow', () => {
       synthetic: true, displayMarker: '[합성]', geometry_zone_count: 156, current_admin_dong_count: 162, public_context_label: '[MODEL OUTPUT — UNVALIDATED]', scenario_label: '[합성 시나리오]', scenario_reference_date: '2026-08-12', scenario_method: 'one_deterministic_example_per_current_admin_dong',
       zones: [{ geometry_zone_id: 'zone:other', public_structural_context: {}, operations: {
         synthetic: true, displayMarker: '[합성]', aggregation: 'zone_max_priority_context', tie_rule: 'highest axis score then synthetic case ID ascending',
-        acute_color_metric: 75, acute_max_case_id: 'SYN-HH-A', vulnerability_size_metric: 80, vulnerability_max_case_id: 'SYN-HH-B', scored_case_count: 2, unscored_case_count: 1,
+        acute_color_metric: 75, acute_max_case_id: 'SYN-HH-2812551000-0001', vulnerability_size_metric: 80, vulnerability_max_case_id: 'SYN-HH-2812551000-0002', scored_case_count: 2, unscored_case_count: 1,
         session_scored_case_count: 1, scenario_scored_case_count: 1, scenario_label: '[합성 시나리오]', scenario_reference_date: '2026-08-12', scenario_method: 'one_deterministic_example_per_current_admin_dong',
         acute_metric_source: 'session_recorded', vulnerability_metric_source: 'synthetic_scenario',
         contribution_summaries: { acute: [{ code: '연속_미응답', total_points: 50, case_count: 2 }], vulnerability: [{ code: '관계망_없음', total_points: 80, case_count: 2 }, { code: '동단위_고령비율', total_points: 0, case_count: 1 }] },
@@ -237,16 +238,16 @@ describe('P2 manager flow', () => {
     })
     render(<ManagerPage />)
     await screen.findByText('선택한 권고 검토')
-    await user.click(screen.getByRole('button', { name: '[합성] 연락업무' }))
+    await user.click(screen.getByRole('button', { name: '연락업무' }))
     await user.click(screen.getByRole('button', { name: '지도 구역 선택' }))
-    expect(await screen.findByRole('heading', { name: '선택한 구역의 [합성] 연락업무' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: '선택한 구역의 연락업무' })).toBeInTheDocument()
     expect(screen.getByText('급성도 기여')).toBeInTheDocument()
     expect(screen.getByText('취약도 기여')).toBeInTheDocument()
-    expect(screen.getByText(/SYN-HH-A/)).toBeInTheDocument()
+    expect(screen.getAllByText(/김영자 어르신/).length).toBeGreaterThan(0)
     expect(screen.getByText(/채색은 구역 내 급성도 최댓값/)).toBeInTheDocument()
-    expect(screen.getByText('[합성 시나리오]')).toBeInTheDocument()
-    expect(screen.getByText('세션 기록 1건 · 합성 예시 1건 · 미기록 1건')).toBeInTheDocument()
-    expect(screen.getByText(/현행 행정동마다 1건의 고정 합성 예시/)).toBeInTheDocument()
+    expect(screen.getByText('고정 운영 예시')).toBeInTheDocument()
+    expect(screen.getByText('세션 기록 1건 · 고정 예시 1건 · 미기록 1건')).toBeInTheDocument()
+    expect(screen.getByText(/현행 행정동마다 한 건의 고정 예시/)).toBeInTheDocument()
     expect(screen.getByText('연속 미응답')).toBeInTheDocument()
     expect(screen.queryByText('연속_미응답')).not.toBeInTheDocument()
     expect(screen.getByText(/0점 항목은 평가되었으나 가산되지 않은 지표/)).toBeInTheDocument()
@@ -288,7 +289,7 @@ describe('P2 manager flow', () => {
 
     render(<ManagerPage />)
 
-    const recommendation = await screen.findByRole('option', { name: /SYN-HH-2812551000-0001/ })
+    const recommendation = await screen.findByRole('option', { name: /김영자 어르신/ })
     expect(recommendation.querySelectorAll('[data-score-axis="acute"]')).toHaveLength(1)
     expect(recommendation.querySelectorAll('[data-score-axis="vulnerability"]')).toHaveLength(1)
     await user.click(screen.getByLabelText('방문 권고 승인'))

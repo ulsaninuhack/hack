@@ -272,7 +272,7 @@ function toSyntheticPointCollection(point: MapViewProps['syntheticPoint']): Feat
     features: point ? [{
       type: 'Feature',
       geometry: { type: 'Point', coordinates: [point.longitude, point.latitude] },
-      properties: { case_id: point.caseId, synthetic: true, display_marker: '[합성]' },
+      properties: { case_id: point.caseId, synthetic: true },
     }] : [],
   }
 }

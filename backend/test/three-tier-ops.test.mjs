@@ -16,8 +16,9 @@ import {
   buildStaffingReview,
   contactResultLabel,
   createDistrictAiSummaryAdapter,
+  deriveCaseDisplayName,
   deriveVirtualPhone,
-  renderMockDistrictAiSummary,
+  renderAuthoredDistrictAiSummary,
   timeWindowsOverlap,
 } from '../src/three-tier-ops.mjs';
 
@@ -141,6 +142,24 @@ describe('three-tier virtual phone (INV15)', () => {
   });
 });
 
+describe('three-tier case display names', () => {
+  test('maps internal case IDs to stable, natural Korean names', () => {
+    const first = deriveCaseDisplayName('SYN-HH-2812551000-0001');
+    assert.equal(first, deriveCaseDisplayName('SYN-HH-2812551000-0001'));
+    assert.match(first, /^[가-힣]{3,4}$/);
+    assert.notEqual(first, deriveCaseDisplayName('SYN-HH-2812551000-0002'));
+    assert.doesNotMatch(first, /SYN|HH|합성/);
+  });
+
+  test('keeps every name unique inside one dong fixture', () => {
+    const names = Array.from({ length: 50 }, (_, index) => (
+      deriveCaseDisplayName(`SYN-HH-2812551000-${String(index + 1).padStart(4, '0')}`)
+    ));
+    assert.equal(new Set(names).size, names.length);
+    assert.throws(() => deriveCaseDisplayName('CASE-0001'), TypeError);
+  });
+});
+
 describe('three-tier agency recommendation rule table', () => {
   test('maps signal combinations to 권고+사유 only (INV14)', () => {
     const observations = emptyObservations();
@@ -204,6 +223,8 @@ describe('three-tier report card', () => {
     assert.ok(card.권고_기관.some((item) => item.기관 === '현장 확인'));
     assert.match(card.virtual_phone.display_number, /^010-0000-\d{4}$/);
     assert.equal(card.displayMarker, '[합성]');
+    assert.match(card.display_name, /^[가-힣]{3,4}$/);
+    assert.doesNotMatch(card.display_name, /SYN|합성/);
   });
 
   test('returns null before any session-recorded result and fails on bad grades', () => {
@@ -252,6 +273,10 @@ describe('three-tier assignment proposal engine', () => {
     const [first, second] = batches;
     assert.equal(first.dong_code, '2812551000');
     assert.deepEqual(first.lanes.phone.map((item) => item.case_id), ['SYN-HH-2812551000-0001', 'SYN-HH-2812551000-0004']);
+    assert.deepEqual(first.lanes.phone.map((item) => item.display_name), [
+      deriveCaseDisplayName('SYN-HH-2812551000-0001'),
+      deriveCaseDisplayName('SYN-HH-2812551000-0004'),
+    ]);
     assert.deepEqual(first.lanes.visit.map((item) => item.case_id), ['SYN-HH-2812551000-0002']);
     assert.deepEqual(second.lanes.visit.map((item) => item.case_id),
       ['SYN-HH-2826051000-0002', 'SYN-HH-2826051000-0003', 'SYN-HH-2826051000-0001'],
@@ -438,10 +463,10 @@ describe('three-tier district AI summary (INV19)', () => {
     },
   };
 
-  test('mock generator is deterministic and quotes only injected values', () => {
+  test('Codex-authored analysis is deterministic and quotes only injected values', () => {
     const input = buildDistrictAiSummaryInput(aggregate, '2026-08-12');
-    const first = renderMockDistrictAiSummary(input);
-    assert.equal(first, renderMockDistrictAiSummary(input));
+    const first = renderAuthoredDistrictAiSummary(input);
+    assert.equal(first, renderAuthoredDistrictAiSummary(input));
     for (const value of Object.values(input)) {
       assert.ok(first.includes(String(value)), `summary must quote injected metric ${value}`);
     }
@@ -452,13 +477,15 @@ describe('three-tier district AI summary (INV19)', () => {
       assert.ok(allowedTokens.has(token), `summary number ${token} must come from injected metrics only`);
     }
     assert.match(first, /개인 단위 예측이나 판정이 아닙니다/);
+    assert.match(first, /제물포구/);
+    assert.doesNotMatch(first, /mock|모의/);
   });
 
   test('adapter wraps summaries with the required label and warnings', async () => {
     const adapter = createDistrictAiSummaryAdapter();
     const result = await adapter.summarize({ aggregate, referenceDate: '2026-08-12' });
     assert.equal(result.label, AI_SUMMARY_LABEL);
-    assert.equal(result.generator, 'mock_deterministic');
+    assert.equal(result.generator, 'codex_authored_v1');
     assert.equal(result.district, '제물포구');
     assert.deepEqual(result.mixed_snapshot_warnings, [MIXED_SNAPSHOT_WARNING, WELFARE_MIXED_SNAPSHOT_WARNING]);
     assert.equal(result.input_metrics.기초수급_밀도_퍼센트, '5');
@@ -471,30 +498,24 @@ describe('three-tier district AI summary (INV19)', () => {
     sparse.structure.basic_livelihood.density_pct = null;
     const input = buildDistrictAiSummaryInput(sparse, '2026-08-12');
     assert.equal(input.기초수급_밀도_퍼센트, '자료 없음');
-    assert.match(renderMockDistrictAiSummary(input), /기초수급 밀도는 자료 없음%/);
+    assert.match(renderAuthoredDistrictAiSummary(input), /기초수급 밀도는 자료 없음%/);
   });
 
-  test('live mode is env-gated behind an injected generator and re-validates quoting', async () => {
-    assert.throws(() => createDistrictAiSummaryAdapter({ mode: 'live' }), TypeError);
-    assert.throws(() => createDistrictAiSummaryAdapter({ mode: 'other' }), TypeError);
-    const live = createDistrictAiSummaryAdapter({
-      mode: 'live',
-      liveGenerator: async ({ input }) => `제물포구 해석: 노인 비율 ${input.노인인구_비율_퍼센트}%, 오늘 예정 ${input.오늘_예정_건수}건, 대기 ${input.방문승인_대기_건수}건.`,
-    });
-    const result = await live.summarize({ aggregate, referenceDate: '2026-08-12' });
-    assert.equal(result.generator, 'live_llm_env_gated');
-    assert.equal(result.label, AI_SUMMARY_LABEL);
-
-    const empty = createDistrictAiSummaryAdapter({ mode: 'live', liveGenerator: async () => '' });
-    await assert.rejects(() => empty.summarize({ aggregate, referenceDate: '2026-08-12' }), TypeError);
-    const unquoted = createDistrictAiSummaryAdapter({ mode: 'live', liveGenerator: async () => '수치 인용이 없는 문단입니다.' });
-    await assert.rejects(() => unquoted.summarize({ aggregate, referenceDate: '2026-08-12' }), TypeError);
+  test('contains authored guidance for every current Incheon district', () => {
+    const districts = ['강화군', '검단구', '계양구', '남동구', '미추홀구', '부평구', '서해구', '연수구', '영종구', '옹진군', '제물포구'];
+    for (const district of districts) {
+      const input = { ...buildDistrictAiSummaryInput(aggregate, '2026-08-12'), 구: district };
+      const text = renderAuthoredDistrictAiSummary(input);
+      assert.match(text, new RegExp(district));
+      assert.ok(text.length > 250, `${district} analysis must be substantive`);
+    }
   });
 
   test('rejects malformed summary input', () => {
     assert.throws(() => buildDistrictAiSummaryInput(null, '2026-08-12'), TypeError);
     assert.throws(() => buildDistrictAiSummaryInput(aggregate, 'today'), TypeError);
-    assert.throws(() => renderMockDistrictAiSummary(null), TypeError);
-    assert.throws(() => renderMockDistrictAiSummary({}), TypeError);
+    assert.throws(() => renderAuthoredDistrictAiSummary(null), TypeError);
+    assert.throws(() => renderAuthoredDistrictAiSummary({}), TypeError);
+    assert.throws(() => renderAuthoredDistrictAiSummary({ ...buildDistrictAiSummaryInput(aggregate, '2026-08-12'), 구: '없는구' }), TypeError);
   });
 });
