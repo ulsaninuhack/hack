@@ -379,7 +379,7 @@ describe('CenterPage (동 행정복지센터)', () => {
     }))
   })
 
-  it('escalates a visit case to the higher agency and shows the reported state', async () => {
+  it('escalates a visit case and removes it from the visit confirmation list', async () => {
     arrange()
     const user = userEvent.setup()
     render(<CenterPage />)
@@ -395,8 +395,11 @@ describe('CenterPage (동 행정복지센터)', () => {
       caseId: 'SYN-HH-2812551000-0002', reportedBy: '동센터 담당자',
     }))
     const visitLane = await screen.findByLabelText('방문 레인 할당 제안')
-    expect(within(visitLane).getByText(/상급기관 신고됨 · 구 희망복지지원단/)).toBeInTheDocument()
-    expect(within(visitLane).queryByRole('button', { name: '신고' })).toBeNull()
+    await waitFor(() => expect(within(visitLane).queryByText('이순자 어르신')).toBeNull())
+    expect(within(visitLane).getByText('이 레인에는 오늘 제안이 없습니다.')).toBeInTheDocument()
+    expect(screen.getByText('상급기관에 신고한 1건은 방문 목록에서 제외되었습니다.')).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: '방문 0' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '신고' })).toBeNull()
   })
 
 

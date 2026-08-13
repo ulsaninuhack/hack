@@ -231,7 +231,7 @@ function ProposalRow({
           </div>
         )}
         {item.lane === 'phone' && <>
-          <div className="assignment-fact"><dt>등록 근거</dt><dd>{managementIntakeLabel(item.management_entry.intake_channel)}</dd></div>
+          <div className="assignment-fact"><dt>등록 근거</dt><dd>{item.management_entry ? managementIntakeLabel(item.management_entry.intake_channel) : '기록 확인 필요'}</dd></div>
           <div className="assignment-fact"><dt>관리 확인</dt><dd>연락 동의 기록 · 기존 정기 안부확인 중복 없음</dd></div>
         </>}
       </dl>
@@ -407,7 +407,16 @@ export function CenterPage({ reviewCaseId = null }: { reviewCaseId?: string | nu
   const proposal = inbox?.assignment_proposal ?? null
   const phoneReports = useMemo(() => (inbox?.report_cards ?? []).filter((card) => card.report_lane !== 'visit'), [inbox])
   const visitReports = useMemo(() => (inbox?.report_cards ?? []).filter((card) => card.report_lane === 'visit'), [inbox])
-  const laneItems = useMemo(() => proposal?.lanes[lane] ?? [], [proposal, lane])
+  // 상급기관에 신고한 어르신은 방문 확인 목록에서 제외한다. 신고 사실은
+  // 목록 아래 건수 안내와 보고 카드의 '기관 연락됨' 상태로만 남는다.
+  const laneItems = useMemo(() => {
+    const items = proposal?.lanes[lane] ?? []
+    return lane === 'visit' ? items.filter((item) => !item.escalation) : items
+  }, [proposal, lane])
+  const escalatedVisitCount = useMemo(
+    () => (proposal?.lanes.visit ?? []).filter((item) => item.escalation).length,
+    [proposal],
+  )
   const pendingVisitIds = useMemo(() => (proposal?.lanes.visit ?? [])
     .filter((item) => item.status !== 'confirmed' && !item.escalation)
     .map((item) => item.case_id), [proposal])
@@ -620,12 +629,15 @@ export function CenterPage({ reviewCaseId = null }: { reviewCaseId?: string | nu
                   <>
                     <div className="lane-tabs" role="tablist" aria-label="전화 레인과 방문 레인">
                       <button role="tab" aria-selected={lane === 'phone'} onClick={() => setLane('phone')}>전화 {proposal.lanes.phone.length}</button>
-                      <button role="tab" aria-selected={lane === 'visit'} onClick={() => setLane('visit')}>방문 {proposal.lanes.visit.length}</button>
+                      <button role="tab" aria-selected={lane === 'visit'} onClick={() => setLane('visit')}>방문 {proposal.lanes.visit.length - escalatedVisitCount}</button>
                     </div>
                     <ul className="assignment-list" aria-label={lane === 'phone' ? '전화 레인 할당 제안' : '방문 레인 할당 제안'}>
                       {laneItems.length === 0 ? <li className="ops-empty">이 레인에는 오늘 제안이 없습니다.</li>
                         : laneItems.map((item) => <ProposalRow key={item.case_id} item={item} onConfirm={confirmOne} onEscalate={escalateOne} busy={busy} />)}
                     </ul>
+                    {lane === 'visit' && escalatedVisitCount > 0 && (
+                      <p className="assignment-escalated-note" role="note">상급기관에 신고한 {escalatedVisitCount}건은 방문 목록에서 제외되었습니다.</p>
+                    )}
                     {lane === 'visit' && pendingVisitIds.length > 0 && (
                       <button className="confirm-all" disabled={busy} onClick={() => confirmAllVisits(pendingVisitIds)}>오늘 방문 일괄 확인</button>
                     )}
