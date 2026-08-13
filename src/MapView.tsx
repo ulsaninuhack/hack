@@ -19,12 +19,11 @@ interface MapViewProps {
 }
 
 const DONG_SOURCE = 'admin-dongs'
-const BUBBLE_SOURCE = 'dong-bubbles'
 const FACILITY_SOURCE = 'facilities'
 const TRANSIT_SOURCE = 'transit'
 const SYNTHETIC_POINT_SOURCE = 'synthetic-contact-case'
-const OPERATIONAL_SOURCES = [DONG_SOURCE, BUBBLE_SOURCE, FACILITY_SOURCE, TRANSIT_SOURCE, SYNTHETIC_POINT_SOURCE]
-const OPERATIONAL_LAYERS = ['dong-fill', 'dong-border', 'dong-bubbles', 'facility-clusters', 'facility-cluster-count', 'facility-points', 'transit-points', 'synthetic-contact-case-halo', 'synthetic-contact-case-point']
+const OPERATIONAL_SOURCES = [DONG_SOURCE, FACILITY_SOURCE, TRANSIT_SOURCE, SYNTHETIC_POINT_SOURCE]
+const OPERATIONAL_LAYERS = ['dong-fill', 'dong-border', 'facility-clusters', 'facility-cluster-count', 'facility-points', 'transit-points', 'synthetic-contact-case-halo', 'synthetic-contact-case-point']
 
 // MapLibre 6 resolves its worker next to the bundled entry at runtime. Vite
 // cannot discover that computed URL, so the build emits the worker and shared
@@ -47,7 +46,7 @@ function colorExpression(metric: MetricKey): ExpressionSpecification {
 }
 
 function mapColorExpression(mode: MapViewProps['mapMode'], metric: MetricKey): ExpressionSpecification {
-  if (mode === 'operations') return ['case', ['==', ['feature-state', 'acute'], null], '#d8dedb', ['interpolate', ['linear'], ['feature-state', 'acute'], 0, '#f6f0df', 25, '#edbb67', 50, '#db7049', 75, '#8f2f3c', 100, '#4d1830']]
+  if (mode === 'operations') return ['case', ['==', ['feature-state', 'acute'], null], '#d8dedb', ['interpolate', ['linear'], ['feature-state', 'acute'], 0, '#eef7e1', 25, '#a9d18a', 50, '#f4d35e', 75, '#ee9b3a', 100, '#c1443c']]
   return colorExpression(metric)
 }
 
@@ -99,14 +98,6 @@ export default function MapView(props: MapViewProps) {
         id: 'dong-border', type: 'line', source: DONG_SOURCE,
         paint: { 'line-color': ['case', ['boolean', ['feature-state', 'selected'], false], '#f7c765', '#ffffff'], 'line-width': ['case', ['boolean', ['feature-state', 'selected'], false], 3, 0.8], 'line-opacity': 0.9 },
       })
-      map.addSource(BUBBLE_SOURCE, { type: 'geojson', data: toBubbleCollection(current.data, current.operationsByZone) })
-      map.addLayer({
-        id: 'dong-bubbles', type: 'circle', source: BUBBLE_SOURCE,
-        paint: {
-          'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, ['interpolate', ['linear'], ['get', 'vulnerability'], 0, 2, 100, 14], 13, ['interpolate', ['linear'], ['get', 'vulnerability'], 0, 5, 100, 25]],
-          'circle-color': ['case', ['==', ['get', 'acute'], null], '#f3bd54', ['interpolate', ['linear'], ['get', 'acute'], 0, '#f6f0df', 50, '#db7049', 100, '#4d1830']], 'circle-opacity': 0.82, 'circle-stroke-color': '#5d4213', 'circle-stroke-width': 1,
-        },
-      })
       map.addSource(FACILITY_SOURCE, { type: 'geojson', data: current.data.facilities, cluster: true, clusterMaxZoom: 13, clusterRadius: 48 })
       map.addLayer({
         id: 'facility-clusters', type: 'circle', source: FACILITY_SOURCE, filter: ['has', 'point_count'],
@@ -144,7 +135,6 @@ export default function MapView(props: MapViewProps) {
       setVisibility(map, 'facility-cluster-count', current.showFacilities)
       setVisibility(map, 'facility-points', current.showFacilities)
       setVisibility(map, 'transit-points', current.showTransit)
-      setVisibility(map, 'dong-bubbles', current.mapMode === 'operations')
       updateContextStates(map, current)
 
       // `idle` waits for all network activity, including optional external raster
@@ -199,8 +189,6 @@ export default function MapView(props: MapViewProps) {
     if (!map?.isStyleLoaded() || !hasOperationalMapLayers(map)) return
     map.setPaintProperty('dong-fill', 'fill-color', mapColorExpression(props.mapMode, props.metric))
     updateContextStates(map, props)
-    const bubbleSource = map.getSource(BUBBLE_SOURCE) as maplibregl.GeoJSONSource | undefined
-    bubbleSource?.setData(toBubbleCollection(props.data, props.operationsByZone))
   }, [props.metric, props.mapMode, props.operationsByZone, props.data])
 
   useEffect(() => {
@@ -210,7 +198,6 @@ export default function MapView(props: MapViewProps) {
     setVisibility(map, 'facility-cluster-count', props.showFacilities)
     setVisibility(map, 'facility-points', props.showFacilities)
     setVisibility(map, 'transit-points', props.showTransit)
-    setVisibility(map, 'dong-bubbles', props.mapMode === 'operations')
   }, [props.showFacilities, props.showTransit, props.mapMode])
 
   useEffect(() => {
@@ -282,24 +269,6 @@ function updateContextStates(map: Map, props: MapViewProps) {
     map.setFeatureState({ source: DONG_SOURCE, id }, {
       acute: operation?.acute_color_metric ?? null,
     })
-  }
-}
-
-function toBubbleCollection(data: DataBundle, operationsByZone?: MapViewProps['operationsByZone']): FeatureCollection<Point, DongProperties & { acute: number | null; vulnerability: number }> {
-  return {
-    type: 'FeatureCollection',
-    features: data.dongs.features.map((feature) => ({
-      type: 'Feature',
-      geometry: {
-        type: 'Point',
-        coordinates: [feature.properties.representative_longitude, feature.properties.representative_latitude],
-      },
-      properties: {
-        ...feature.properties,
-        acute: operationsByZone?.[feature.properties.geometry_zone_id]?.acute_color_metric ?? null,
-        vulnerability: operationsByZone?.[feature.properties.geometry_zone_id]?.vulnerability_size_metric ?? 0,
-      },
-    })),
   }
 }
 
