@@ -609,7 +609,21 @@ select:focus-visible,
   --gg-violet-900: #1c0a88;
   --gg-magenta: #ca1fcf;
   background: linear-gradient(180deg, var(--gg-violet-100), var(--cream) 360px);
+  font-size: 14px;
 }
+.city-page h1 { font-size: 18px; }
+.city-page h2 { font-size: 18px; }
+.city-page h3 { font-size: 16px; }
+.city-page h4 { font-size: 14px; }
+.city-page button,
+.city-page a,
+.city-page select,
+.city-page input,
+.city-page textarea,
+.city-page summary { font-size: 14px; }
+.city-page .tier-header nav a { font-size: 13px; }
+.city-page .ops-state,
+.city-page .ops-empty { font-size: 14px; }
 .city-page .tier-header { background: linear-gradient(120deg, var(--gg-violet-700), var(--gg-violet-900)); border: none; color: #fff; }
 .city-page .tier-header h1 { color: #fff; }
 .city-page .tier-header nav a { background: rgba(255,255,255,.14); color: #fff; transition: background .2s var(--ease), transform .2s var(--ease); }
@@ -649,6 +663,8 @@ select:focus-visible,
 @media (max-width: 720px) {
   .tier-page { padding: 12px 12px 48px; font-size: 18px; }
   .tier-page p, .tier-page label, .tier-page button, .tier-page select, .tier-page textarea, .tier-page a, .tier-page span, .tier-page small, .tier-page b, .tier-page summary, .tier-page li, .tier-page dt, .tier-page dd { font-size: 18px !important; }
+  .city-page h1, .city-page h2, .city-page h3, .city-page h4 { font-size: 18px; }
+  .city-page .ops-state, .city-page .ops-empty { font-size: 18px; }
   .center-summary { grid-template-columns: 1fr; }
   .report-scores, .mobile-done-summary { flex-wrap: wrap; }
   .city-map { height: 340px; }
