@@ -14,7 +14,7 @@ function sessionConfig({ model, language, sessionModel }) {
         noise_reduction: { type: 'near_field' },
         turn_detection: {
           type: 'server_vad',
-          threshold: 0.65,
+          threshold: 0.75,
           prefix_padding_ms: 300,
           silence_duration_ms: 700,
           create_response: false,
