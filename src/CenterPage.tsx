@@ -75,7 +75,7 @@ function ReportCardView({
 }) {
   const [showTransfer, setShowTransfer] = useState(false)
   return (
-    <article className="report-card" aria-label={`${card.case_id} 보고 카드`}>
+    <article className="report-card" data-grade={card.등급} aria-label={`${card.case_id} 보고 카드`}>
       <header>
         <GradeChip grade={card.등급} />
         <span className="case-id">{card.case_id}</span>
@@ -252,11 +252,25 @@ export function CenterPage() {
 
       {inbox && (
         <>
-          <section className="center-summary" aria-label="오늘 처리 요약과 다음 행동">
-            <a href="#center-reports"><strong>{inbox.summary.보고_대기_수}건</strong><span>보고 확인 대기</span></a>
-            <a href="#center-assignment"><strong>{inbox.summary.배치_상태 === 'confirmed' ? '완료' : inbox.summary.배치_상태 === 'partially_confirmed' ? '일부 확인' : '대기'}</strong><span>오늘 배치 확인</span></a>
-            <a href="#center-visit-review"><strong>{inbox.summary.방문승인_대기_수}건</strong><span>방문 검토 대기</span></a>
-            <p><strong>{inbox.summary.처리_완료율_pct ?? 0}%</strong><span>보고 처리 완료율</span></p>
+          <section className="center-hero" aria-label="오늘 처리 요약과 다음 행동">
+            <div className="center-hero-lead">
+              <span className="center-hero-date">{inbox.reference_date} · {inbox.district} {inbox.dong_name}</span>
+              <strong className="center-hero-count">오늘 처리할 일 {inbox.summary.보고_대기_수 + inbox.summary.방문승인_대기_수}건</strong>
+            </div>
+            <div className="center-hero-pills">
+              <a href="#center-reports"><strong>{inbox.summary.보고_대기_수}건</strong><span>보고 확인 대기</span></a>
+              <a href="#center-assignment"><strong>{inbox.summary.배치_상태 === 'confirmed' ? '완료' : inbox.summary.배치_상태 === 'partially_confirmed' ? '일부 확인' : '대기'}</strong><span>오늘 배치 확인</span></a>
+              <a href="#center-visit-review"><strong>{inbox.summary.방문승인_대기_수}건</strong><span>방문 검토 대기</span></a>
+              <div
+                className="center-hero-ring"
+                role="img"
+                aria-label={`보고 처리 완료율 ${inbox.summary.처리_완료율_pct ?? 0}%`}
+                style={{ '--ring': String(inbox.summary.처리_완료율_pct ?? 0) } as React.CSSProperties}
+              >
+                <span>{inbox.summary.처리_완료율_pct ?? 0}%</span>
+                <small>처리율</small>
+              </div>
+            </div>
           </section>
 
           <div className="center-columns">

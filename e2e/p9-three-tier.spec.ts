@@ -246,7 +246,9 @@ test('three-tier screenshot matrix and axe sweep (390×844 · 1440×900)', async
     for (const surface of surfaces) {
       await page.goto(surface.route)
       await expect(page.getByRole('heading', { name: surface.ready })).toBeVisible()
-      await page.waitForTimeout(400)
+      // 카드 등장 애니메이션(최대 0.6s)이 끝난 뒤에 캡처·axe 스캔을 돌려야
+      // 반투명 중간 상태가 대비 계산에 섞이지 않는다.
+      await page.waitForTimeout(800)
       await page.screenshot({
         path: `${SCREENSHOT_DIR}/p9-${surface.name}-${viewport.width}x${viewport.height}.png`,
         fullPage: viewport.width >= 1440,

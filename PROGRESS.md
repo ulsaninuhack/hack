@@ -422,3 +422,13 @@ hostile follow-up, commit, preview, and blockers. Existing entries are never rew
   세 화면 × 두 뷰포트 serious/critical 0 유지.
 - 검증: 프런트 53, E2E 5/5, copy 게이트·typecheck 그린. 골든 문자열 갱신은
   IA 변경 규칙 내(단언 수·강도 유지).
+
+## 2026-08-13 — /center v3: frontend-design 스킬 적용
+
+- anthropics/skills의 frontend-design 스킬을 받아 지침대로 적용: 볼드함은 시그니처
+  하나(딥 네이비 "오늘 브리핑" 히어로 — 큰 합계, 반투명 스탯 필, conic 완료율 링)에
+  집중하고 나머지는 절제. 보고 카드 등급 컬러 레일, 섹션 블루 틱, 카드 스태거
+  등장(0.4s, prefers-reduced-motion 존중).
+- axe 게이트가 등장 애니메이션 중간의 블렌딩 색으로 오탐 → 매트릭스 스캔 대기를
+  애니메이션 종료 후(800ms)로 조정. 세 화면 × 두 뷰포트 serious/critical 0 유지.
+- 검증: 프런트 53, E2E 5/5, typecheck·copy 게이트 그린.
