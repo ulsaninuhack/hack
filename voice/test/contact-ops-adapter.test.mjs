@@ -20,6 +20,8 @@ function plannerOutput({
   observation = {},
   riskScore = 82,
   visitRecommended = true,
+  riskSignals = ['식사 심각'],
+  freeText = '약 복용 확인이 필요함',
 } = {}) {
   return {
     intent: 'contact_result',
@@ -40,8 +42,8 @@ function plannerOutput({
         hygiene: '심각',
         ...observation,
       },
-      free_text: '약 복용 확인이 필요함',
-      risk_signals: ['식사 심각'],
+      free_text: freeText,
+      risk_signals: riskSignals,
       risk_score: riskScore,
       visit_recommended: visitRecommended,
       evidence: [transcript],
@@ -161,6 +163,53 @@ test('the explicit route case ID is authoritative and mismatch becomes a Critic 
   assert.deepEqual(result.critic.contradictions, [
     `case_id 불일치: 발화 ${spokenCaseId}, 라우트 ${ROUTE_CASE_ID}`,
   ]);
+});
+
+test('selected-case memo context maps AI social-isolation signals into the canonical checklist', async () => {
+  const transcript = '아 씨발 나 밥 안 먹고 누워만 있어. 사람 안 만나.';
+  const calls = [];
+  const result = await planContactOpsObservation(
+    { kind: 'text', text: transcript, surveyorId: SURVEYOR_ID, caseId: ROUTE_CASE_ID },
+    {
+      plannerClient: mockPlanner(plannerOutput({
+        transcript,
+        caseId: null,
+        observation: { no_outing: true, meal_status: '심각', hygiene: null },
+        riskSignals: [
+          '식사 심각',
+          '공과금 2개월 이상 체납 있음',
+          '최근 건강·정신 괴로움 있음',
+          '관계망 없음',
+          '연락 빈도 없음',
+        ],
+        freeText: '사람을 만나지 않고 누워만 지냄',
+      }), calls),
+    },
+  );
+
+  assert.equal(result.case_id, ROUTE_CASE_ID);
+  assert.equal(result.contact_result, 'connected_concern');
+  assert.equal(result.observations.관찰_6징후.외출_없음, true);
+  assert.equal(result.observations.식사상태, '심각');
+  assert.equal(result.observations.공과금_2개월_이상_체납, true);
+  assert.equal(result.observations.최근_건강_정신_괴로움, true);
+  assert.equal(result.observations.관계망_유무, '없음');
+  assert.equal(result.observations.연락_빈도, '없음');
+  assert.equal(result.free_text, '사람을 만나지 않고 누워만 지냄');
+  for (const field of [
+    '공과금_2개월_이상_체납',
+    '최근_건강_정신_괴로움',
+    '관계망_유무',
+    '연락_빈도',
+  ]) assert.ok(!result.critic.missing_fields.includes(field), field);
+  assert.deepEqual(result.critic.contradictions, []);
+
+  const sent = JSON.parse(calls[0].input[1].content);
+  assert.deepEqual(sent.contact_context, {
+    expected_intent: 'contact_result',
+    selected_case_id: ROUTE_CASE_ID,
+    source: 'selected_case_voice_memo',
+  });
 });
 
 for (const serverOwnedField of [
