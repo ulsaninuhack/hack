@@ -475,6 +475,12 @@ describe('three-tier district rollups (INV17) and AI summary (INV19)', () => {
     assert.equal(body.data.case_detail_access, 'none_district_rollup_only');
     assert.equal(body.data.zones.length, 1);
     assert.equal(body.data.zones[0].operations.acute_color_metric, 62);
+    assert.equal(body.data.dong_rollups.length, 2);
+    const sinpo = body.data.dong_rollups.find((item) => item.dong_name === '신포동');
+    assert.equal(sinpo.worker_count, 1);
+    assert.equal(sinpo.contact_target_count, 3);
+    assert.equal(sinpo.approved_visit_target_count, 1);
+    assert.equal(sinpo.contact_targets_per_worker, 3);
     assert.equal('acute_max_case_id' in body.data.zones[0].operations, false);
     assert.equal('vulnerability_max_case_id' in body.data.zones[0].operations, false);
     const extraQuery = await get('/api/v1/contact-ops/three-tier/city-operations-map?x=1', session);

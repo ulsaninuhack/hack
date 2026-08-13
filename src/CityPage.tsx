@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Building2, RefreshCw, Sparkles, UsersRound } from 'lucide-react'
+import { AlertTriangle, Building2, RefreshCw, Sparkles, UsersRound, X } from 'lucide-react'
 import MapView from './MapView'
 import { loadData } from './data'
 import type { DataBundle, DongProperties } from './types'
@@ -66,6 +66,45 @@ function CityZoneRollup({ zone, dong }: { zone: CityOperationsMapZone | null; do
         <p>공개 구조 맥락 {zone.public_structural_context.score_0_50.toFixed(1)} / 50</p>
       </div>
     </section>
+  )
+}
+
+type CityDongRollup = NonNullable<CityOperationsMap['dong_rollups']>[number]
+
+function CityDongOverlay({
+  rollups,
+  selectedCode,
+  onSelectCode,
+  onClose,
+}: {
+  rollups: CityDongRollup[]
+  selectedCode: string
+  onSelectCode: (code: string) => void
+  onClose: () => void
+}) {
+  const rollup = rollups.find((item) => item.dong_code === selectedCode) ?? rollups[0]
+  if (!rollup) return null
+  return (
+    <aside className="city-dong-overlay" aria-label={`${rollup.dong_name} 운영 현황`}>
+      <div className="city-dong-overlay-head">
+        <div><small>{rollup.district}</small><h2>{rollup.dong_name}</h2></div>
+        <button type="button" aria-label="동 운영 현황 닫기" onClick={onClose}><X aria-hidden="true" size={18} /></button>
+      </div>
+      {rollups.length > 1 && (
+        <label className="city-dong-picker">같은 지도 구역의 동
+          <select value={rollup.dong_code} onChange={(event) => onSelectCode(event.target.value)}>
+            {rollups.map((item) => <option key={item.dong_code} value={item.dong_code}>{item.dong_name}</option>)}
+          </select>
+        </label>
+      )}
+      <dl className="city-dong-overlay-metrics">
+        <div><dt>연결단원</dt><dd>{rollup.worker_count.toLocaleString()}명</dd></div>
+        <div><dt>연락 대상</dt><dd>{rollup.contact_target_count.toLocaleString()}명</dd></div>
+        <div><dt>방문 대상</dt><dd>{rollup.approved_visit_target_count.toLocaleString()}명</dd></div>
+        <div className="city-dong-load"><dt>연결단원 1명당 담당 대상</dt><dd>{rollup.contact_targets_per_worker?.toLocaleString() ?? '자료 없음'}명</dd></div>
+      </dl>
+      <p className="city-dong-overlay-note">방문 대상은 담당자 승인이 완료된 방문 업무만 집계합니다.</p>
+    </aside>
   )
 }
 
@@ -171,6 +210,7 @@ export function CityPage() {
   const [operationsMap, setOperationsMap] = useState<CityOperationsMap | null>(null)
   const [aggregates, setAggregates] = useState<DistrictAggregates | null>(null)
   const [selectedDong, setSelectedDong] = useState<DongProperties | null>(null)
+  const [selectedDongCode, setSelectedDongCode] = useState('')
   const [selectedDistrict, setSelectedDistrict] = useState<string>('')
   const [summary, setSummary] = useState<DistrictAiSummary | null>(null)
   const [summaryBusy, setSummaryBusy] = useState(false)
@@ -195,6 +235,17 @@ export function CityPage() {
   const selectedZone = useMemo(() => operationsMap?.zones.find(
     (zone) => zone.geometry_zone_id === selectedDong?.geometry_zone_id,
   ) ?? null, [operationsMap, selectedDong])
+  const selectedDongRollups = useMemo(() => operationsMap?.dong_rollups?.filter(
+    (rollup) => rollup.geometry_zone_id === selectedDong?.geometry_zone_id,
+  ) ?? [], [operationsMap, selectedDong])
+
+  useEffect(() => {
+    if (selectedDongRollups.length === 0) return
+    setSelectedDongCode((current) => (
+      selectedDongRollups.some((rollup) => rollup.dong_code === current)
+        ? current : selectedDongRollups[0].dong_code
+    ))
+  }, [selectedDongRollups])
   const selectedAggregate = aggregates?.districts.find((item) => item.district === selectedDistrict) ?? null
   const cityReviewMessages = useMemo(
     () => buildDistrictReviewMessages(aggregates, selectedDistrict),
@@ -266,11 +317,20 @@ export function CityPage() {
               ariaLabel="인천 전체 운영 오버레이 지도 · 동 단위 롤업 전용"
               onSelectDong={(dong) => {
                 setSelectedDong(dong)
+                setSelectedDongCode('')
                 setSelectedDistrict(dong.current_district_name_20260701)
                 setSummary(null)
               }}
             />
           ) : <p className="ops-state" role="status">인천 전체 지도를 불러오는 중입니다.</p>}
+          {selectedDong && selectedDongRollups.length > 0 && (
+            <CityDongOverlay
+              rollups={selectedDongRollups}
+              selectedCode={selectedDongCode}
+              onSelectCode={setSelectedDongCode}
+              onClose={() => { setSelectedDong(null); setSelectedDongCode('') }}
+            />
+          )}
         </section>
       </div>
     </main>

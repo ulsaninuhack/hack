@@ -450,12 +450,47 @@ export function createThreeTierService({
         throw new TypeError('city operations map provider is unavailable');
       }
       const operationsMap = structuredClone(await operationsMapProvider({ sessionId }));
+      const records = await state.list({ sessionId });
+      const recordsByDong = new Map();
+      for (const { household } of records) {
+        const code = household.location.current_admin_dong_code_20260701;
+        const bucket = recordsByDong.get(code) ?? [];
+        bucket.push(household);
+        recordsByDong.set(code, bucket);
+      }
+      const workersByDong = new Map();
+      for (const worker of workers) {
+        const code = worker.location.current_admin_dong_code_20260701;
+        const bucket = workersByDong.get(code) ?? [];
+        bucket.push(worker);
+        workersByDong.set(code, bucket);
+      }
+      const dongRollups = [...workersByDong.entries()].map(([code, dongWorkers]) => {
+        const worker = dongWorkers[0];
+        const households = recordsByDong.get(code) ?? [];
+        const workerCount = dongWorkers.length;
+        const contactTargetCount = households.length;
+        return {
+          dong_code: code,
+          dong_name: worker.location.current_admin_dong_name_20260701,
+          district: worker.location.current_district_name_20260701,
+          geometry_zone_id: worker.location.geometry_zone_id,
+          worker_count: workerCount,
+          contact_target_count: contactTargetCount,
+          approved_visit_target_count: households.filter(
+            (household) => household.workflow.visit_approval_status === 'approved',
+          ).length,
+          contact_targets_per_worker: workerCount > 0
+            ? Math.round((contactTargetCount / workerCount) * 100) / 100 : null,
+        };
+      });
       for (const zone of operationsMap.zones ?? []) {
         delete zone.operations.acute_max_case_id;
         delete zone.operations.vulnerability_max_case_id;
       }
       return {
         ...operationsMap,
+        dong_rollups: dongRollups,
         case_detail_access: 'none_district_rollup_only',
         privacy_note: '시·구 화면용 응답 — 구역 최대값의 케이스 ID를 포함하지 않습니다.',
       };
