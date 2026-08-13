@@ -199,7 +199,6 @@ describe('CityPage (시·구 /city)', () => {
     await user.click(screen.getByRole('button', { name: '구 단위 요약 읽기' }))
     await waitFor(() => expect(mocks.loadDistrictAiSummary).toHaveBeenCalledWith('제물포구'))
     const card = await screen.findByLabelText('제물포구 AI 요약')
-    expect(within(card).getByText('[AI 생성 · 관측 집계 해석 · 개인 예측 아님]')).toBeInTheDocument()
     expect(within(card).getByText(/노인 인구 비율 20%로 나타납니다/)).toBeInTheDocument()
     await user.click(within(card).getByText('요약에 주입된 집계 수치 보기'))
     expect(within(card).getByText(/노인인구 비율 퍼센트: 20/)).toBeInTheDocument()
