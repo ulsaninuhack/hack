@@ -95,6 +95,23 @@ const structuralContext = {
 let server;
 let baseUrl;
 
+const fakeOperationsMap = {
+  synthetic: true,
+  displayMarker: '[합성]',
+  geometry_zone_count: 2,
+  current_admin_dong_count: 2,
+  zones: [{
+    geometry_zone_id: 'vworld_sgis_20250630:23010530',
+    operations: {
+      acute_color_metric: 62,
+      acute_max_case_id: 'SYN-HH-2812551000-0001',
+      vulnerability_size_metric: 25,
+      vulnerability_max_case_id: 'SYN-HH-2812551000-0001',
+      scored_case_count: 1,
+    },
+  }],
+};
+
 before(async () => {
   const state = createMemoryContactOpsState({ households });
   server = createApiServer({
@@ -102,6 +119,7 @@ before(async () => {
     contactOpsService: createContactOpsService({ state }),
     threeTierService: createThreeTierService({
       state, store, structuralContext, workers,
+      operationsMapProvider: async () => structuredClone(fakeOperationsMap),
       now: () => '2026-08-12T09:00:00.000Z',
     }),
     corsOrigins: ['https://care.example'],
@@ -377,6 +395,29 @@ describe('three-tier district rollups (INV17) and AI summary (INV19)', () => {
     const jemulpo = body.data.districts.find((item) => item.district === '제물포구');
     assert.equal(jemulpo.structure.welfare_facility_count, 171);
     assert.equal(jemulpo.operations.worker_count, 1);
+  });
+
+  test('city operations map strips zone max-case IDs at the API layer (INV17)', async () => {
+    const { response, body } = await get('/api/v1/contact-ops/three-tier/city-operations-map', session);
+    assert.equal(response.status, 200);
+    const raw = JSON.stringify(body.data);
+    assert.equal(/SYN-HH-/.test(raw), false, 'city operations map must not carry case IDs');
+    assert.equal(body.data.case_detail_access, 'none_district_rollup_only');
+    assert.equal(body.data.zones.length, 1);
+    assert.equal(body.data.zones[0].operations.acute_color_metric, 62);
+    assert.equal('acute_max_case_id' in body.data.zones[0].operations, false);
+    assert.equal('vulnerability_max_case_id' in body.data.zones[0].operations, false);
+    const extraQuery = await get('/api/v1/contact-ops/three-tier/city-operations-map?x=1', session);
+    assert.equal(extraQuery.response.status, 400);
+  });
+
+  test('city operations map reports 400 when no provider is wired', async () => {
+    const state = createMemoryContactOpsState({ households });
+    const bare = createThreeTierService({ state, store, structuralContext, workers });
+    await assert.rejects(
+      () => bare.getCityOperationsMap({ sessionId: 'three-tier-city-session-02' }),
+      TypeError,
+    );
   });
 
   test('district AI summary quotes injected aggregates deterministically with the required label', async () => {

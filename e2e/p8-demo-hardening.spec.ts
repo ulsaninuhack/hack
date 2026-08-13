@@ -32,11 +32,15 @@ function listenForBrowserErrors(page: Page) {
   page.on('console', (message) => {
     if (message.type() !== 'error') return
     const text = message.text()
-    // Sandboxed runners cannot reach the external basemap/glyph hosts; those
-    // fetch failures are environment noise, not app errors. App-origin
-    // resources bypass the sandbox proxy, so this cannot hide app failures.
-    const externalNoise = ['tile.openstreetmap.org', 'demotiles.maplibre.org',
-      'net::ERR_TUNNEL_CONNECTION_FAILED', 'net::ERR_PROXY_CONNECTION_FAILED']
+    // Sandbox-only (PLAYWRIGHT_CHROMIUM_EXECUTABLE set): offline runners cannot
+    // reach the external basemap/glyph hosts, so those fetch failures are
+    // environment noise there. In CI the env is unset and NOTHING is filtered,
+    // exactly as before.
+    const sandboxOffline = Boolean(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE)
+    const externalNoise = sandboxOffline
+      ? ['tile.openstreetmap.org', 'demotiles.maplibre.org',
+        'net::ERR_TUNNEL_CONNECTION_FAILED', 'net::ERR_PROXY_CONNECTION_FAILED']
+      : []
     if (externalNoise.some((marker) => text.includes(marker))) return
     consoleErrors.push(`${new URL(page.url()).pathname}: ${text}`)
   })

@@ -68,6 +68,7 @@ export interface LaneLocation {
   district: string
   latitude: number
   longitude: number
+  geometry_zone_id: string
   road_address: string | null
   building_name: string | null
   apartment_reference: boolean | null
@@ -360,6 +361,51 @@ export async function confirmAssignment(input: {
       case_ids: input.caseIds,
     }),
   })
+}
+
+// 시·구 화면 전용 운영 지도: 서버가 구역 최대값의 케이스 ID를 제거한 응답
+// (INV17을 API 계층에서 강제). 공개/센터 화면의 operations-map과 구분된다.
+export interface CityOperationsMapZone {
+  geometry_zone_id: string
+  public_structural_context: {
+    model_output_label: string
+    score_0_50: number
+    available_score_denominator: number
+    completeness: { ratio: number }
+    indicators: Record<string, unknown>
+  }
+  operations: {
+    synthetic: true
+    displayMarker: '[합성]'
+    scenario_label: '[합성 시나리오]'
+    scenario_reference_date: string
+    acute_color_metric: number | null
+    vulnerability_size_metric: number | null
+    acute_metric_source: 'session_recorded' | 'synthetic_scenario' | null
+    vulnerability_metric_source: 'session_recorded' | 'synthetic_scenario' | null
+    scored_case_count: number
+    unscored_case_count: number
+    session_scored_case_count: number
+    scenario_scored_case_count: number
+    contribution_summaries: {
+      acute: Array<{ code: string; total_points: number; case_count: number }>
+      vulnerability: Array<{ code: string; total_points: number; case_count: number }>
+    }
+  }
+}
+
+export interface CityOperationsMap {
+  synthetic: true
+  displayMarker: '[합성]'
+  geometry_zone_count: number
+  current_admin_dong_count: number
+  case_detail_access: string
+  privacy_note: string
+  zones: CityOperationsMapZone[]
+}
+
+export async function loadCityOperationsMap(): Promise<CityOperationsMap> {
+  return request<CityOperationsMap>('/api/v1/contact-ops/three-tier/city-operations-map')
 }
 
 export async function loadDistrictAggregates(

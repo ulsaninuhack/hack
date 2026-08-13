@@ -5,22 +5,20 @@ import type { DistrictAggregates, DistrictAiSummary } from './threeTierClient'
 
 const mocks = vi.hoisted(() => ({
   loadData: vi.fn(),
-  loadOperationsMap: vi.fn(),
+  loadCityOperationsMap: vi.fn(),
   loadStructuralContext: vi.fn(),
   loadDistrictAggregates: vi.fn(),
   loadDistrictAiSummary: vi.fn(),
 }))
 
 vi.mock('./data', () => ({ loadData: mocks.loadData }))
-vi.mock('./contactOpsClient', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./contactOpsClient')>()
-  return { ...actual, loadOperationsMap: mocks.loadOperationsMap }
-})
+
 vi.mock('./structuralContext', () => ({ loadStructuralContext: mocks.loadStructuralContext }))
 vi.mock('./threeTierClient', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./threeTierClient')>()
   return {
     ...actual,
+    loadCityOperationsMap: mocks.loadCityOperationsMap,
     loadDistrictAggregates: mocks.loadDistrictAggregates,
     loadDistrictAiSummary: mocks.loadDistrictAiSummary,
   }
@@ -126,8 +124,8 @@ const summary: DistrictAiSummary = {
   mixed_snapshot_warnings: ['분자 2026-07-31 · 분모 2026-06-30 · 서로 다른 기준월의 참고 비율이며 동시점 비율이 아닙니다.'],
 }
 
-// 운영 지도 API에는 구역 최대값의 케이스 ID가 들어 있다. /city는 그 값을
-// 절대 렌더하지 않아야 한다(INV17).
+// 서버의 city-operations-map은 케이스 ID를 제거해 주지만, 방어선 겹침을
+// 위해 이 픽스처는 일부러 케이스 ID를 실어 렌더 계층도 검증한다(INV17).
 const operationsMap = {
   synthetic: true, displayMarker: '[합성]',
   geometry_zone_count: 156, current_admin_dong_count: 162,
@@ -158,7 +156,7 @@ const operationsMap = {
 
 function arrange() {
   mocks.loadData.mockResolvedValue({ dongs: { features: [] }, summary: {} })
-  mocks.loadOperationsMap.mockResolvedValue(structuredClone(operationsMap))
+  mocks.loadCityOperationsMap.mockResolvedValue(structuredClone(operationsMap))
   mocks.loadStructuralContext.mockResolvedValue({ zones: [{ geometry_zone_id: 'vworld_sgis_20250630:23010530', score_0_50: 20 }] })
   mocks.loadDistrictAggregates.mockResolvedValue(structuredClone(aggregates))
   mocks.loadDistrictAiSummary.mockResolvedValue(structuredClone(summary))
@@ -176,8 +174,8 @@ describe('CityPage (시·구 /city)', () => {
     await screen.findByLabelText('제물포구 구 단위 브리핑')
     expect(screen.getByLabelText('구조 맥락')).toBeInTheDocument()
     expect(screen.getByLabelText('운영 부하')).toBeInTheDocument()
-    expect(document.body.textContent).not.toMatch(/SYN-HH-/)
-    expect(document.body.textContent).not.toContain(BANNED_GROUP_WORD)
+    expect(document.documentElement.outerHTML).not.toMatch(/SYN-HH-/)
+    expect(document.documentElement.outerHTML).not.toContain(BANNED_GROUP_WORD)
   })
 
   it('keeps the dong rollup case-free even after selecting a zone with a max-case ID (INV17)', async () => {
@@ -190,7 +188,7 @@ describe('CityPage (시·구 /city)', () => {
     expect(within(rollup).getByText(/급성도 최대\(구역\)/)).toBeInTheDocument()
     expect(within(rollup).getByText(/세션 기록 1건/)).toBeInTheDocument()
     expect(within(rollup).getByText(/동 단위 집계까지만 표시/)).toBeInTheDocument()
-    expect(document.body.textContent).not.toMatch(/SYN-HH-/)
+    expect(document.documentElement.outerHTML).not.toMatch(/SYN-HH-/)
   })
 
   it('serves the district AI summary with the required label and injected metrics (INV19)', async () => {

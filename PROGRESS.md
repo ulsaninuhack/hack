@@ -387,3 +387,25 @@ hostile follow-up, commit, preview, and blockers. Existing entries are never rew
   REDESIGN_SPEC에 개정 기록. 튜닝 경고 수치 664→647 갱신.
 - 검증: 백엔드 214 테스트·커버리지 게이트 그린, 프런트 50, E2E 5/5,
   `agent:check` 전체 그린.
+
+## 2026-08-13 — P2~P5 저지/Ralph 게이트 및 수정 라운드 (머지 후)
+
+- PR #26 머지 후 독립 저지·Ralph 판정 도착: FAIL. 지적과 조치:
+  1) P3 "방문 탭엔 지도" 누락(무언 스코프컷) → `/m` 방문 케이스 상세에 접힌
+     "방문 위치 지도 열기" 위젯 추가(케이스 좌표 합성 점 + 구역 강조),
+     레인 API에 geometry_zone_id 추가, 단위 테스트 추가.
+  2) E2E 콘솔 소음 필터가 CI에서도 무조건 적용 → PLAYWRIGHT_CHROMIUM_EXECUTABLE
+     env가 설정된 샌드박스에서만 필터하도록 게이트(CI는 필터 0건, 기존과 동일).
+     직전 PROGRESS의 "샌드박스 전용" 서술 오류 정정.
+  3) INV17이 렌더 계층만 강제 → 서버가 구역 최대값 케이스 ID를 제거한
+     `three-tier/city-operations-map` 엔드포인트 신설, /city가 이를 사용.
+     프런트·E2E 단언을 innerText → 전체 HTML(page.content)로 강화.
+  4) 모바일 측정 게이트 공집합 통과 가능성 → 측정 요소 수 > 0 단언 추가.
+  5) 음성 업로드 클라이언트 FormData 필드명 무검증 → 3b 계약 필드명 단위
+     테스트(threeTierClient.test.ts) 추가.
+  6) p9 '62' 무스코프 단언 → .mobile-done-summary로 스코프.
+  - 미수정(기록만): '개별 조정'은 확인 보류+플래그로 해석(HANDOFF에 명시),
+    드래프트 PR은 게시 직후 관리자가 ready로 전환(정상 흐름).
+- 검증: 백엔드 216 테스트·커버리지 게이트(97.27/91.08/100), 프런트 53,
+  E2E 5/5, typecheck·copy 게이트 그린.
+- 브랜치는 머지 규칙에 따라 origin/main(1b03d9a)에서 재시작해 후속 커밋.

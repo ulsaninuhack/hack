@@ -137,6 +137,7 @@ const threeTierService = createThreeTierService({
   structuralContext,
   workers: await loadSyntheticWorkers(),
   aiSummaryAdapter: buildDistrictAiSummaryAdapter(),
+  operationsMapProvider: ({ sessionId }) => contactOpsService.getOperationsMap({ sessionId }),
 });
 const server = createApiServer({
   store,

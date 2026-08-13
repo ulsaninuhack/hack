@@ -479,6 +479,10 @@ select:focus-visible,
 .mobile-dial-overlay { position: fixed; inset: 0; z-index: 60; background: rgba(16, 33, 31, 0.94); color: #ffffff; display: grid; place-content: center; gap: 14px; text-align: center; padding: 24px; }
 .mobile-dial-overlay-number { font: 800 30px/1.2 Manrope, 'Noto Sans KR', sans-serif; margin: 0; }
 .mobile-dial-overlay button { border: none; border-radius: var(--radius-lg); background: #ffffff; color: var(--ink); font-weight: 800; padding: 0 22px; min-height: 56px; cursor: pointer; }
+.mobile-map-widget { border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 8px 12px; margin: 0 0 12px; }
+.mobile-map-widget summary { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 700; }
+.mobile-map-frame { height: 260px; border-radius: var(--radius-sm); overflow: hidden; margin-top: 8px; }
+.mobile-map-frame .map { height: 100%; }
 .mobile-input-paths { display: grid; gap: 10px; }
 .mobile-input-paths button { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 56px; border: 1.5px solid var(--line-strong); border-radius: var(--radius-lg); background: var(--surface); font-weight: 800; cursor: pointer; }
 .mobile-path-note, .mobile-confirm-note { color: var(--muted); font-size: 16px; margin: 4px 0; }
