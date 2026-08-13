@@ -23,24 +23,25 @@ function splitSummarySentences(text: string) {
     .filter(Boolean)
 }
 
-function buildCityReviewMessages(aggregates: DistrictAggregates | null) {
-  if (!aggregates) return []
+function buildDistrictReviewMessages(aggregates: DistrictAggregates | null, district: string) {
+  if (!aggregates || !district) return []
   const messages: string[] = []
-  const highestLoad = aggregates.staffing_review.candidates[0]
-  if (highestLoad?.per_worker_due !== null && highestLoad?.per_worker_due !== undefined) {
-    messages.push(`${highestLoad.district}는 연결단원 1명당 오늘 예정 연락업무가 ${highestLoad.per_worker_due}건으로 인천에서 가장 많아 증원 검토가 필요합니다.`)
-  }
-
-  const highestOverdue = [...aggregates.districts].sort((left, right) => right.operations.overdue_count - left.operations.overdue_count)[0]
-  if (highestOverdue && highestOverdue.operations.overdue_count > 0) {
-    messages.push(`${highestOverdue.district}는 기한이 지난 연락업무가 ${highestOverdue.operations.overdue_count}건으로 가장 많아 담당자가 우선 확인해야 합니다.`)
+  const staffing = aggregates.staffing_review.candidates.find((candidate) => candidate.district === district)
+  if (staffing?.per_worker_due !== null && staffing?.per_worker_due !== undefined) {
+    if (staffing.load_rank === 1) {
+      messages.push(`${district}는 연결단원 1명당 오늘 예정 연락업무가 ${staffing.per_worker_due}건으로 인천에서 가장 많아 증원 검토가 필요합니다.`)
+    } else if (staffing.load_rank <= Math.max(2, Math.ceil(aggregates.staffing_review.candidates.length * 0.4))) {
+      messages.push(`${district}는 연결단원 1명당 오늘 예정 연락업무가 ${staffing.per_worker_due}건으로 운영 부하 상위 ${staffing.load_rank}위입니다. 가용 인력이 있다면 증원을 검토할 수 있습니다.`)
+    } else {
+      messages.push(`${district}는 연결단원 1명당 오늘 예정 연락업무가 ${staffing.per_worker_due}건으로 운영 부하 ${staffing.load_rank}위이며, 현재 연결단원이 적절하게 배치되어 있습니다.`)
+    }
   }
 
   const highestPendingVisit = [...aggregates.districts].sort(
     (left, right) => right.operations.pending_visit_approval_count - left.operations.pending_visit_approval_count,
   )[0]
-  if (highestPendingVisit && highestPendingVisit.operations.pending_visit_approval_count > 0) {
-    messages.push(`${highestPendingVisit.district}는 방문 권고 ${highestPendingVisit.operations.pending_visit_approval_count}건이 담당자 승인 대기 중이어서 우선 검토가 필요합니다.`)
+  if (highestPendingVisit?.district === district && highestPendingVisit.operations.pending_visit_approval_count > 0) {
+    messages.push(`${district}는 방문 권고 ${highestPendingVisit.operations.pending_visit_approval_count}건이 인천에서 가장 많이 담당자 승인 대기 중이어서 우선 검토가 필요합니다.`)
   }
   return messages
 }
@@ -195,7 +196,10 @@ export function CityPage() {
     (zone) => zone.geometry_zone_id === selectedDong?.geometry_zone_id,
   ) ?? null, [operationsMap, selectedDong])
   const selectedAggregate = aggregates?.districts.find((item) => item.district === selectedDistrict) ?? null
-  const cityReviewMessages = useMemo(() => buildCityReviewMessages(aggregates), [aggregates])
+  const cityReviewMessages = useMemo(
+    () => buildDistrictReviewMessages(aggregates, selectedDistrict),
+    [aggregates, selectedDistrict],
+  )
 
   const requestSummary = async () => {
     if (!selectedDistrict) return

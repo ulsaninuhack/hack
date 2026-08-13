@@ -159,7 +159,11 @@ function arrange() {
   mocks.loadCityOperationsMap.mockResolvedValue(structuredClone(operationsMap))
   mocks.loadStructuralContext.mockResolvedValue({ zones: [{ geometry_zone_id: 'vworld_sgis_20250630:23010530', score_0_50: 20 }] })
   mocks.loadDistrictAggregates.mockResolvedValue(structuredClone(aggregates))
-  mocks.loadDistrictAiSummary.mockResolvedValue(structuredClone(summary))
+  mocks.loadDistrictAiSummary.mockImplementation(async (district: string) => ({
+    ...structuredClone(summary),
+    district,
+    summary_text: `${district}는 기준일 2026-08-12 관측 집계에서 노인 인구 비율 20%로 나타납니다. 복지시설과 운영 현황을 함께 확인합니다.`,
+  }))
 }
 
 afterEach(() => {
@@ -201,11 +205,11 @@ describe('CityPage (시·구 /city)', () => {
     const card = await screen.findByLabelText('제물포구 AI 요약')
     expect(within(card).getByText('핵심 요약')).toBeInTheDocument()
     const summaryList = within(card).getByRole('list', { name: '핵심 요약 문장' })
-    expect(within(summaryList).getAllByRole('listitem')).toHaveLength(5)
+    expect(within(summaryList).getAllByRole('listitem')).toHaveLength(4)
     expect(within(card).getByText(/노인 인구 비율 20%로 나타납니다/)).toBeInTheDocument()
-    expect(within(card).getByText(/제물포구는 연결단원 1명당 오늘 예정 연락업무가 2건/)).toBeInTheDocument()
-    expect(within(card).getByText(/부평구는 기한이 지난 연락업무가 1건/)).toBeInTheDocument()
-    expect(within(card).getByText(/제물포구는 방문 권고 1건이 담당자 승인 대기 중/)).toBeInTheDocument()
+    expect(within(card).getByText(/제물포구는 연결단원 1명당 오늘 예정 연락업무가 2건으로 인천에서 가장 많아/)).toBeInTheDocument()
+    expect(within(card).getByText(/제물포구는 방문 권고 1건이 인천에서 가장 많이 담당자 승인 대기 중/)).toBeInTheDocument()
+    expect(card).not.toHaveTextContent('부평구는')
     expect(card).not.toHaveTextContent('이 문단은 주입된 집계 수치를 그대로 인용한 해석')
     await user.click(within(card).getByText('요약에 주입된 집계 수치 보기'))
     expect(within(card).getByText(/노인인구 비율 퍼센트: 20/)).toBeInTheDocument()
@@ -220,5 +224,18 @@ describe('CityPage (시·구 /city)', () => {
     expect(screen.queryByRole('heading', { name: '증원 검토' })).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '구 단위 요약 읽기' }))
     expect(await screen.findByText(/제물포구는 연결단원 1명당 오늘 예정 연락업무가 2건/)).toBeInTheDocument()
+  })
+
+  it('shows operational guidance only for the selected district', async () => {
+    arrange()
+    const user = userEvent.setup()
+    render(<CityPage />)
+    await screen.findByLabelText('제물포구 구 단위 브리핑')
+    await user.selectOptions(screen.getByLabelText('브리핑할 구 선택'), '부평구')
+    await user.click(screen.getByRole('button', { name: '구 단위 요약 읽기' }))
+    const card = await screen.findByLabelText('부평구 AI 요약')
+    expect(card).toHaveTextContent(/부평구는 연결단원 1명당 오늘 예정 연락업무가 1건으로 운영 부하 상위 2위/)
+    expect(card).toHaveTextContent(/가용 인력이 있다면 증원을 검토할 수 있습니다/)
+    expect(card).not.toHaveTextContent('제물포구는')
   })
 })
