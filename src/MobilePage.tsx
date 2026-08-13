@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ChangeEvent } from 'react'
-import { AlertTriangle, CheckCircle2, ChevronLeft, MapPinned, Mic, Phone, RefreshCw, Send } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, ChevronLeft, MapPinned, Mic, Phone, RefreshCw, Send, X } from 'lucide-react'
 import MapView from './MapView'
 import { loadData } from './data'
 import type { DataBundle } from './types'
@@ -196,6 +196,14 @@ export function MobilePage() {
     }
   }
 
+  // 이미 답한 질문을 다시 열면 그 지점부터 다시 답한다. 값은 재답변으로 덮어쓴다.
+  const revisitChat = (index: number) => {
+    setChatIndex(index)
+    setChatLog((log) => log.slice(0, index))
+    setCandidateNote(null)
+    setInputPath('chat')
+  }
+
   const submit = async () => {
     if (!selected || !resultLabel) return
     try {
@@ -315,9 +323,14 @@ export function MobilePage() {
             )}
           </dl>
           {selected.lane === 'visit' && (
-            <details className="mobile-map-widget" onToggle={(event) => setVisitMapOpen((event.target as HTMLDetailsElement).open)}>
+            <details className="mobile-map-widget" open={visitMapOpen} onToggle={(event) => setVisitMapOpen((event.target as HTMLDetailsElement).open)}>
               <summary><MapPinned aria-hidden="true" size={18} /> 방문 위치 지도 열기</summary>
               <div className="mobile-map-frame">
+                {visitMapOpen && (
+                  <button type="button" className="mobile-map-close" aria-label="지도 닫기" onClick={() => setVisitMapOpen(false)}>
+                    <X aria-hidden="true" size={20} />
+                  </button>
+                )}
                 {visitMapOpen && mapData ? (
                   <MapView
                     data={mapData}
@@ -356,9 +369,8 @@ export function MobilePage() {
           {inputPath === null && (
             <div className="mobile-input-paths" role="group" aria-label="입력 방법 선택">
               <button onClick={() => setInputPath('voice')}><Mic aria-hidden="true" /> 음성 파일로 채우기</button>
-              <button onClick={() => setInputPath('chat')}>문답으로 채우기</button>
-              <button onClick={() => setInputPath('manual')}>직접 체크하기</button>
-              <p className="mobile-path-note">세 방법 모두 같은 체크리스트로 모입니다. 제출 전 조사원 확인이 항상 필요합니다.</p>
+              <button onClick={() => setInputPath('chat')}>문답 또는 직접 체크하기</button>
+              <p className="mobile-path-note">두 방법 모두 같은 체크리스트로 모입니다. 제출 전 조사원 확인이 항상 필요합니다.</p>
             </div>
           )}
 
@@ -375,8 +387,10 @@ export function MobilePage() {
 
           {inputPath === 'chat' && chatIndex < CHAT_QUESTIONS.length && (
             <div className="mobile-chat" role="group" aria-label="문답 입력">
-              {chatLog.map((entry) => (
-                <p key={entry.prompt} className="mobile-chat-log"><strong>{entry.prompt}</strong> {entry.answer}</p>
+              {chatLog.map((entry, index) => (
+                <button key={entry.prompt} type="button" className="mobile-chat-log-edit" onClick={() => revisitChat(index)}>
+                  <strong>{entry.prompt}</strong> {entry.answer} <span>다시 답하기</span>
+                </button>
               ))}
               <p className="mobile-chat-question">{CHAT_QUESTIONS[chatIndex].prompt}</p>
               <div className="mobile-chat-options">
@@ -384,7 +398,8 @@ export function MobilePage() {
                   <button key={option} onClick={() => answerChat(option)}>{option}</button>
                 ))}
               </div>
-              <p className="mobile-path-note">답한 내용은 후보로만 채워집니다. 마지막에 체크리스트에서 확인합니다.</p>
+              <p className="mobile-path-note">답한 내용은 후보로만 채워집니다. 마지막에 체크리스트에서 확인하고 고칠 수 있습니다.</p>
+              <button className="mobile-secondary" onClick={() => setInputPath('manual')}>직접 체크하기</button>
               <button className="mobile-secondary" onClick={() => setInputPath(null)}>다른 방법 선택</button>
             </div>
           )}
@@ -404,7 +419,10 @@ export function MobilePage() {
                 </select>
               </label>
               <fieldset className="mobile-signs">
-                <legend>우려 관찰 체크리스트</legend>
+                <legend>{selected.lane === 'phone' ? '주변 확인 신호' : '방문 관찰 체크리스트'}</legend>
+                {selected.lane === 'phone' && (
+                  <p className="mobile-path-note">통화 중 들었거나 이웃·경비 등 주변에서 확인된 경우에만 체크합니다.</p>
+                )}
                 {SIGN_FIELDS.map((field) => (
                   <label className="ops-choice" key={field.key}>
                     <input type="checkbox" checked={observations.관찰_6징후[field.key]} onChange={(event) => updateSign(field.key, event.target.checked)} />
