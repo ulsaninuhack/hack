@@ -120,7 +120,7 @@ const summary: DistrictAiSummary = {
   district: '제물포구',
   reference_date: '2026-08-12',
   input_metrics: { 구: '제물포구', 기준일: '2026-08-12', 노인인구_비율_퍼센트: '20' },
-  summary_text: '제물포구는 기준일 2026-08-12 관측 집계에서 노인 인구 비율 20%로 나타납니다. 복지시설과 운영 현황을 함께 확인합니다.',
+  summary_text: '제물포구는 기준일 2026-08-12 관측 집계에서 노인 인구 비율 20%로 나타납니다. 복지시설과 운영 현황을 함께 확인합니다. 이 문단은 주입된 집계 수치를 그대로 인용한 해석이며, 개인 단위 예측이나 판정이 아닙니다.',
   mixed_snapshot_warnings: ['분자 2026-07-31 · 분모 2026-06-30 · 서로 다른 기준월의 참고 비율이며 동시점 비율이 아닙니다.'],
 }
 
@@ -200,24 +200,25 @@ describe('CityPage (시·구 /city)', () => {
     await waitFor(() => expect(mocks.loadDistrictAiSummary).toHaveBeenCalledWith('제물포구'))
     const card = await screen.findByLabelText('제물포구 AI 요약')
     expect(within(card).getByText('핵심 요약')).toBeInTheDocument()
-    expect(within(within(card).getByRole('list', { name: '핵심 요약 문장' })).getAllByRole('listitem')).toHaveLength(2)
+    const summaryList = within(card).getByRole('list', { name: '핵심 요약 문장' })
+    expect(within(summaryList).getAllByRole('listitem')).toHaveLength(5)
     expect(within(card).getByText(/노인 인구 비율 20%로 나타납니다/)).toBeInTheDocument()
+    expect(within(card).getByText(/제물포구는 연결단원 1명당 오늘 예정 연락업무가 2건/)).toBeInTheDocument()
+    expect(within(card).getByText(/부평구는 기한이 지난 연락업무가 1건/)).toBeInTheDocument()
+    expect(within(card).getByText(/제물포구는 방문 권고 1건이 담당자 승인 대기 중/)).toBeInTheDocument()
     expect(card).not.toHaveTextContent('이 문단은 주입된 집계 수치를 그대로 인용한 해석')
     await user.click(within(card).getByText('요약에 주입된 집계 수치 보기'))
     expect(within(card).getByText(/노인인구 비율 퍼센트: 20/)).toBeInTheDocument()
   })
 
-  it('renders the staffing review as side-by-side non-summed ranks (증원 검토)', async () => {
+  it('removes the staffing table and moves its operational priorities into the AI summary', async () => {
     arrange()
+    const user = userEvent.setup()
     render(<CityPage />)
     await screen.findByLabelText('제물포구 구 단위 브리핑')
-    const table = screen.getByRole('table')
-    const headers = within(table).getAllByRole('columnheader').map((cell) => cell.textContent)
-    expect(headers).toContain('부하 순위')
-    expect(headers).toContain('구조 순위')
-    expect(headers.join(' ')).not.toMatch(/종합|합산/)
-    const rows = within(table).getAllByRole('row').slice(1)
-    expect(within(rows[0]).getByText('제물포구')).toBeInTheDocument()
-    expect(within(rows[1]).getByText('부평구')).toBeInTheDocument()
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: '증원 검토' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '구 단위 요약 읽기' }))
+    expect(await screen.findByText(/제물포구는 연결단원 1명당 오늘 예정 연락업무가 2건/)).toBeInTheDocument()
   })
 })

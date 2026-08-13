@@ -13,8 +13,36 @@ function formatPct(value: number | null) {
   return value === null ? '자료 없음' : `${value}%`
 }
 
+const SUMMARY_DISCLAIMER = '이 문단은 주입된 집계 수치를 그대로 인용한 해석이며, 개인 단위 예측이나 판정이 아닙니다.'
+
 function splitSummarySentences(text: string) {
-  return text.split(/(?<=[가-힣]\.)(?:\s+)/).map((sentence) => sentence.trim()).filter(Boolean)
+  return text
+    .replace(SUMMARY_DISCLAIMER, '')
+    .split(/(?<=[가-힣]\.)(?:\s+)/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean)
+}
+
+function buildCityReviewMessages(aggregates: DistrictAggregates | null) {
+  if (!aggregates) return []
+  const messages: string[] = []
+  const highestLoad = aggregates.staffing_review.candidates[0]
+  if (highestLoad?.per_worker_due !== null && highestLoad?.per_worker_due !== undefined) {
+    messages.push(`${highestLoad.district}는 연결단원 1명당 오늘 예정 연락업무가 ${highestLoad.per_worker_due}건으로 인천에서 가장 많아 증원 검토가 필요합니다.`)
+  }
+
+  const highestOverdue = [...aggregates.districts].sort((left, right) => right.operations.overdue_count - left.operations.overdue_count)[0]
+  if (highestOverdue && highestOverdue.operations.overdue_count > 0) {
+    messages.push(`${highestOverdue.district}는 기한이 지난 연락업무가 ${highestOverdue.operations.overdue_count}건으로 가장 많아 담당자가 우선 확인해야 합니다.`)
+  }
+
+  const highestPendingVisit = [...aggregates.districts].sort(
+    (left, right) => right.operations.pending_visit_approval_count - left.operations.pending_visit_approval_count,
+  )[0]
+  if (highestPendingVisit && highestPendingVisit.operations.pending_visit_approval_count > 0) {
+    messages.push(`${highestPendingVisit.district}는 방문 권고 ${highestPendingVisit.operations.pending_visit_approval_count}건이 담당자 승인 대기 중이어서 우선 검토가 필요합니다.`)
+  }
+  return messages
 }
 
 // INV17: 시·구 화면은 동 단위 롤업까지만 보여준다. 케이스 ID·개별 상세는
@@ -74,11 +102,13 @@ function DistrictBrief({
   aggregate,
   summary,
   summaryBusy,
+  cityReviewMessages,
   onRequestSummary,
 }: {
   aggregate: DistrictAggregate
   summary: DistrictAiSummary | null
   summaryBusy: boolean
+  cityReviewMessages: string[]
   onRequestSummary: () => void
 }) {
   const structure = aggregate.structure
@@ -112,6 +142,9 @@ function DistrictBrief({
               <ul className="city-ai-points" aria-label="핵심 요약 문장">
                 {splitSummarySentences(summary.summary_text).map((sentence) => (
                   <li key={sentence}>{sentence}</li>
+                ))}
+                {cityReviewMessages.map((message) => (
+                  <li className="city-ai-review-point" key={message}>{message}</li>
                 ))}
               </ul>
             </details>
@@ -162,6 +195,7 @@ export function CityPage() {
     (zone) => zone.geometry_zone_id === selectedDong?.geometry_zone_id,
   ) ?? null, [operationsMap, selectedDong])
   const selectedAggregate = aggregates?.districts.find((item) => item.district === selectedDistrict) ?? null
+  const cityReviewMessages = useMemo(() => buildCityReviewMessages(aggregates), [aggregates])
 
   const requestSummary = async () => {
     if (!selectedDistrict) return
@@ -207,43 +241,8 @@ export function CityPage() {
               </select>
             </label>
             {selectedAggregate
-              ? <DistrictBrief aggregate={selectedAggregate} summary={summary} summaryBusy={summaryBusy} onRequestSummary={() => void requestSummary()} />
+              ? <DistrictBrief aggregate={selectedAggregate} summary={summary} summaryBusy={summaryBusy} cityReviewMessages={cityReviewMessages} onRequestSummary={() => void requestSummary()} />
               : <p className="ops-state" role="status">구 단위 집계를 불러오는 중입니다.</p>}
-          </section>
-
-          <section className="city-section" aria-labelledby="city-staffing-heading">
-            <h2 id="city-staffing-heading">증원 검토</h2>
-            {aggregates ? (
-              <>
-                <div className="city-table-scroll">
-                  <table className="city-staffing-table">
-                    <caption>증원 검토 후보 · 운영 부하 순 정렬(구조 맥락 순위는 별도 열)</caption>
-                    <thead>
-                      <tr>
-                        <th scope="col">구</th>
-                        <th scope="col">부하 순위</th>
-                        <th scope="col">연결단원당 오늘 예정</th>
-                        <th scope="col">연결단원</th>
-                        <th scope="col">구조 순위</th>
-                        <th scope="col">구조 맥락 평균(0~50)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {aggregates.staffing_review.candidates.map((candidate) => (
-                        <tr key={candidate.district} data-selected={candidate.district === selectedDistrict}>
-                          <th scope="row">{candidate.district}</th>
-                          <td>{candidate.load_rank}</td>
-                          <td>{candidate.per_worker_due ?? '자료 없음'}</td>
-                          <td>{candidate.worker_count}명</td>
-                          <td>{candidate.structure_rank}</td>
-                          <td>{formatScore(candidate.structural_mean_score_0_50, '자료 없음')}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </>
-            ) : <p className="ops-state" role="status">증원 검토 집계를 불러오는 중입니다.</p>}
           </section>
 
           <CityZoneRollup zone={selectedZone} dong={selectedDong} />
