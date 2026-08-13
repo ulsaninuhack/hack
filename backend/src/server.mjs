@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
 import { createContactOpsAiRuntime } from './contact-ops-ai-runtime.mjs';
 import { createLiveCallService } from './live-call-service.mjs';
+import { createFirestoreLiveCallInviteStore, createMemoryLiveCallInviteStore } from './live-call-invite-store.mjs';
 import { createLiveKitTokenProviderFromEnvironment } from './livekit-provider.mjs';
 import { createOpenAiRealtimeBridge } from './openai-realtime-bridge.mjs';
 import { createContactOpsService } from './contact-ops-service.mjs';
@@ -117,9 +118,23 @@ async function loadLiveCallService() {
   if (configured.length !== required.length) {
     throw new Error(`Realtime calling requires all of: ${required.join(', ')}`);
   }
+  const stateBackend = process.env.CONTACT_OPS_STATE_BACKEND || 'memory';
+  let inviteStore;
+  if (stateBackend === 'memory') {
+    inviteStore = createMemoryLiveCallInviteStore();
+  } else if (stateBackend === 'firestore') {
+    const { Firestore } = await import('@google-cloud/firestore');
+    inviteStore = createFirestoreLiveCallInviteStore({
+      firestore: new Firestore(),
+      collectionName: process.env.LIVE_CALL_INVITE_COLLECTION || 'synthetic_live_call_invites',
+    });
+  } else {
+    throw new Error('CONTACT_OPS_STATE_BACKEND must be memory or firestore');
+  }
   return createLiveCallService({
     tokenProvider: await createLiveKitTokenProviderFromEnvironment(),
     realtimeBridge: createOpenAiRealtimeBridge({ apiKey: process.env.OPENAI_API_KEY }),
+    inviteStore,
     caseAccess: {
       async assertReadable({ sessionId, caseId, expectedRevision }) {
         const detail = await contactOpsService.getCase({ sessionId, caseId });

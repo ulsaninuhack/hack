@@ -47,7 +47,7 @@ describe('LiveCallPanel', () => {
       disconnect: mocks.disconnect,
     })
     const user = userEvent.setup()
-    render(<LiveCallPanel join={hostJoin} inviteUrl="https://demo.example/call#join=guest" />)
+    render(<LiveCallPanel join={hostJoin} inviteUrl="https://demo.example/call?invite=shortcode012345678901234567" />)
 
     expect(mocks.connect).not.toHaveBeenCalled()
     expect(await screen.findByRole('img', { name: '연락 대상 참여 QR 코드' })).toHaveAttribute('src', 'data:image/png;base64,qr')
@@ -70,7 +70,7 @@ describe('LiveCallPanel', () => {
     })
     const onFinish = vi.fn()
     const user = userEvent.setup()
-    render(<LiveCallPanel join={hostJoin} inviteUrl="https://demo.example/call#join=guest" onFinish={onFinish} />)
+    render(<LiveCallPanel join={hostJoin} inviteUrl="https://demo.example/call?invite=shortcode012345678901234567" onFinish={onFinish} />)
     await user.click(screen.getByRole('button', { name: '통화 연결' }))
 
     act(() => {
@@ -95,7 +95,7 @@ describe('LiveCallPanel', () => {
     mocks.toDataUrl.mockResolvedValue('data:image/png;base64,qr')
     mocks.connect.mockRejectedValue(new Error('network down'))
     const user = userEvent.setup()
-    render(<LiveCallPanel join={hostJoin} inviteUrl="https://demo.example/call#join=guest" />)
+    render(<LiveCallPanel join={hostJoin} inviteUrl="https://demo.example/call?invite=shortcode012345678901234567" />)
 
     await user.click(screen.getByRole('button', { name: '통화 연결' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('실시간 통화를 연결하지 못했습니다')

@@ -1,3 +1,5 @@
+import { INVITE_CODE_PATTERN } from './live-call-invite-store.mjs';
+
 const CASE_ID_PATTERN = /^SYN-HH-\d{10}-\d{4}$/;
 const SDP_MAX_BYTES = 64_000;
 const CALL_TTL_SECONDS = 30 * 60;
@@ -38,6 +40,12 @@ function assertSdpInput({ participantToken, sdp }) {
   }
 }
 
+function assertInviteCode(inviteCode) {
+  if (!INVITE_CODE_PATTERN.test(inviteCode || '')) {
+    throw new LiveCallError(400, 'INVALID_INVITE', '통화 참여 링크를 확인할 수 없습니다.');
+  }
+}
+
 function participantIdentity(role, callId) {
   return `${role}-${callId}`;
 }
@@ -58,7 +66,9 @@ export function createLiveCallService({
   tokenProvider,
   realtimeBridge,
   caseAccess,
-  randomId = () => crypto.randomUUID().replaceAll('-', ''),
+  inviteStore,
+  randomCallId = () => crypto.randomUUID().replaceAll('-', ''),
+  randomInviteCode = () => crypto.randomUUID().replaceAll('-', ''),
   now = () => new Date(),
   transcriptionModel = 'gpt-live-transcribe',
   transcriptionLanguage = 'ko',
@@ -66,6 +76,7 @@ export function createLiveCallService({
   requiredDependency(tokenProvider, 'tokenProvider');
   requiredDependency(realtimeBridge, 'realtimeBridge');
   requiredDependency(caseAccess, 'caseAccess');
+  requiredDependency(inviteStore, 'inviteStore');
   if (typeof tokenProvider.issueParticipant !== 'function'
       || typeof tokenProvider.verifyParticipant !== 'function'
       || typeof tokenProvider.serverUrl !== 'string') {
@@ -74,22 +85,27 @@ export function createLiveCallService({
   if (typeof realtimeBridge.exchangeSdp !== 'function') {
     throw new TypeError('realtimeBridge does not match the live-call contract');
   }
+  if (typeof inviteStore.saveInvite !== 'function' || typeof inviteStore.getInvite !== 'function') {
+    throw new TypeError('inviteStore does not match the live-call contract');
+  }
 
   return Object.freeze({
     async createCall({ sessionId, caseId, expectedRevision }) {
       assertCreateInput({ sessionId, caseId, expectedRevision });
       await caseAccess.assertReadable({ sessionId, caseId, expectedRevision });
 
-      const callId = randomId();
+      const callId = randomCallId();
       if (typeof callId !== 'string' || !/^[A-Za-z0-9_-]{3,80}$/.test(callId)) {
-        throw new Error('randomId must return an opaque URL-safe identifier');
+        throw new Error('randomCallId must return an opaque URL-safe identifier');
+      }
+      const inviteCode = randomInviteCode();
+      if (typeof inviteCode !== 'string' || !INVITE_CODE_PATTERN.test(inviteCode)) {
+        throw new Error('randomInviteCode must return an opaque URL-safe identifier');
       }
       const roomName = `care-call-${callId}`;
-      const [hostToken, guestToken] = await Promise.all([
-        tokenProvider.issueParticipant(tokenRequest({ role: 'surveyor', callId, roomName })),
-        tokenProvider.issueParticipant(tokenRequest({ role: 'resident', callId, roomName })),
-      ]);
+      const hostToken = await tokenProvider.issueParticipant(tokenRequest({ role: 'surveyor', callId, roomName }));
       const expiresAt = new Date(now().getTime() + CALL_TTL_SECONDS * 1_000).toISOString();
+      await inviteStore.saveInvite({ inviteCode, callId, roomName, expiresAt });
 
       return {
         provider: 'livekit',
@@ -108,8 +124,30 @@ export function createLiveCallService({
         },
         guest: {
           role: 'resident',
-          participant_token: guestToken,
+          invite_code: inviteCode,
         },
+      };
+    },
+
+    async redeemInvite({ inviteCode }) {
+      assertInviteCode(inviteCode);
+      const invite = await inviteStore.getInvite({ inviteCode });
+      const remainingSeconds = invite
+        ? Math.floor((Date.parse(invite.expiresAt) - now().getTime()) / 1_000)
+        : 0;
+      if (!invite || remainingSeconds < 1) {
+        throw new LiveCallError(410, 'INVITE_EXPIRED', '통화 참여 링크가 만료되었습니다.');
+      }
+      const participantToken = await tokenProvider.issueParticipant({
+        ...tokenRequest({ role: 'resident', callId: invite.callId, roomName: invite.roomName }),
+        ttlSeconds: Math.min(CALL_TTL_SECONDS, remainingSeconds),
+      });
+      return {
+        provider: 'livekit',
+        call_id: invite.callId,
+        server_url: tokenProvider.serverUrl,
+        expires_at: invite.expiresAt,
+        participant: { role: 'resident', participant_token: participantToken },
       };
     },
 

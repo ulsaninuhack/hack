@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { createServer } from 'node:http';
 
 import { LiveCallError, SDP_MAX_BYTES } from './live-call-service.mjs';
+import { INVITE_CODE_PATTERN } from './live-call-invite-store.mjs';
 import { VoiceAudioUploadError } from './voice-audio-upload.mjs';
 
 const API_VERSION = 'v1';
@@ -648,6 +649,18 @@ async function routeContactOps(request, url, service, {
     return routeThreeTier(request, url, threeTierService);
   }
   const readSession = () => sessionFor(request);
+  const invitePrefix = '/api/v1/contact-ops/live-calls/invites/';
+  if (request.method === 'POST' && url.pathname.startsWith(invitePrefix)) {
+    if (!liveCallService) throw new ApiError(503, 'LIVE_CALL_UNAVAILABLE', '실시간 통화를 사용할 수 없습니다.');
+    if (rejectBodyBearingRequest(request)) throw new ApiError(413, 'REQUEST_BODY_NOT_ALLOWED', 'Request bodies are not accepted');
+    assertKnownQuery(url.searchParams, new Set());
+    const encodedCode = url.pathname.slice(invitePrefix.length);
+    if (!encodedCode || encodedCode.includes('/')) throw new ApiError(404, 'NOT_FOUND', 'Route not found');
+    let inviteCode;
+    try { inviteCode = decodeURIComponent(encodedCode); } catch { throw new ApiError(400, 'INVALID_INVITE', '통화 참여 링크를 확인할 수 없습니다.'); }
+    if (!INVITE_CODE_PATTERN.test(inviteCode)) throw new ApiError(400, 'INVALID_INVITE', '통화 참여 링크를 확인할 수 없습니다.');
+    return liveCallService.redeemInvite({ inviteCode });
+  }
   if (request.method === 'POST' && url.pathname.endsWith('/live-calls')) {
     if (!liveCallService) throw new ApiError(503, 'LIVE_CALL_UNAVAILABLE', '실시간 통화를 사용할 수 없습니다.');
     if (!/^application\/json(?:;|$)/i.test(String(request.headers['content-type'] || ''))) throw new ApiError(415, 'UNSUPPORTED_MEDIA_TYPE', 'Content-Type must be application/json');

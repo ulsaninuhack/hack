@@ -22,7 +22,15 @@ const liveCallService = {
       server_url: 'wss://care-test.livekit.cloud', expires_at: '2026-08-13T01:30:00.000Z',
       transcription: { provider: 'openai', model: 'gpt-live-transcribe', language: 'ko' },
       host: { role: 'surveyor', participant_token: 'host-token' },
-      guest: { role: 'resident', participant_token: 'guest-token' },
+      guest: { role: 'resident', invite_code: 'invitecode0123456789abcdef012345' },
+    };
+  },
+  async redeemInvite(input) {
+    calls.push({ method: 'redeemInvite', input });
+    return {
+      provider: 'livekit', call_id: 'fixed', server_url: 'wss://care-test.livekit.cloud',
+      expires_at: '2026-08-13T01:30:00.000Z',
+      participant: { role: 'resident', participant_token: 'guest-token' },
     };
   },
   async exchangeRealtimeSdp(input) {
@@ -51,13 +59,29 @@ describe('live call HTTP contract', () => {
 
     assert.equal(response.status, 200);
     assert.equal(body.data.host.participant_token, 'host-token');
-    assert.equal(body.data.guest.participant_token, 'guest-token');
+    assert.equal(body.data.guest.invite_code, 'invitecode0123456789abcdef012345');
+    assert.equal(JSON.stringify(body).includes('guest-token'), false);
     assert.deepEqual(calls.at(-1), {
       method: 'createCall',
       input: { sessionId: SESSION_ID, caseId: CASE_ID, expectedRevision: 7 },
     });
     assert.equal(JSON.stringify(body).includes('approved'), false);
     assert.equal(JSON.stringify(body).includes('observations'), false);
+  });
+
+  test('exchanges a short bodyless invite code for resident credentials', async () => {
+    const response = await fetch(`${origin}/api/v1/contact-ops/live-calls/invites/invitecode0123456789abcdef012345`, {
+      method: 'POST',
+      headers: { Accept: 'application/json' },
+    });
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    assert.equal(body.data.participant.participant_token, 'guest-token');
+    assert.deepEqual(calls.at(-1), {
+      method: 'redeemInvite', input: { inviteCode: 'invitecode0123456789abcdef012345' },
+    });
   });
 
   test('proxies raw SDP only after bearer-token verification in the live-call service', async () => {
@@ -96,6 +120,14 @@ describe('live call HTTP contract', () => {
       body: JSON.stringify({ expected_revision: 7, auto_submit: true }),
     });
     assert.equal(extra.status, 400);
+
+    const malformedInvite = await fetch(`${origin}/api/v1/contact-ops/live-calls/invites/short`, { method: 'POST' });
+    assert.equal(malformedInvite.status, 400);
+
+    const inviteWithBody = await fetch(`${origin}/api/v1/contact-ops/live-calls/invites/invitecode0123456789abcdef012345`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}',
+    });
+    assert.equal(inviteWithBody.status, 413);
   });
 
   test('allows Authorization in the operations preflight contract', async () => {
