@@ -424,7 +424,8 @@ describe('three-tier district rollups (INV17) and AI summary (INV19)', () => {
     const first = await get(`/api/v1/contact-ops/three-tier/district-ai-summary?district=${encodeURIComponent('제물포구')}&referenceDate=${REFERENCE_DATE}`, session);
     assert.equal(first.response.status, 200);
     assert.equal(first.body.data.label, '[AI 생성 · 관측 집계 해석 · 개인 예측 아님]');
-    assert.equal(first.body.data.generator, 'mock_deterministic');
+    assert.equal(first.body.data.generator, 'codex_authored_v1');
+    assert.match(first.body.data.summary_text, /제물포구/);
     assert.ok(first.body.data.summary_text.includes(first.body.data.input_metrics.노인인구_비율_퍼센트));
     assert.ok(first.body.data.mixed_snapshot_warnings.length === 2);
     const second = await get(`/api/v1/contact-ops/three-tier/district-ai-summary?district=${encodeURIComponent('제물포구')}&referenceDate=${REFERENCE_DATE}`, session);

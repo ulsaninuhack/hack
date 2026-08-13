@@ -65,9 +65,10 @@ derived at serve time (`010-0000-XXXX` + `[가상]`, fixtures untouched).
 Assignment-confirmation and report-acknowledgement state is deliberately
 session-scoped in-memory demo state (not Firestore) and resets with the session;
 a transfer-'confirm' API intentionally does not exist (wording-only track-switch
-guidance in `/center`). District AI summaries quote server-injected aggregates
-only; the live LLM path is env-gated (`THREE_TIER_AI_SUMMARY=live` +
-`OPENAI_API_KEY`, never committed). Golden E2E: `e2e/p9-three-tier.spec.ts`.
+guidance in `/center`). District AI summaries use OpenAI Codex-authored guidance
+for all 11 current districts and quote server-injected aggregates only. They are
+versioned as `codex_authored_v1`; no runtime API key or mock generator is used.
+Golden E2E: `e2e/p9-three-tier.spec.ts`.
 Proven/unproven split lives in `MORNING_HANDOFF.md`.
 
 The primary continuation seams are:

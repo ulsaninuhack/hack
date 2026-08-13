@@ -18,6 +18,7 @@ import {
   loadCenterInbox,
 } from './threeTierClient'
 import type { AssignmentProposalItem, CenterInbox, ReportCard } from './threeTierClient'
+import { caseDisplayName } from './caseDisplayName'
 
 const CENTER_ACTOR = '동센터 담당자'
 const TRANSFER_TRACK_MESSAGE = '안부확인 트랙에서 사례관리·전문기관 트랙으로 전환하는 권고입니다. 전환 확정은 별도 행정 절차로 진행합니다.'
@@ -44,20 +45,17 @@ function ProposalRow({
   busy: boolean
 }) {
   return (
-    <li className="assignment-row" data-lane={item.lane} data-case-id={item.case_id}>
+    <li className="assignment-row" data-lane={item.lane}>
       <div className="assignment-row-main">
-        <strong className="assignment-name">{item.가명}</strong>
+        <span className="case-id">{item.display_name} 어르신</span>
         <GradeChip grade={item.급성도_등급} />
         <span className="assignment-worker">{item.worker_display_name ?? '담당 미배정'}</span>
-        {item.status === 'confirmed'
-          ? <p className="assignment-confirmed"><CheckCircle2 aria-hidden="true" size={17} /> 확인됨 · {item.confirmed_by}</p>
-          : <button className="confirm-one" disabled={busy} onClick={() => onConfirm(item.case_id)}>확인</button>}
       </div>
       <p className="assignment-meta">
-        {item.road_address ?? `${item.district} ${item.dong_name}`}
+        {item.road_address ?? '주소 정보 없음'}
         {' · 마지막 연락 '}
-        {item.last_contact.date ?? '기록 없음'} {item.last_contact.result_label}
-        {item.earliest_due_date ? ` · 예정 ${item.earliest_due_date}` : ''}
+        {item.last_contact.date === null ? '기록 없음' : `${item.last_contact.date} (${item.last_contact.result_label})`}
+        {item.earliest_due_date !== null && ` · 예정 ${item.earliest_due_date}`}
       </p>
       {item.adjustment_flags.length > 0 && (
         <p className="assignment-flags" role="note">조정 필요: {item.adjustment_flags.map((flag) => ({
@@ -66,6 +64,9 @@ function ProposalRow({
           capacity_exceeded: '일일 방문 용량 초과',
         }[flag] ?? flag)).join(' · ')}</p>
       )}
+      {item.status === 'confirmed'
+        ? <p className="assignment-confirmed"><CheckCircle2 aria-hidden="true" size={17} /> 확인됨 · {item.confirmed_by}</p>
+        : <button className="confirm-one" disabled={busy} onClick={() => onConfirm(item.case_id)}>확인</button>}
     </li>
   )
 }
@@ -81,13 +82,13 @@ function ReportCardView({
 }) {
   const [showTransfer, setShowTransfer] = useState(false)
   return (
-    <article className="report-card" data-grade={card.등급} aria-label={`${card.case_id} 보고 카드`}>
+    <article className="report-card" data-grade={card.등급} aria-label={`${card.display_name} 어르신 보고 카드`}>
       <header>
-        <strong className="report-name">{card.가명}</strong>
         <GradeChip grade={card.등급} />
+        <span className="case-id">{card.display_name} 어르신</span>
         <span className="report-meta">{card.evidence.마지막_연락_결과_라벨} · {card.evidence.마지막_연락_일자 ?? '기록 없음'}</span>
       </header>
-      {card.road_address && <p className="report-address">{card.road_address}</p>}
+      {card.road_address !== null && <p className="report-address">{card.road_address}</p>}
       <dl className="report-scores">
         <div><dt>급성도</dt><dd>{card.급성도_점수}</dd></div>
         <div><dt>취약도</dt><dd>{card.취약도_점수}</dd></div>
@@ -181,18 +182,15 @@ export function CenterPage() {
   const proposal = inbox?.assignment_proposal ?? null
   const laneItems = useMemo(() => proposal?.lanes[lane] ?? [], [proposal, lane])
   const selectedVisit = recommendations.find((item) => item.household.id === selectedVisitId) ?? null
+  const displayNameForCase = (caseId: string) => {
+    const reportName = inbox?.report_cards.find((card) => card.case_id === caseId)?.display_name
+    if (reportName) return reportName
+    const assignment = inbox?.assignment_proposal
+    return [...(assignment?.lanes.phone ?? []), ...(assignment?.lanes.visit ?? [])]
+      .find((item) => item.case_id === caseId)?.display_name ?? caseDisplayName(caseId)
+  }
+  const selectedVisitDisplayName = selectedVisit ? displayNameForCase(selectedVisit.household.id) : ''
   const workerId = `SYN-W-${DEMO_CENTER_DONG_CODE}-01`
-  // 화면 표기는 가명으로 통일한다. 방문 검토 대상은 항상 보고 카드가 존재하므로
-  // (제출을 거쳐야 권고가 생김) 인박스 카드에서 가명을 찾는다.
-  const nameByCaseId = useMemo(() => {
-    const names = new Map<string, string>()
-    for (const card of inbox?.report_cards ?? []) names.set(card.case_id, card.가명)
-    for (const item of [...(proposal?.lanes.phone ?? []), ...(proposal?.lanes.visit ?? [])]) {
-      if (!names.has(item.case_id)) names.set(item.case_id, item.가명)
-    }
-    return names
-  }, [inbox, proposal])
-  const displayName = (caseId: string) => nameByCaseId.get(caseId) ?? `대상 ${caseId.slice(-4)}`
 
   const act = async (action: () => Promise<void>, doneMessage: string, failMessage: string) => {
     try {
@@ -328,16 +326,9 @@ export function CenterPage() {
                     <ul className="visit-review-list" aria-label="방문 권고 대기 목록">
                       {recommendations.map((item) => (
                         <li key={item.household.id}>
-                          <button
-                            aria-pressed={item.household.id === selectedVisitId}
-                            aria-label={`${item.household.id} 방문 검토`}
-                            onClick={() => { setSelectedVisitId(item.household.id); setDecision(null) }}
-                          >
-                            <span className="assignment-name">{displayName(item.household.id)}</span>
+                          <button aria-pressed={item.household.id === selectedVisitId} onClick={() => { setSelectedVisitId(item.household.id); setDecision(null) }}>
+                            <span className="case-id">{displayNameForCase(item.household.id)} 어르신</span>
                             <span>급성도 {item.triage?.급성도_점수 ?? '–'} · 취약도 {item.triage?.취약도_점수 ?? '–'}</span>
-                            {(item.household.location as { road_address?: string | null }).road_address
-                              ? <span className="visit-review-address">{(item.household.location as { road_address?: string | null }).road_address}</span>
-                              : null}
                           </button>
                         </li>
                       ))}
@@ -345,13 +336,13 @@ export function CenterPage() {
                     {selectedVisit && (
                       <form className="ops-form center-decision-form" onSubmit={submitVisitDecision}>
                         <fieldset>
-                          <legend>담당자 결정 · {displayName(selectedVisit.household.id)}</legend>
+                          <legend>담당자 결정 · {selectedVisitDisplayName} 어르신</legend>
                           <label className="ops-choice"><input checked={decision === 'approved'} onChange={() => setDecision('approved')} type="radio" name="center-decision" /><span>방문 권고 승인</span></label>
                           <label className="ops-choice"><input checked={decision === 'rejected'} onChange={() => setDecision('rejected')} type="radio" name="center-decision" /><span>방문 권고 반려</span></label>
                           {decision === 'approved' && (
                             <>
                               <label>연결단원 배정
-                                <select value={workerId} onChange={() => {}}><option value={workerId}>{workerId}</option></select>
+                                <select value={workerId} onChange={() => {}}><option value={workerId}>{proposal?.worker_display_name ?? '연결단원 001'}</option></select>
                               </label>
                               <label>승인된 방문 거리 제한 (km)
                                 <input min="0.1" max="50" step="0.1" type="number" value={distance} onChange={(event) => setDistance(event.target.value)} required />
@@ -390,7 +381,7 @@ export function CenterPage() {
                         longitude: selectedVisit.household.location.longitude,
                         latitude: selectedVisit.household.location.latitude,
                       } : null}
-                      ariaLabel="우리 동 케이스 위치 지도"
+                      ariaLabel="우리 동 대상 위치 참고 지도"
                       onSelectDong={() => {}}
                     />
                   ) : <p role="status">지도를 열면 우리 동 위치를 확인할 수 있습니다.</p>}

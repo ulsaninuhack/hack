@@ -41,7 +41,7 @@ vi.mock('./contactOpsClient', async (importOriginal) => {
   }
 })
 vi.mock('./data', () => ({ loadData: mocks.loadData }))
-vi.mock('./MapView', () => ({ default: () => <div role="region" aria-label="[합성] 우리 동 케이스 위치 참고 지도" /> }))
+vi.mock('./MapView', () => ({ default: () => <div role="region" aria-label="우리 동 대상 위치 참고 지도" /> }))
 
 import { CenterPage } from './CenterPage'
 import { BANNED_GROUP_WORD } from './threeTierTestFixtures'
@@ -58,7 +58,7 @@ const reportCard: ReportCard = {
   displayMarker: '[합성]',
   card_id: 'RPT-SYN-HH-2812551000-0001-r1',
   case_id: 'SYN-HH-2812551000-0001',
-  가명: '김순○',
+  display_name: '김영자',
   road_address: '인천광역시 제물포구 답동로 7-2',
   revision: 1,
   dong_code: '2812551000',
@@ -106,7 +106,7 @@ const proposal: AssignmentProposal = {
   max_daily_approved_visits: 2,
   lanes: {
     phone: [{
-      status: 'proposed', case_id: 'SYN-HH-2812551000-0001', 가명: '김순○',
+      status: 'proposed', case_id: 'SYN-HH-2812551000-0001', display_name: '김영자',
       road_address: '인천광역시 제물포구 답동로 7-2',
       last_contact: { date: '2026-08-11', result_label: '연락 안 됨' }, lane: 'phone',
       dong_code: '2812551000', dong_name: '신포동', district: '제물포구',
@@ -117,7 +117,7 @@ const proposal: AssignmentProposal = {
       adjustment_flags: [], 제안_근거: ['담당 동 일치 (신포동)'],
     }],
     visit: [{
-      status: 'proposed', case_id: 'SYN-HH-2812551000-0002', 가명: '박영○',
+      status: 'proposed', case_id: 'SYN-HH-2812551000-0002', display_name: '이순자',
       road_address: '인천광역시 제물포구 답동로 9',
       last_contact: { date: '2026-08-10', result_label: '안부 확인 완료' }, lane: 'visit',
       dong_code: '2812551000', dong_name: '신포동', district: '제물포구',
@@ -192,14 +192,12 @@ describe('CenterPage (동 행정복지센터)', () => {
     arrange()
     render(<CenterPage />)
     expect(await screen.findByRole('heading', { name: /신포동 행정복지센터/ })).toBeInTheDocument()
-    expect(screen.queryByText('[합성] 데모')).toBeNull()
+    expect(document.body.textContent).not.toMatch(/SYN-HH-|\[합성\]/)
     const summary = screen.getByLabelText('오늘 처리 요약과 다음 행동')
     expect(within(summary).getByText('보고 확인 대기')).toBeInTheDocument()
     expect(within(summary).getByText('방문 검토 대기')).toBeInTheDocument()
-    const card = await screen.findByLabelText('SYN-HH-2812551000-0001 보고 카드')
-    expect(within(card).getByText('김순○')).toBeInTheDocument()
+    const card = await screen.findByLabelText('김영자 어르신 보고 카드')
     expect(within(card).getByText('인천광역시 제물포구 답동로 7-2')).toBeInTheDocument()
-    expect(screen.queryByText(/SYN-HH-/)).toBeNull()
     expect(within(card).getByText('방문권고')).toBeInTheDocument()
     expect(within(card).getByText('보건소·의료 연계')).toBeInTheDocument()
     expect(within(card).getByText('행정복지센터 이관 권고')).toBeInTheDocument()
@@ -211,14 +209,14 @@ describe('CenterPage (동 행정복지센터)', () => {
     const user = userEvent.setup()
     render(<CenterPage />)
     const phoneLane = await screen.findByLabelText('전화 레인 할당 제안')
-    expect(within(phoneLane).getByText('김순○')).toBeInTheDocument()
-    expect(phoneLane.querySelector('[data-case-id="SYN-HH-2812551000-0001"]')).not.toBeNull()
-    expect(within(phoneLane).queryByText('박영○')).toBeNull()
+    expect(within(phoneLane).getByText('김영자 어르신')).toBeInTheDocument()
+    expect(within(phoneLane).getByText(/인천광역시 제물포구 답동로 7-2/)).toBeInTheDocument()
+    expect(within(phoneLane).getByText(/마지막 연락 2026-08-11 \(연락 안 됨\)/)).toBeInTheDocument()
+    expect(within(phoneLane).queryByText('이순자 어르신')).toBeNull()
     await user.click(screen.getByRole('tab', { name: /방문 \d/ }))
     const visitLane = await screen.findByLabelText('방문 레인 할당 제안')
-    expect(within(visitLane).getByText('박영○')).toBeInTheDocument()
-    expect(visitLane.querySelector('[data-case-id="SYN-HH-2812551000-0002"]')).not.toBeNull()
-    expect(within(visitLane).queryByText('김순○')).toBeNull()
+    expect(within(visitLane).getByText('이순자 어르신')).toBeInTheDocument()
+    expect(within(visitLane).queryByText('김영자 어르신')).toBeNull()
     expect(within(visitLane).getAllByText(/시간창 불일치/).length).toBeGreaterThan(0)
   })
 
@@ -244,7 +242,7 @@ describe('CenterPage (동 행정복지센터)', () => {
     arrange()
     const user = userEvent.setup()
     render(<CenterPage />)
-    const card = await screen.findByLabelText('SYN-HH-2812551000-0001 보고 카드')
+    const card = await screen.findByLabelText('김영자 어르신 보고 카드')
     await user.click(within(card).getByRole('button', { name: '보고 확인' }))
     await waitFor(() => expect(mocks.acknowledgeReport).toHaveBeenCalledWith({
       caseId: 'SYN-HH-2812551000-0001', revision: 1, acknowledgedBy: '동센터 담당자',
@@ -256,7 +254,7 @@ describe('CenterPage (동 행정복지센터)', () => {
     const user = userEvent.setup()
     render(<CenterPage />)
     const review = await screen.findByLabelText('방문 권고 대기 목록')
-    await user.click(within(review).getByRole('button', { name: /SYN-HH-2812551000-0001/ }))
+    await user.click(within(review).getByRole('button', { name: /김영자 어르신/ }))
     await user.click(screen.getByRole('radio', { name: '방문 권고 승인' }))
     await user.type(screen.getByLabelText('결정 사유'), '합성 승인 사유')
     await user.click(screen.getByRole('button', { name: '방문 권고 승인 기록' }))
@@ -270,7 +268,7 @@ describe('CenterPage (동 행정복지센터)', () => {
     arrange()
     const user = userEvent.setup()
     render(<CenterPage />)
-    const card = await screen.findByLabelText('SYN-HH-2812551000-0001 보고 카드')
+    const card = await screen.findByLabelText('김영자 어르신 보고 카드')
     await user.click(within(card).getByRole('button', { name: '이관 안내' }))
     expect(within(card).getByText(/안부확인 트랙에서 사례관리·전문기관 트랙으로 전환/)).toBeInTheDocument()
   })

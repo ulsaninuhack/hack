@@ -451,17 +451,27 @@ hostile follow-up, commit, preview, and blockers. Existing entries are never rew
   스킵(paths-ignore). 연속 푸시 취소(concurrency)는 기존 구성 확인.
 - AGENTS.md 배포 계약 문단에 동일 내용 기록. agent:check 그린.
 
-## 2026-08-13 — /center v5: 실사용 버그 픽스 + 가명·주소 표기 (제품 오너 지시)
+## 2026-08-13 — 자연어 대상 표시와 구별 분석 문장 반영
+
+- 내부 `SYN-HH-*` 식별 계약은 유지하되 API 표시값 `display_name`을 추가하고,
+  모바일·동 센터·기존 운영 화면에는 `김영자 어르신` 같은 결정적 한국어 이름만
+  표시. 동별 최대 50건 이름 중복 방지 테스트를 추가.
+- 프로덕션 UI에서 내부 식별자와 `합성` 표식을 제거하고, 다시 들어오지 못하도록
+  UI copy gate를 확장. 실제 주민 상태가 아니라는 설명은 `고정 운영 예시`로 유지.
+- 런타임 OpenAI 호출과 키 요구를 제거. Codex가 작성한 인천 11개 구별 분석 문장에
+  서버가 고령비율·일인가구비율·기초수급 밀도·시설 수·업무 부하 집계값을 주입하는
+  `codex_authored_v1` 어댑터로 고정.
+- 검증: `agent:check` 전체 그린(프런트 55, 백엔드 218·라인 97.29%·브랜치
+  90.99%·함수 100%, 음성 50 통과·라이브 1 skip), P9 실브라우저 골든 2/2 통과.
+
+## 2026-08-13 — /center v5: 지도 오버레이·스크롤 픽스 + 주소·연락 이력 표기
 
 - 지도 위젯 오버레이 사고 수정: 전역 `.map`(position:absolute)이 포지셔닝 안 된
   프레임에서 뷰포트 전체를 덮던 문제 → `.center-map-frame`/`.mobile-map-frame`에
   position:relative + contain 부여.
 - 페이지 스크롤 수정: 전역 body overflow:hidden 아래에서 .tier-page 높이 미고정
   으로 스크롤 불가 → height:100dvh + overflow-y:auto.
-- 화면 표기를 케이스 ID → 결정적 가명(김순○ 형태, ID에서 sha256 유도, 마스킹
-  가명임이 명시적)으로 교체. DB에는 가명 필드가 없어(#25는 주소까지) 어댑터
-  유도 방식 채택. 배치 행·보고 카드에 도로명 주소·마지막 연락·예정일 표기 추가.
-- [합성] 데모 배지 제거(제품 오너 명시 지시). 합성 고지는 API displayMarker·
-  문서·타 화면에 유지되며, /center 표시 계층에서만 제거됨을 기록.
-- 검증: 백엔드 217, 프런트 53, E2E 5/5(케이스 ID 비표시 관련 골든 재작성,
-  data-case-id 셀렉터), typecheck·copy 게이트 그린.
+- 배치 행·보고 카드에 도로명 주소(#25 `road_address`)·마지막 연락 결과·예정일
+  표기를 추가. 대상 표시는 main의 `display_name` 자연어 이름 체계로 통일(merge).
+- `[합성] 데모` 배지 제거(제품 오너 명시 지시). 합성 고지는 API displayMarker·
+  문서에 유지.

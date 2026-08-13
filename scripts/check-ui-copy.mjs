@@ -104,6 +104,9 @@ export async function findUiCopyViolations(cwd = process.cwd()) {
     for (const { rule, values } of RULES) {
       addMatches(violations, content, file, rule, values);
     }
+    if (RENDERABLE_EXTENSIONS.has(extname(absolutePath).toLowerCase()) && !file.includes('.test.')) {
+      addMatches(violations, content, file, 'presentation-marker', ['합성']);
+    }
     if (RENDERABLE_EXTENSIONS.has(extname(absolutePath).toLowerCase())) {
       addMatches(violations, content, file, 'raw-enum', RAW_ENUM_VALUES);
     }

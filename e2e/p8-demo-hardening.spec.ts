@@ -4,6 +4,7 @@ import AxeBuilder from '@axe-core/playwright'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 
 const CASE_ID = 'SYN-HH-2812551000-0001'
+const CASE_NAME = '김영자 어르신'
 const SCREENSHOT_DIR = 'artifacts/screenshots'
 const AXE_PATH = 'artifacts/axe/p8-axe-results.json'
 const EVIDENCE_PATH = 'artifacts/p8-evidence.json'
@@ -158,21 +159,21 @@ async function captureExplicitState(
       contentType: 'application/json',
       body: JSON.stringify({
         apiVersion: 'v1',
-        error: { code: 'CONTACT_OPS_UNAVAILABLE', message: '합성 연락업무 서비스를 잠시 사용할 수 없습니다.' },
+        error: { code: 'CONTACT_OPS_UNAVAILABLE', message: '연락업무 서비스를 잠시 사용할 수 없습니다.' },
       }),
     })
   })
 
   await page.goto('/ops/surveyor')
   if (state === 'empty') {
-    await expect(page.getByText('오늘 예정된 합성 연락업무가 없습니다.')).toBeVisible()
+    await expect(page.getByText('오늘 예정된 연락업무가 없습니다.')).toBeVisible()
   } else if (state === 'loading') {
     await expect(page.getByText('운영 데이터를 불러오는 중입니다.')).toBeVisible()
   } else {
-    await expect(page.getByRole('alert')).toContainText('합성 연락업무 서비스를 잠시 사용할 수 없습니다.')
+    await expect(page.getByRole('alert')).toContainText('연락업무 서비스를 잠시 사용할 수 없습니다.')
     await expect(page.getByRole('button', { name: '다시 시도' })).toBeVisible()
   }
-  await expect(page.locator('main.ops-page')).toContainText('[합성]')
+  await expect(page.locator('main.ops-page')).not.toContainText('합성')
   const measurements = await expectMobileMeasurements(page)
   await capture(page, `${state}-mobile.png`, 390, 844, `[검증 화면] ${state} 상태 · 연락업무 API 가로채기`)
   await audit(page, `${state}-mobile`)
@@ -221,17 +222,17 @@ test('P8 hardening: production-like surfaces, explicit states, accessibility, an
   }))).toMatchObject({ decoration: 'underline' })
   await capture(publicPage, 'public-map-desktop.png', 1440, 900, '실제 공개 집계 지도와 혼합 시점 고지')
   await audit(publicPage, 'public-map-desktop')
-  await publicPage.getByRole('button', { name: '[합성] 연락업무' }).click()
+  await publicPage.getByRole('button', { name: '연락업무' }).click()
   await publicPage.getByRole('textbox', { name: '구 또는 동 검색' }).fill('신포동')
   await publicPage.getByRole('button', { name: /신포동/ }).click()
   await publicPage.getByRole('button', { name: '상세 닫기' }).click()
-  const publicScenarioPanel = publicPage.getByRole('region', { name: '선택한 구역의 합성 연락업무' })
-  await expect(publicScenarioPanel).toContainText('[합성 시나리오]')
-  await expect(publicScenarioPanel).toContainText(/세션 기록 0건 · 합성 예시 1건 · 미기록 \d+건/)
-  await publicScenarioPanel.getByText(/세션 기록 0건 · 합성 예시 1건 · 미기록 \d+건/).scrollIntoViewIfNeeded()
-  await expect(publicScenarioPanel.getByText('[합성 시나리오]')).toBeInViewport()
-  await expect(publicScenarioPanel.getByText(/세션 기록 0건 · 합성 예시 1건 · 미기록 \d+건/)).toBeInViewport()
-  await capture(publicPage, 'public-operations-scenario-desktop.png', 1440, 900, '공개 지도에서 실제 API가 채운 초기 합성 시나리오')
+  const publicScenarioPanel = publicPage.getByRole('region', { name: '선택한 구역의 연락업무 상세' })
+  await expect(publicScenarioPanel).toContainText('고정 운영 예시')
+  await expect(publicScenarioPanel).toContainText(/세션 기록 0건 · 고정 예시 1건 · 미기록 \d+건/)
+  await publicScenarioPanel.getByText(/세션 기록 0건 · 고정 예시 1건 · 미기록 \d+건/).scrollIntoViewIfNeeded()
+  await expect(publicScenarioPanel.getByText('고정 운영 예시')).toBeInViewport()
+  await expect(publicScenarioPanel.getByText(/세션 기록 0건 · 고정 예시 1건 · 미기록 \d+건/)).toBeInViewport()
+  await capture(publicPage, 'public-operations-scenario-desktop.png', 1440, 900, '공개 지도에서 실제 API가 채운 초기 고정 운영 예시')
   await audit(publicPage, 'public-operations-scenario-desktop')
   await desktop.close()
 
@@ -239,16 +240,16 @@ test('P8 hardening: production-like surfaces, explicit states, accessibility, an
   const page = await operations.newPage()
   listenForBrowserErrors(page)
   await page.goto('/ops/surveyor')
-  const queue = page.getByRole('listbox', { name: '오늘 합성 연락업무 목록' })
+  const queue = page.getByRole('listbox', { name: '오늘 연락업무 목록' })
   await expect(queue.getByRole('option').first()).toBeVisible()
-  await expect(page.locator('main.ops-page')).toContainText('[합성]')
+  await expect(page.locator('main.ops-page')).not.toContainText('합성')
   await expect(page.getByText(/오늘 연락업무 \d+건/)).toBeVisible()
   await capture(page, 'surveyor-queue-mobile.png', 390, 844, '실제 API 오늘 큐와 일일 요약')
 
-  const target = page.getByRole('option', { name: new RegExp(CASE_ID) })
+  const target = page.getByRole('option', { name: new RegExp(CASE_NAME) })
   await target.scrollIntoViewIfNeeded()
   await target.click()
-  await expect(page.locator('.ops-detail .case-id')).toContainText(CASE_ID)
+  await expect(page.locator('.ops-detail .case-id')).toContainText(CASE_NAME)
   await page.locator('.ops-form').scrollIntoViewIfNeeded()
   await capture(page, 'surveyor-form-mobile.png', 390, 844, '실제 연락 결과·관찰·수동 입력 폼')
 
@@ -265,8 +266,8 @@ test('P8 hardening: production-like surfaces, explicit states, accessibility, an
 
   await page.setViewportSize({ width: 1440, height: 900 })
   await page.goto('/ops/manager')
-  await expect(page.getByRole('option', { name: new RegExp(CASE_ID) })).toBeVisible()
-  await expect(page.getByText('합성 배점 튜닝 경고')).toBeVisible()
+  await expect(page.getByRole('option', { name: new RegExp(CASE_NAME) })).toBeVisible()
+  await expect(page.getByText('배점 점검')).toBeVisible()
   await expect(page.getByText('647건')).toBeVisible()
   await expect.poll(async () => page.locator('.ops-workbench').evaluate((workbench) => ({
     areas: getComputedStyle(workbench).gridTemplateAreas,
@@ -275,30 +276,30 @@ test('P8 hardening: production-like surfaces, explicit states, accessibility, an
   await capture(page, 'manager-review-desktop.png', 1440, 900, '실제 방문 권고와 관리자 운영 요약')
   await audit(page, 'manager-review-desktop')
 
-  const mapRegion = page.getByRole('region', { name: '[합성] 연락업무 위치와 공개 동단위 맥락 지도' })
+  const mapRegion = page.getByRole('region', { name: '연락업무 위치와 공개 동단위 맥락 지도' })
   await expect(mapRegion).toHaveAttribute('data-map-ready', 'true', { timeout: 45_000 })
   await page.locator('.ops-map-context').scrollIntoViewIfNeeded()
-  await capture(page, 'manager-map-desktop.png', 1440, 900, '실제 선택 합성 점과 키보드 목록 대안')
+  await capture(page, 'manager-map-desktop.png', 1440, 900, '실제 선택 위치와 키보드 목록 대안')
   await audit(page, 'manager-map-desktop')
 
-  await page.getByRole('button', { name: '[합성] 연락업무' }).click()
-  const operationsPanel = page.getByRole('region', { name: '선택한 구역의 합성 연락업무' })
+  await page.getByRole('button', { name: '연락업무' }).click()
+  const operationsPanel = page.getByRole('region', { name: '선택한 구역의 연락업무' })
   await expect(operationsPanel).toContainText('급성도 채색값')
-  await expect(operationsPanel).toContainText('[합성 시나리오]')
-  await expect(operationsPanel).toContainText(/세션 기록 \d+건 · 합성 예시 \d+건 · 미기록 \d+건/)
+  await expect(operationsPanel).toContainText('고정 운영 예시')
+  await expect(operationsPanel).toContainText(/세션 기록 \d+건 · 고정 예시 \d+건 · 미기록 \d+건/)
   await operationsPanel.scrollIntoViewIfNeeded()
-  await expect(operationsPanel.getByText('[합성 시나리오]')).toBeInViewport()
-  await expect(operationsPanel.getByText(/세션 기록 \d+건 · 합성 예시 \d+건 · 미기록 \d+건/)).toBeInViewport()
-  await capture(page, 'operations-scenario-desktop.png', 1440, 900, '실제 162개 행정동 합성 시나리오와 세션·예시·미기록 출처')
+  await expect(operationsPanel.getByText('고정 운영 예시')).toBeInViewport()
+  await expect(operationsPanel.getByText(/세션 기록 \d+건 · 고정 예시 \d+건 · 미기록 \d+건/)).toBeInViewport()
+  await capture(page, 'operations-scenario-desktop.png', 1440, 900, '실제 162개 행정동 고정 운영 예시와 세션·예시·미기록 출처')
   await expect(page.getByText(MODEL_LABEL)).toBeVisible()
   await page.getByText(MODEL_LABEL).scrollIntoViewIfNeeded()
   await expect(operationsPanel).toBeInViewport()
   await expect(page.getByText(MODEL_LABEL)).toBeInViewport()
-  await capture(page, 'operations-overlay-desktop.png', 1440, 900, '실제 156구역 [합성] 연락업무 모드와 투명한 구조 맥락')
+  await capture(page, 'operations-overlay-desktop.png', 1440, 900, '실제 156구역 연락업무 모드와 투명한 구조 맥락')
   await audit(page, 'operations-overlay-desktop')
 
   const operationsText = await page.locator('main.ops-page').innerText()
-  expect(operationsText).toContain('[합성]')
+  expect(operationsText).not.toContain('합성')
   expect(operationsText).toContain('급성도')
   expect(operationsText).toContain('취약도')
   expect(operationsText).toContain(MODEL_LABEL)
@@ -339,7 +340,7 @@ test('P8 hardening: production-like surfaces, explicit states, accessibility, an
       minTargetWidthPx,
       minTargetHeightPx,
       horizontalOverflowPx,
-      syntheticMarker: true,
+      syntheticPresentationAbsent: !operationsText.includes('합성'),
       separateAxes: true,
       mixedSnapshotWarning: true,
       modelOutputLabel: true,

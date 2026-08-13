@@ -229,7 +229,6 @@ export function MobilePage() {
     <main className="tier-page mobile-page">
       <header className="tier-header mobile-header">
         <div>
-          <span className="synthetic-chip">[합성]</span>
           <h1>조사원 화면 · {lanesData?.worker_display_name ?? '연결단원 001'}</h1>
           <p className="tier-audience">{lanesData?.dong_name ?? '신포동'} · 기준일 {CONTACT_OPS_REFERENCE_DATE}</p>
         </div>
@@ -265,7 +264,7 @@ export function MobilePage() {
                 : items.map((item) => (
                   <li key={item.case_id}>
                     <button className="mobile-task" onClick={() => openCase(item)}>
-                      <span className="case-id">[합성] {item.case_id}</span>
+                      <span className="case-id">{item.display_name} 어르신</span>
                       <LaneBadge item={item} />
                       <span className="mobile-task-meta">
                         {item.location.dong_name} · 마지막 연락 {item.last_contact.date ?? '기록 없음'} · {item.last_contact.result_label}
@@ -289,12 +288,12 @@ export function MobilePage() {
       )}
 
       {step === 'case' && selected && (
-        <section className="mobile-case" aria-label={`[합성] ${selected.case_id} 상세`}>
+        <section className="mobile-case" aria-label={`${selected.display_name} 어르신 상세`}>
           <button className="mobile-back" onClick={() => { setStep('list'); setSelected(null) }}>
             <ChevronLeft aria-hidden="true" /> 오늘 목록으로
           </button>
           <h2>대상 정보</h2>
-          <p className="case-id">[합성] {selected.case_id}</p>
+          <p className="case-id">{selected.display_name} 어르신</p>
           <dl className="mobile-case-facts">
             <div><dt>등급</dt><dd><LaneBadge item={selected} /> <small>({selected.grade_source})</small></dd></div>
             <div><dt>위치</dt><dd>{selected.location.district} {selected.location.dong_name}</dd></div>
@@ -315,7 +314,6 @@ export function MobilePage() {
               </dd></div>
             )}
           </dl>
-          <p className="mobile-address-note">{selected.location.address_note}</p>
           {selected.lane === 'visit' && (
             <details className="mobile-map-widget" onToggle={(event) => setVisitMapOpen((event.target as HTMLDetailsElement).open)}>
               <summary><MapPinned aria-hidden="true" size={18} /> 방문 위치 지도 열기</summary>
@@ -334,7 +332,7 @@ export function MobilePage() {
                       longitude: selected.location.longitude,
                       latitude: selected.location.latitude,
                     }}
-                    ariaLabel="[합성] 방문 위치 참고 지도"
+                    ariaLabel="방문 위치 참고 지도"
                     onSelectDong={() => {}}
                   />
                 ) : <p role="status">지도를 열면 방문 위치를 확인할 수 있습니다.</p>}
@@ -470,7 +468,7 @@ export function MobilePage() {
         <section className="mobile-done" aria-label="보고 완료">
           <CheckCircle2 aria-hidden="true" size={44} />
           <h2>동 행정복지센터에 보고됨</h2>
-          <p className="case-id">[합성] {reportCard.case_id}</p>
+          <p className="case-id">{reportCard.display_name} 어르신</p>
           <dl className="mobile-done-summary">
             <div><dt>등급</dt><dd><span className="grade-chip" data-grade={reportCard.등급}>{reportCard.등급}</span></dd></div>
             <div><dt>급성도</dt><dd>{reportCard.급성도_점수}</dd></div>

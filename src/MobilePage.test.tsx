@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock('./data', () => ({ loadData: mocks.loadData }))
-vi.mock('./MapView', () => ({ default: () => <div role="region" aria-label="[합성] 방문 위치 참고 지도" /> }))
+vi.mock('./MapView', () => ({ default: () => <div role="region" aria-label="방문 위치 참고 지도" /> }))
 
 vi.mock('./threeTierClient', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./threeTierClient')>()
@@ -33,8 +33,8 @@ import { phoneLaneItem as phoneItem, todayLanesFixture as lanes, voiceCandidateC
 
 const reportCard: ReportCard = {
   synthetic: true, displayMarker: '[합성]',
-  card_id: 'RPT-SYN-HH-2812551000-0001-r1', case_id: 'SYN-HH-2812551000-0001',
-  가명: '김순○', road_address: '인천광역시 제물포구 답동로 7-2', revision: 1,
+  card_id: 'RPT-SYN-HH-2812551000-0001-r1', case_id: 'SYN-HH-2812551000-0001', display_name: '김영자',
+  road_address: '인천광역시 제물포구 답동로 7-2', revision: 1,
   dong_code: '2812551000', dong_name: '신포동', district: '제물포구',
   등급: '방문권고', 급성도_점수: 62, 취약도_점수: 25, 권고_액션: '방문권고',
   사유_요약: [{ 축: '급성도', 근거: '식사상태 심각', 가산점: 25 }],
@@ -69,12 +69,12 @@ describe('MobilePage (조사원 /m)', () => {
     const user = userEvent.setup()
     render(<MobilePage />)
     const phoneList = await screen.findByLabelText('오늘 전화 목록')
-    expect(within(phoneList).getByText(/SYN-HH-2812551000-0001/)).toBeInTheDocument()
-    expect(within(phoneList).queryByText(/SYN-HH-2812551000-0002/)).toBeNull()
+    expect(within(phoneList).getByText('김영자 어르신')).toBeInTheDocument()
+    expect(within(phoneList).queryByText('이순자 어르신')).toBeNull()
     await user.click(screen.getByRole('tab', { name: /방문 1건/ }))
     const visitList = await screen.findByLabelText('오늘 방문 목록')
-    expect(within(visitList).getByText(/SYN-HH-2812551000-0002/)).toBeInTheDocument()
-    expect(within(visitList).queryByText(/SYN-HH-2812551000-0001/)).toBeNull()
+    expect(within(visitList).getByText('이순자 어르신')).toBeInTheDocument()
+    expect(within(visitList).queryByText('김영자 어르신')).toBeNull()
     expect(within(visitList).getByText(/선호 시간 10:00~13:00/)).toBeInTheDocument()
     expect(within(visitList).getByText(/공무원 동행 필요/)).toBeInTheDocument()
   })
@@ -84,14 +84,14 @@ describe('MobilePage (조사원 /m)', () => {
     const user = userEvent.setup()
     render(<MobilePage />)
     await user.click(await screen.findByRole('tab', { name: /방문 1건/ }))
-    await user.click(await screen.findByText(/SYN-HH-2812551000-0002/))
+    await user.click(await screen.findByText(/이순자 어르신/))
     const mapSummary = screen.getByText('방문 위치 지도 열기')
     expect(mapSummary).toBeInTheDocument()
     await user.click(mapSummary)
-    expect(await screen.findByRole('region', { name: '[합성] 방문 위치 참고 지도' })).toBeInTheDocument()
+    expect(await screen.findByRole('region', { name: '방문 위치 참고 지도' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '오늘 목록으로' }))
     await user.click(screen.getByRole('tab', { name: /전화 1건/ }))
-    await user.click(await screen.findByText(/SYN-HH-2812551000-0001/))
+    await user.click(await screen.findByText(/김영자 어르신/))
     expect(screen.queryByText('방문 위치 지도 열기')).toBeNull()
   })
 
@@ -99,22 +99,22 @@ describe('MobilePage (조사원 /m)', () => {
     arrange()
     const user = userEvent.setup()
     render(<MobilePage />)
-    await user.click(await screen.findByText(/SYN-HH-2812551000-0001/))
+    await user.click(await screen.findByText('김영자 어르신'))
     const dialButton = screen.getByRole('button', { name: /\[가상\] 010-0000-1234/ })
     await user.click(dialButton)
     const overlay = screen.getByRole('dialog', { name: '가상 발신 화면' })
     expect(within(overlay).getByText(/실제 전화는 걸리지 않습니다/)).toBeInTheDocument()
     await user.click(within(overlay).getByRole('button', { name: '가상 발신 화면 닫기' }))
     expect(screen.queryByRole('dialog')).toBeNull()
-    expect(screen.getByText('공공 주거용 건물 주소 참조 · 실제 거주자와 연결되지 않음')).toBeInTheDocument()
     expect(screen.getByText('인천광역시 제물포구 답동로 7-2')).toBeInTheDocument()
+    expect(screen.queryByText(/실제 거주자와 연결되지 않음/)).toBeNull()
   })
 
   it('manual path submits only after surveyor confirmation and shows the report screen (INV14)', async () => {
     arrange()
     const user = userEvent.setup()
     render(<MobilePage />)
-    await user.click(await screen.findByText(/SYN-HH-2812551000-0001/))
+    await user.click(await screen.findByText('김영자 어르신'))
     await user.click(screen.getByRole('button', { name: '직접 체크하기' }))
     await user.selectOptions(screen.getByLabelText('통화 결과'), '미응답')
     await user.click(screen.getByRole('checkbox', { name: '우편물·고지서 적체' }))
@@ -128,15 +128,17 @@ describe('MobilePage (조사원 /m)', () => {
     expect(payload.observations.관찰_6징후.우편물_고지서_적체).toBe(true)
     expect(payload.observations.식사상태).toBe('심각')
     expect(await screen.findByRole('heading', { name: '동 행정복지센터에 보고됨' })).toBeInTheDocument()
+    expect(screen.getByText('김영자 어르신')).toBeInTheDocument()
     expect(screen.getByText('방문권고')).toBeInTheDocument()
     expect(screen.getByText('보건소·의료 연계')).toBeInTheDocument()
+    expect(document.body.textContent).not.toMatch(/SYN-HH-|\[합성\]/)
   })
 
   it('chatbot path fills candidates only and converges to the same checklist (INV14)', async () => {
     arrange()
     const user = userEvent.setup()
     render(<MobilePage />)
-    await user.click(await screen.findByText(/SYN-HH-2812551000-0001/))
+    await user.click(await screen.findByText('김영자 어르신'))
     await user.click(screen.getByRole('button', { name: '문답으로 채우기' }))
     await user.click(screen.getByRole('button', { name: '미응답' }))
     await user.click(screen.getByRole('button', { name: '심각' }))
@@ -171,7 +173,7 @@ describe('MobilePage (조사원 /m)', () => {
     })
     const user = userEvent.setup()
     render(<MobilePage />)
-    await user.click(await screen.findByText(/SYN-HH-2812551000-0001/))
+    await user.click(await screen.findByText('김영자 어르신'))
     await user.click(screen.getByRole('button', { name: '음성 파일로 채우기' }))
     const file = new File(['RIFFxxxxWAVE'], 'memo.wav', { type: 'audio/wav' })
     await user.upload(screen.getByLabelText(/통화 녹음 파일/), file)
