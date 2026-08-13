@@ -80,10 +80,11 @@ export function buildGuestInviteUrl(credentials: LiveCallCredentials, currentUrl
 }
 
 export function parseGuestInviteCode(search: string): string | null {
-  if (typeof search !== 'string' || search.length === 0 || search.length > 256) return null
+  if (typeof search !== 'string' || search.length === 0 || search.length > 512) return null
   const params = new URLSearchParams(search.replace(/^\?/, ''))
-  const inviteCode = params.get('invite')
-  if ([...params.keys()].some((key) => key !== 'invite') || params.getAll('invite').length !== 1) return null
+  const inviteCodes = params.getAll('invite')
+  if (inviteCodes.length !== 1) return null
+  const [inviteCode] = inviteCodes
   return INVITE_CODE_PATTERN.test(inviteCode || '') ? inviteCode : null
 }
 
@@ -106,8 +107,13 @@ export async function redeemGuestInvite(inviteCode: string): Promise<LiveCallJoi
     error?: { code?: string }
   }
   const data = envelope.data
-  if (!response.ok || !data
-      || data.provider !== 'livekit'
+  if (!response.ok) {
+    throw new ContactOpsClientError(
+      envelope.error?.code ?? 'INVITE_REDEMPTION_FAILED',
+      '통화 참여 정보를 불러오지 못했습니다.',
+    )
+  }
+  if (!data || data.provider !== 'livekit'
       || typeof data.call_id !== 'string'
       || !CALL_ID_PATTERN.test(data.call_id)
       || !validServerUrl(data.server_url)
@@ -117,8 +123,8 @@ export async function redeemGuestInvite(inviteCode: string): Promise<LiveCallJoi
       || typeof data.participant.participant_token !== 'string'
       || !TOKEN_PATTERN.test(data.participant.participant_token)) {
     throw new ContactOpsClientError(
-      envelope.error?.code ?? 'INVALID_INVITE',
-      '통화 참여 링크가 만료되었거나 올바르지 않습니다.',
+      'INVALID_INVITE_RESPONSE',
+      '통화 참여 정보를 확인하지 못했습니다.',
     )
   }
   return {

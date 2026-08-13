@@ -1105,7 +1105,8 @@ ul.mobile-acute-contributions { list-style: none; display: grid; gap: 6px; }
 }
 .live-call-invite h3 { margin: 0 0 6px; font-size: 19px; }
 .live-call-invite p { margin: 0 0 12px; color: #41454a; }
-.live-call-invite img { display: block; width: 160px; height: 160px; border: 8px solid #ffffff; border-radius: 12px; }
+.live-call-invite img { display: block; width: 280px; max-width: 100%; height: auto; aspect-ratio: 1; border: 0; border-radius: 0; background: #ffffff; }
+.live-call-qr-error { max-width: 280px; margin: 0 !important; padding: 12px; border: 1px solid #f4b7bd; border-radius: 12px; background: #fef2f2; color: #a91429 !important; font-weight: 700; }
 .live-call-share, .live-call-primary {
   border: 1px solid #5a42ee;
   background: #5a42ee;
@@ -1241,6 +1242,7 @@ ul.mobile-acute-contributions { list-style: none; display: grid; gap: 6px; }
 .guest-call-invalid { margin: 0 0 16px; padding: 16px; border: 1px solid #d7dfea; border-radius: 16px; background: #ffffff; }
 .guest-call-invalid h2 { margin: 0 0 8px; font-size: 22px; }
 .guest-call-invalid p { margin: 0; }
+.guest-call-retry { min-width: 120px; min-height: 52px; margin-top: 16px; border: 1px solid #5a42ee; border-radius: 12px; background: #5a42ee; color: #ffffff; font: 700 18px/1.35 inherit; cursor: pointer; }
 
 @media (max-width: 520px) {
   .live-call-invite { grid-template-columns: 1fr; }

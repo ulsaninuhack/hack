@@ -55,7 +55,10 @@ describe('live call HTTP client', () => {
   })
 
   it('builds a short share-safe invite URL without participant credentials', () => {
-    const url = buildGuestInviteUrl(credentials, 'https://care.example/m')
+    const url = buildGuestInviteUrl(
+      credentials,
+      'https://care.example/m?case=SYN-HH-2812551000-0001#live-call',
+    )
     const parsed = new URL(url)
 
     expect(parsed.origin).toBe('https://care.example')
@@ -66,6 +69,15 @@ describe('live call HTTP client', () => {
     expect(url).not.toContain('host-token')
     expect(url).not.toContain('participant')
     expect(parseGuestInviteCode(parsed.search)).toBe('invitecode0123456789abcdef012345')
+  })
+
+  it('accepts share-provider metadata without weakening invite validation', () => {
+    expect(parseGuestInviteCode(
+      '?invite=invitecode0123456789abcdef012345&utm_source=message&utm_medium=qr',
+    )).toBe('invitecode0123456789abcdef012345')
+    expect(parseGuestInviteCode(
+      '?invite=invitecode0123456789abcdef012345&invite=invitecode999999999999999999999999',
+    )).toBeNull()
   })
 
   it('exchanges the opaque invite code for resident-only join credentials', async () => {
@@ -85,6 +97,14 @@ describe('live call HTTP client', () => {
       expect.stringContaining('/api/v1/contact-ops/live-calls/invites/invitecode0123456789abcdef012345'),
       { method: 'POST', headers: { Accept: 'application/json' } },
     )
+  })
+
+  it('keeps a temporary gateway failure distinct from an invalid invite', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('', { status: 503 }))
+
+    await expect(redeemGuestInvite('invitecode0123456789abcdef012345')).rejects.toMatchObject({
+      code: 'INVITE_REDEMPTION_FAILED',
+    })
   })
 
   it('posts SDP with only the short-lived participant bearer token', async () => {
@@ -113,12 +133,11 @@ describe('live call HTTP client', () => {
   it('rejects malformed invite queries and invalid exchange responses', async () => {
     expect(parseGuestInviteCode('')).toBeNull()
     expect(parseGuestInviteCode('?invite=short')).toBeNull()
-    expect(parseGuestInviteCode('?invite=invitecode0123456789abcdef012345&extra=1')).toBeNull()
 
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({
       provider: 'livekit', call_id: '../bad', server_url: 'https://wrong.example',
       expires_at: 'not-a-date', participant: { role: 'surveyor', participant_token: 'short' },
     }))
-    await expect(redeemGuestInvite('invitecode0123456789abcdef012345')).rejects.toThrow(/참여 링크/)
+    await expect(redeemGuestInvite('invitecode0123456789abcdef012345')).rejects.toThrow(/참여 정보/)
   })
 })
