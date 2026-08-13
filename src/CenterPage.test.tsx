@@ -327,7 +327,7 @@ describe('CenterPage (동 행정복지센터)', () => {
     await user.click(screen.getByRole('tab', { name: /방문 \d/ }))
     const visitLane = await screen.findByLabelText('방문 레인 할당 제안')
     expect(within(visitLane).getByText('이순자 어르신')).toBeInTheDocument()
-    expect(within(visitLane).getByText('급성도 62점 · 방문권고')).toBeInTheDocument()
+    expect(within(visitLane).getByText('심각도 62점 · 방문권고')).toBeInTheDocument()
     expect(within(visitLane).getByText('연속 미응답 2회')).toBeInTheDocument()
     expect(within(visitLane).getByText('+25점')).toBeInTheDocument()
     expect(within(visitLane).queryByText('김영자 어르신')).toBeNull()
@@ -458,6 +458,24 @@ describe('CenterPage (동 행정복지센터)', () => {
     expect(within(entries).getByText('2026-08-04')).toBeInTheDocument()
     expect(within(entries).getByText('식사 심각')).toBeInTheDocument()
     expect(within(entries).getAllByText('합성 과거 기록').length).toBeGreaterThan(0)
+  })
+
+  it('shows the surveyor extra note on the report card', async () => {
+    arrange()
+    const noted = structuredClone(inbox)
+    noted.report_cards.push({
+      ...structuredClone(reportCard),
+      card_id: 'RPT-SYN-HH-2812551000-0002-r1',
+      case_id: 'SYN-HH-2812551000-0002',
+      display_name: '이순자',
+      report_lane: 'visit',
+      기타사항: '문 앞에 우유가 쌓여 있었어요',
+    })
+    mocks.loadCenterInbox.mockResolvedValue(noted)
+    render(<CenterPage />)
+    const card = await screen.findByLabelText('이순자 어르신 보고 카드')
+    expect(within(card).getByText('기타사항')).toBeInTheDocument()
+    expect(within(card).getByText('문 앞에 우유가 쌓여 있었어요')).toBeInTheDocument()
   })
 
   it('paginates long lanes five rows at a time', async () => {

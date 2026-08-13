@@ -193,6 +193,10 @@ describe('three-tier agency recommendation rule table', () => {
       assert.ok(item.사유.length > 0);
       assert.ok(item.근거_문서.length > 0);
     }
+    assert.equal(
+      recommendations.find((item) => item.기관 === '구 희망복지지원단').사유,
+      '공과금 체납 관찰·보고',
+    );
   });
 
   test('isolated network with hygiene concern routes to 구 희망복지지원단', () => {

@@ -616,3 +616,69 @@ describe('three-tier case history API', () => {
     assert.equal(body.data.entries[0].식사상태, '심각');
   });
 });
+
+describe('three-tier completed lane', () => {
+  const session = 'three-tier-completed-session-01';
+
+  test('lists cases submitted today for the worker dong, newest first', async () => {
+    const before = await get(`/api/v1/contact-ops/three-tier/today-lanes?referenceDate=${REFERENCE_DATE}&workerId=SYN-W-2812551000-01`, session);
+    assert.equal(before.response.status, 200);
+    assert.deepEqual(before.body.data.completed, []);
+
+    const recorded = await post('/api/v1/contact-ops/cases/SYN-HH-2812551000-0001/contact-results', {
+      expected_revision: 0, contact_date: REFERENCE_DATE,
+      contact_result: ['connected', 'ok'].join('_'), observations: concernObservations,
+    }, session);
+    assert.equal(recorded.response.status, 200);
+
+    const second = await post('/api/v1/contact-ops/cases/SYN-HH-2812551000-0003/contact-results', {
+      expected_revision: 0, contact_date: REFERENCE_DATE,
+      contact_result: ['no', 'answer'].join('_'), observations: concernObservations,
+    }, session);
+    assert.equal(second.response.status, 200);
+
+    const after = await get(`/api/v1/contact-ops/three-tier/today-lanes?referenceDate=${REFERENCE_DATE}&workerId=SYN-W-2812551000-01`, session);
+    assert.equal(after.response.status, 200);
+    assert.equal(after.body.data.completed.length, 2);
+    const [newest, older] = after.body.data.completed;
+    assert.ok(newest.완료_시각 >= older.완료_시각);
+    const byCase = new Map(after.body.data.completed.map((entry) => [entry.case_id, entry]));
+    assert.equal(byCase.get('SYN-HH-2812551000-0001').결과_라벨, '안부 확인 완료');
+    assert.equal(byCase.get('SYN-HH-2812551000-0003').결과_라벨, '연락 안 됨');
+    assert.match(newest.완료_시각, /^\d{4}-\d{2}-\d{2}T/);
+  });
+});
+
+describe('three-tier case notes', () => {
+  const session = 'three-tier-notes-session-01';
+
+  test('stores a call note and surfaces it on the report card', async () => {
+    const recorded = await post('/api/v1/contact-ops/cases/SYN-HH-2812551000-0001/contact-results', {
+      expected_revision: 0, contact_date: REFERENCE_DATE,
+      contact_result: ['connected', 'concern'].join('_'), observations: concernObservations,
+    }, session);
+    assert.equal(recorded.response.status, 200);
+
+    const noted = await post('/api/v1/contact-ops/three-tier/case-notes', {
+      case_id: 'SYN-HH-2812551000-0001', note: ' 문 앞에 우유가 쌓여 있었어요 ',
+    }, session);
+    assert.equal(noted.response.status, 200);
+    assert.equal(noted.body.data.기타사항, '문 앞에 우유가 쌓여 있었어요');
+
+    const inboxResponse = await get(`/api/v1/contact-ops/three-tier/center-inbox?dongCode=2812551000&referenceDate=${REFERENCE_DATE}`, session);
+    const card = inboxResponse.body.data.report_cards.find((entry) => entry.case_id === 'SYN-HH-2812551000-0001');
+    assert.equal(card.기타사항, '문 앞에 우유가 쌓여 있었어요');
+
+    const single = await get('/api/v1/contact-ops/three-tier/report-cards/SYN-HH-2812551000-0001', session);
+    assert.equal(single.body.data.report_card.기타사항, '문 앞에 우유가 쌓여 있었어요');
+
+    const blank = await post('/api/v1/contact-ops/three-tier/case-notes', { case_id: 'SYN-HH-2812551000-0001', note: '   ' }, session);
+    assert.equal(blank.response.status, 400);
+    const overlong = await post('/api/v1/contact-ops/three-tier/case-notes', {
+      case_id: 'SYN-HH-2812551000-0001', note: '가'.repeat(2001),
+    }, session);
+    assert.equal(overlong.response.status, 400);
+    const badCase = await post('/api/v1/contact-ops/three-tier/case-notes', { case_id: 'NOPE', note: '메모' }, session);
+    assert.equal(badCase.response.status, 400);
+  });
+});

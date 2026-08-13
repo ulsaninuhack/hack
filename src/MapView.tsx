@@ -96,7 +96,7 @@ export default function MapView(props: MapViewProps) {
       })
       map.addLayer({
         id: 'dong-border', type: 'line', source: DONG_SOURCE,
-        paint: { 'line-color': ['case', ['boolean', ['feature-state', 'selected'], false], '#f7c765', '#ffffff'], 'line-width': ['case', ['boolean', ['feature-state', 'selected'], false], 3, 0.8], 'line-opacity': 0.9 },
+        paint: { 'line-color': ['case', ['boolean', ['feature-state', 'selected'], false], '#ca1fcf', '#ffffff'], 'line-width': ['case', ['boolean', ['feature-state', 'selected'], false], 3, 0.8], 'line-opacity': 0.9 },
       })
       map.addSource(FACILITY_SOURCE, { type: 'geojson', data: current.data.facilities, cluster: true, clusterMaxZoom: 13, clusterRadius: 48 })
       map.addLayer({

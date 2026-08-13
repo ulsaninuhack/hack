@@ -44,7 +44,7 @@ function createSessionMemory() {
       if (sessions.size >= MAX_TRACKED_SESSIONS) {
         sessions.delete(sessions.keys().next().value);
       }
-      sessions.set(sessionId, { assignmentConfirmations: new Map(), reportAcknowledgements: new Map(), escalations: new Map() });
+      sessions.set(sessionId, { assignmentConfirmations: new Map(), reportAcknowledgements: new Map(), escalations: new Map(), caseNotes: new Map() });
     }
     const memory = sessions.get(sessionId);
     sessions.delete(sessionId);
@@ -218,6 +218,21 @@ export function createThreeTierService({
         .map((proposal) => laneItem(recordById.get(proposal.case_id), proposal, referenceDate));
       const pendingVisit = (batch?.lanes.visit ?? [])
         .filter((proposal) => proposal.status !== 'confirmed' && !memory.escalations.has(proposal.case_id)).length;
+      // 오늘 이 세션에서 결과가 제출된 케이스는 배치 레인에서 빠지므로,
+      // 조사원이 처리 내역을 확인할 수 있게 완료 목록으로 따로 돌려준다.
+      const completed = records
+        .filter((record) => record.household.location.current_admin_dong_code_20260701 === dongCode
+          && record.triage != null && record.triage.기록_출처 !== 'demo_precontact_record'
+          && record.household.contact.last_contact_date === referenceDate)
+        .map((record) => ({
+          case_id: record.household.id,
+          display_name: deriveCaseDisplayName(record.household.id),
+          결과_라벨: contactResultLabel(record.household.contact.last_contact_result),
+          급성도_등급: record.triage.급성도_등급 ?? null,
+          완료_시각: record.updated_at,
+        }))
+        .toSorted((left, right) => right.완료_시각.localeCompare(left.완료_시각)
+          || left.case_id.localeCompare(right.case_id));
       return {
         synthetic: true,
         displayMarker: '[합성]',
@@ -230,6 +245,7 @@ export function createThreeTierService({
         assignment_rule: '전화는 자동 배정 · 방문은 동 행정복지센터 확인 또는 상급기관 신고',
         pending_confirmation: { phone: 0, visit: pendingVisit },
         lanes: { phone: toItems('phone'), visit: toItems('visit') },
+        completed,
       };
     },
 
@@ -262,6 +278,18 @@ export function createThreeTierService({
       return buildCenterCalendar(dongRecords, { month });
     },
 
+    // 통화 중 적은 기타사항(자유 메모)을 세션 메모리에 기록해 동 센터 보고
+    // 카드에 함께 노출한다. 점수·워크플로에는 영향을 주지 않는다.
+    async recordCaseNote({ sessionId, caseId, note }) {
+      const record = await state.get({ sessionId, caseId });
+      if (typeof note !== 'string' || note.trim().length === 0 || note.length > 2000) {
+        throw new TypeError('note must be a non-empty string up to 2000 characters');
+      }
+      const memory = memoryStore.forSession(sessionId);
+      memory.caseNotes.set(record.household.id, note.trim());
+      return { synthetic: true, displayMarker: '[합성]', case_id: record.household.id, 기타사항: note.trim() };
+    },
+
     async getReportCard({ sessionId, caseId }) {
       const record = await state.get({ sessionId, caseId });
       const card = buildReportCard(record);
@@ -275,6 +303,7 @@ export function createThreeTierService({
         report_card: {
           ...card,
           acknowledgement: currentAcknowledgement(memory, card),
+          기타사항: memory.caseNotes.get(card.case_id) ?? null,
         },
         destination: '동 행정복지센터 인박스',
       };
@@ -307,6 +336,7 @@ export function createThreeTierService({
             ...card,
             report_lane: reportLane,
             escalation: memory.escalations.get(card.case_id) ?? null,
+            기타사항: memory.caseNotes.get(card.case_id) ?? null,
             acknowledgement: currentAcknowledgement(memory, card),
           };
         });

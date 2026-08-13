@@ -235,7 +235,7 @@ describe('P2 manager flow', () => {
         acute_color_metric: 75, acute_max_case_id: 'SYN-HH-2812551000-0001', vulnerability_size_metric: 80, vulnerability_max_case_id: 'SYN-HH-2812551000-0002', scored_case_count: 2, unscored_case_count: 1,
         session_scored_case_count: 1, scenario_scored_case_count: 1, scenario_label: '[합성 시나리오]', scenario_reference_date: '2026-08-12', scenario_method: 'one_deterministic_example_per_current_admin_dong',
         acute_metric_source: 'session_recorded', vulnerability_metric_source: 'synthetic_scenario',
-        contribution_summaries: { acute: [{ code: '연속_미응답', total_points: 50, case_count: 2 }], vulnerability: [{ code: '관계망_없음', total_points: 80, case_count: 2 }, { code: '동단위_고령비율', total_points: 0, case_count: 1 }] },
+        contribution_summaries: { acute: [{ code: '연속_미응답', total_points: 50, case_count: 2 }, { code: '공과금_2개월_이상_체납', total_points: 10, case_count: 1 }], vulnerability: [{ code: '관계망_없음', total_points: 80, case_count: 2 }, { code: '동단위_고령비율', total_points: 0, case_count: 1 }] },
       } }],
     })
     render(<ManagerPage />)
@@ -252,6 +252,8 @@ describe('P2 manager flow', () => {
     expect(screen.getByText(/현행 행정동마다 한 건의 고정 예시/)).toBeInTheDocument()
     expect(screen.getByText('연속 미응답')).toBeInTheDocument()
     expect(screen.queryByText('연속_미응답')).not.toBeInTheDocument()
+    expect(screen.getByText('공과금 체납')).toBeInTheDocument()
+    expect(screen.queryByText('공과금 2개월 이상 체납')).not.toBeInTheDocument()
     expect(screen.getByText(/0점 항목은 평가되었으나 가산되지 않은 지표/)).toBeInTheDocument()
     expect(screen.getByText('0–24점')).toBeInTheDocument()
     expect(screen.queryByText('0_24')).not.toBeInTheDocument()

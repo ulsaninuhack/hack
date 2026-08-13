@@ -166,7 +166,7 @@ function ObservationForm({
           <option value="">확인하지 못함</option><option>양호</option><option>불량</option>
         </select>
       </label>
-      <NullableBooleanSelect label="공과금 2개월 이상 체납 관찰·보고" value={value.공과금_2개월_이상_체납} onChange={(next) => update('공과금_2개월_이상_체납', next)} />
+      <NullableBooleanSelect label="공과금 체납 관찰·보고" value={value.공과금_2개월_이상_체납} onChange={(next) => update('공과금_2개월_이상_체납', next)} />
       <NullableBooleanSelect label="최근 건강·정신적 괴로움 관찰" value={value.최근_건강_정신_괴로움} onChange={(next) => update('최근_건강_정신_괴로움', next)} />
       <label>도움을 요청할 관계망
         <select value={value.관계망_유무 ?? ''} onChange={(event) => update('관계망_유무', (event.target.value || null) as CanonicalObservations['관계망_유무'])}>
@@ -581,6 +581,7 @@ function ContributionSummary({ title, entries }: { title: string; entries: Array
   const displayCode = (code: string) => ({
     연속_미응답: '연속 미응답',
     관찰_6징후: '우려 관찰 6징후',
+    공과금_2개월_이상_체납: '공과금 체납',
     관계망_없음: '관계망 없음',
     사회적_고립: '사회적 연락 부족',
     동단위_고령비율: '동단위 고령비율',

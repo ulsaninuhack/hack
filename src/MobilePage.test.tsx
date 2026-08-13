@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ReportCard } from './threeTierClient'
@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   uploadVoiceObservationAudio: vi.fn(),
   createAiObservationCandidate: vi.fn(),
   submitContact: vi.fn(),
+  submitCaseNote: vi.fn(),
   loadData: vi.fn(),
   createLiveCall: vi.fn(),
   buildGuestInviteUrl: vi.fn(),
@@ -24,6 +25,7 @@ vi.mock('./threeTierClient', async (importOriginal) => {
     loadTodayLanes: mocks.loadTodayLanes,
     loadReportCard: mocks.loadReportCard,
     uploadVoiceObservationAudio: mocks.uploadVoiceObservationAudio,
+    submitCaseNote: mocks.submitCaseNote,
   }
 })
 vi.mock('./contactOpsClient', async (importOriginal) => {
@@ -47,6 +49,7 @@ vi.mock('./LiveCallPanel', () => ({
     <section aria-label="실시간 통화 테스트">
       <p>통화 상대: {targetDisplayName}</p>
       <button type="button" onClick={() => onTranscriptUpdate('밥을 잘 못 먹어요.')}>실시간 발화 테스트</button>
+      <button type="button" onClick={() => onTranscriptUpdate('밥을 잘 못 먹어요. 공과금도 못 냈어요.')}>실시간 발화 2 테스트</button>
       {liveCandidate?.critic.next_question && <p>{liveCandidate.critic.next_question}</p>}
       <button type="button" onClick={() => void onFinish('밥을 잘 못 먹어요.')}>통화 종료 테스트</button>
     </section>
@@ -81,6 +84,7 @@ function arrange() {
   mocks.loadTodayLanes.mockResolvedValue(structuredClone(lanes))
   mocks.loadReportCard.mockResolvedValue({ report_card: structuredClone(reportCard), destination: '동 행정복지센터 인박스' })
   mocks.submitContact.mockResolvedValue({ revision: 1 })
+  mocks.submitCaseNote.mockResolvedValue({ case_id: 'SYN-HH-2812551000-0001', 기타사항: '기록됨' })
   mocks.loadData.mockResolvedValue({ dongs: { features: [] }, summary: {} })
 }
 
@@ -89,6 +93,29 @@ afterEach(() => {
 })
 
 describe('MobilePage (조사원 /m)', () => {
+  it('lists the contacts submitted today in the 완료 tab', async () => {
+    arrange()
+    const user = userEvent.setup()
+    render(<MobilePage />)
+    await screen.findByLabelText('오늘 전화 목록')
+    await user.click(screen.getByRole('tab', { name: /완료 1건/ }))
+    const doneList = await screen.findByLabelText('오늘 완료 목록')
+    expect(within(doneList).getByText('한금순 어르신')).toBeInTheDocument()
+    expect(within(doneList).getByText('안부 확인 완료')).toBeInTheDocument()
+    expect(within(doneList).getByText(/제출/)).toBeInTheDocument()
+  })
+
+  it('starts with today tasks without role-switching header or explanatory copy', async () => {
+    arrange()
+    render(<MobilePage />)
+
+    expect(await screen.findByRole('heading', { name: '오늘 할당된 연락 대상' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: /조사원 화면/ })).toBeNull()
+    expect(screen.queryByRole('link', { name: '동 센터' })).toBeNull()
+    expect(screen.queryByRole('link', { name: '공개 지도' })).toBeNull()
+    expect(screen.queryByText('정기 연락 일정과 재연락 기한에 따라 오늘 배정된 연락업무입니다.')).toBeNull()
+  })
+
   it('separates phone and visit tabs, visit tab carries time window and companion needs (INV16)', async () => {
     arrange()
     const user = userEvent.setup()
@@ -110,7 +137,7 @@ describe('MobilePage (조사원 /m)', () => {
     expect(screen.getByRole('heading', { name: '오늘 방문 대상' })).toBeInTheDocument()
     expect(within(visitList).getByText('이순자 어르신')).toBeInTheDocument()
     expect(within(visitList).getByText('담당자 승인·배치 확인 완료')).toBeInTheDocument()
-    expect(within(visitList).getByText('급성도 62점 · 방문권고')).toBeInTheDocument()
+    expect(within(visitList).getByText('심각도 68점 · 방문권고')).toBeInTheDocument()
     expect(within(visitList).getByText('주요 근거 · 연속 미응답 2회 (+25점)')).toBeInTheDocument()
     expect(within(visitList).queryByText('김영자 어르신')).toBeNull()
     expect(within(visitList).getByText('선호 시간')).toBeInTheDocument()
@@ -155,9 +182,14 @@ describe('MobilePage (조사원 /m)', () => {
     await user.selectOptions(screen.getByLabelText('통화(또는 방문) 결과'), '미응답')
     await user.click(screen.getByRole('checkbox', { name: '우편물·고지서 적체' }))
     await user.selectOptions(screen.getByLabelText('식사 상태'), '심각')
+    await user.type(screen.getByLabelText('기타사항'), '문 앞에 우유가 쌓여 있었어요')
     expect(mocks.submitContact).not.toHaveBeenCalled()
+    expect(mocks.submitCaseNote).not.toHaveBeenCalled()
     await user.click(screen.getByRole('button', { name: '확인하고 제출' }))
     await waitFor(() => expect(mocks.submitContact).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(mocks.submitCaseNote).toHaveBeenCalledWith({
+      caseId: 'SYN-HH-2812551000-0001', note: '문 앞에 우유가 쌓여 있었어요',
+    }))
     const payload = mocks.submitContact.mock.calls[0][0]
     expect(payload.caseId).toBe('SYN-HH-2812551000-0001')
     expect(payload.resultLabel).toBe('미응답')
@@ -293,7 +325,7 @@ describe('MobilePage (조사원 /m)', () => {
     expect(await screen.findByLabelText('통화(또는 방문) 결과')).toBeInTheDocument()
     expect(screen.queryByText('악취 관련 후보 확인 필요')).toBeNull()
     expect(screen.queryByText('누락 확인: 관계망_유무')).toBeNull()
-    expect(screen.getByRole('region', { name: '기타 특이사항' })).toHaveTextContent('최근 약 복용을 자주 빠뜨린다고 말함')
+    expect(screen.getByLabelText('기타사항')).toHaveValue('최근 약 복용을 자주 빠뜨린다고 말함')
     expect(screen.queryByText(/해당하는 체크리스트를 확인하면 제출 후 점수에 반영됩니다/)).toBeNull()
     expect(screen.getByLabelText('통화(또는 방문) 결과')).toHaveValue('우려 사항 있음')
     expect(screen.getByRole('checkbox', { name: '악취·벌레' })).toBeChecked()
@@ -334,7 +366,7 @@ describe('MobilePage (조사원 /m)', () => {
     expect(screen.queryByText('오늘 식사를 한 끼도 하지 못한 건가요, 아니면 평소보다 양이 줄어든 건가요?')).toBeNull()
     expect(screen.getByLabelText('통화(또는 방문) 결과')).toHaveValue('미응답')
     expect(screen.getByRole('checkbox', { name: '우편물·고지서 적체' })).toBeChecked()
-    expect(screen.getByRole('region', { name: '기타 특이사항' })).toHaveTextContent('우편함에 고지서가 쌓여 있었음')
+    expect(screen.getByLabelText('기타사항')).toHaveValue('우편함에 고지서가 쌓여 있었음')
     expect(mocks.submitContact).not.toHaveBeenCalled()
   })
 
@@ -391,6 +423,65 @@ describe('MobilePage (조사원 /m)', () => {
     expect(mocks.submitContact).not.toHaveBeenCalled()
   })
 
+  it('analyzes finalized resident turns in parallel and ignores a stale response', async () => {
+    arrange()
+    mocks.createLiveCall.mockResolvedValue({
+      provider: 'livekit', call_id: 'call123', room_name: 'care-call-call123',
+      server_url: 'wss://example.livekit.cloud', expires_at: '2030-08-13T12:00:00.000Z',
+      transcription: { provider: 'openai', model: 'gpt-live-transcribe', language: 'ko' },
+      host: { role: 'surveyor', participant_token: 'host.token.signature' },
+      guest: { role: 'resident', invite_code: 'invitecode0123456789abcdef012345' },
+    })
+    mocks.buildGuestInviteUrl.mockReturnValue('https://demo.example/call?invite=invitecode0123456789abcdef012345')
+
+    let resolveFirst!: (value: unknown) => void
+    let resolveSecond!: (value: unknown) => void
+    const first = new Promise((resolve) => { resolveFirst = resolve })
+    const second = new Promise((resolve) => { resolveSecond = resolve })
+    mocks.createAiObservationCandidate
+      .mockImplementationOnce(() => first)
+      .mockImplementationOnce(() => second)
+
+    const response = (transcript: string, nextQuestion: string) => ({
+      revision: 0,
+      candidate: {
+        case_id: 'SYN-HH-2812551000-0001',
+        contact_result: voiceCandidateConcernResult,
+        transcript,
+        observations: {
+          관찰_6징후: { 우편물_고지서_적체: false, 악취_벌레: false, 쓰레기_술병: false, 인기척_없이_TV_불: false, 외출_없음: false, 연락_두절: false },
+          식사상태: '불량', 위생상태: null, 공과금_2개월_이상_체납: transcript.includes('공과금') ? true : null,
+          최근_건강_정신_괴로움: null, 관계망_유무: null, 연락_빈도: null,
+        },
+        free_text: '',
+        critic: { missing_fields: [], contradictions: [], low_confidence_fields: [], warnings: [], next_question: nextQuestion },
+        requires_user_confirmation: true,
+      },
+    })
+
+    const user = userEvent.setup()
+    render(<MobilePage />)
+    await user.click(await screen.findByText('김영자 어르신'))
+    await user.click(screen.getByRole('button', { name: '실시간 통화 시작' }))
+    await user.click(screen.getByRole('button', { name: '실시간 발화 테스트' }))
+    await waitFor(() => expect(mocks.createAiObservationCandidate).toHaveBeenCalledTimes(1))
+    await user.click(screen.getByRole('button', { name: '실시간 발화 2 테스트' }))
+    await waitFor(() => expect(mocks.createAiObservationCandidate).toHaveBeenCalledTimes(2))
+
+    await act(async () => resolveSecond(response(
+      '밥을 잘 못 먹어요. 공과금도 못 냈어요.',
+      '필요할 때 연락하거나 도움을 청할 분이 계세요?',
+    )))
+    expect(await screen.findByText('필요할 때 연락하거나 도움을 청할 분이 계세요?')).toBeInTheDocument()
+
+    await act(async () => resolveFirst(response(
+      '밥을 잘 못 먹어요.',
+      '오늘 식사를 한 끼도 하지 못한 건가요?',
+    )))
+    expect(screen.getByText('필요할 때 연락하거나 도움을 청할 분이 계세요?')).toBeInTheDocument()
+    expect(screen.queryByText('오늘 식사를 한 끼도 하지 못한 건가요?')).toBeNull()
+  })
+
   it('uses concise labels for health and utility answers', async () => {
     arrange()
     const user = userEvent.setup()
@@ -402,7 +493,8 @@ describe('MobilePage (조사원 /m)', () => {
     expect(screen.getByLabelText('최근 건강·마음 어려움')).toBeInTheDocument()
     expect(screen.getByRole('option', { name: '어려움 있음' })).toBeInTheDocument()
     expect(screen.getByRole('option', { name: '어려움 없음' })).toBeInTheDocument()
-    expect(screen.getByLabelText('공과금 2개월 이상 체납')).toBeInTheDocument()
+    expect(screen.getByLabelText('공과금 체납')).toBeInTheDocument()
+    expect(screen.queryByLabelText('공과금 2개월 이상 체납')).toBeNull()
     expect(screen.getByRole('option', { name: '체납 있음' })).toBeInTheDocument()
     expect(screen.getByRole('option', { name: '체납 없음' })).toBeInTheDocument()
     expect(screen.queryByText('관찰 또는 보고됨')).toBeNull()

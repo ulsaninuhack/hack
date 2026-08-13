@@ -49,6 +49,7 @@ Do not overclaim what the public aggregate data can prove.
 - Utility data is not current Incheon household anomaly data. Jeongeup smart-meter data is model/UX demo only and must be labeled as not Incheon observed data.
 - Synthetic ContactOps fixtures model phone-first work management. They do not estimate real care demand, personal risk, welfare eligibility, non-recipient counts, or actual 이웃연결단 workload.
 - The synthetic workflow begins with `visit_approval_status=null`. Deterministic rules may set `recommended`, but only an explicit manager decision may set `approved` or `rejected`.
+- Three-tier demo surfaces (`/center`, `/m`) present a single display-only `심각도` derived in `src/threeTierClient.ts` (`displaySeverity`): max(급성도, 취약도) plus deterministic contact-failure bumps, always with contribution traces. The engine keeps 급성도/취약도 separate and stores no composite; the derived value exists only at render time.
 - `max_route_distance_km` and route constraints exist only after explicit human approval. Do not add maximum-distance or routing fields to unapproved generated tasks.
 
 Use `data/metadata/CARE_PRIORITY_METRIC_SPEC.md`, `data/README.md`, and `public/data/manifest.json` as the evidence chain before changing UI labels, metric names, or presentation claims.

@@ -208,6 +208,81 @@ test('explicit repeated no-meal speech becomes at least a poor-meal candidate ev
   assert.equal(result.confirmed, false);
 });
 
+test('unpaid utility speech becomes a generic arrears candidate even when Planner omits the signal', async () => {
+  const transcript = '밥도 안 먹고 있고 씻지도 않고 있고 공과금도 안 내고 있고 돈도 없고.';
+  const result = await planContactOpsObservation(
+    { kind: 'text', text: transcript, surveyorId: SURVEYOR_ID, caseId: ROUTE_CASE_ID },
+    {
+      plannerClient: mockPlanner(plannerOutput({
+        transcript,
+        caseId: null,
+        observation: { meal_status: null, hygiene: '불량' },
+        riskSignals: [],
+        freeText: '공과금을 내지 못하고 돈이 없다고 말함',
+      })),
+    },
+  );
+
+  assert.equal(result.observations.식사상태, '불량');
+  assert.equal(result.observations.위생상태, '불량');
+  assert.equal(result.observations.공과금_2개월_이상_체납, true);
+  assert.ok(!result.critic.missing_fields.includes('공과금_2개월_이상_체납'));
+  assert.equal(result.requires_user_confirmation, true);
+  assert.equal(result.confirmed, false);
+});
+
+test('paid or immediately corrected utility speech does not become an arrears candidate', async () => {
+  for (const transcript of [
+    '공과금을 안 낸 건 아니고 이번 달 것도 제때 냈어요.',
+    '전기세가 밀린 건 아니고 모두 납부했어요.',
+  ]) {
+    const result = await planContactOpsObservation(
+      { kind: 'text', text: transcript, surveyorId: SURVEYOR_ID, caseId: ROUTE_CASE_ID },
+      {
+        plannerClient: mockPlanner(plannerOutput({
+          transcript,
+          caseId: null,
+          observation: { meal_status: null, hygiene: null },
+          riskSignals: [],
+          freeText: '',
+        })),
+      },
+    );
+
+    assert.equal(result.observations.공과금_2개월_이상_체납, false, transcript);
+  }
+});
+
+test('utility arrears analyzer keeps one unpaid bill and ignores unrelated or exempt statements', async () => {
+  const fixtures = [
+    ['전기세는 밀렸지만 수도세는 제때 냈어요.', true],
+    ['공과금을 못 냈어요.', true],
+    ['공과금을 안 냈어요.', true],
+    ['전기세 밀린 건 아니고 수도세는 못 냈어요.', true],
+    ['수도세는 면제인데 전기세를 못 냈어요.', true],
+    ['공과금이 비싸서 걱정이에요.', null],
+    ['공과금은 지원 대상이라 안 내도 된대요.', null],
+    ['공과금을 안 내면 안 돼요.', null],
+  ];
+  for (const [transcript, expected] of fixtures) {
+    const result = await planContactOpsObservation(
+      { kind: 'text', text: transcript, surveyorId: SURVEYOR_ID, caseId: ROUTE_CASE_ID },
+      {
+        plannerClient: mockPlanner(plannerOutput({
+          transcript,
+          caseId: null,
+          observation: { meal_status: null, hygiene: null },
+          riskSignals: [],
+          freeText: '',
+        })),
+      },
+    );
+
+    assert.equal(result.observations.공과금_2개월_이상_체납, expected, transcript);
+    if (expected === true) assert.equal(result.contact_result, 'connected_concern');
+  }
+});
+
 test('explicit all-day or multi-day no-meal speech becomes serious even when Planner misses it', async () => {
   for (const transcript of ['오늘 한 끼도 못 먹었어요.', '이틀째 밥을 안 먹었어요.']) {
     const result = await planContactOpsObservation(

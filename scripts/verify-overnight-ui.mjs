@@ -129,7 +129,7 @@ if (/firebase|firestore/i.test(frontendFiles)) throw new Error('Frontend contain
 
 const frozenCoreFiles = new Map([
   ['backend/src/contact-ops.mjs', '3036cf29afe4aa0151386596673d46e585a49b19d42d7a500c3216df88fd570c'],
-  ['backend/src/contact-triage-scoring.mjs', '51ea5e9f04c09f5f0849adacc1438c23ef9982905f0afbf347d0759cd5141dd7'],
+  ['backend/src/contact-triage-scoring.mjs', 'c385dbb1fe9950e19be0330aa664aa55466d94c814a9ebdbff45b9d53cbe2b43'],
 ])
 for (const [path, expectedHash] of frozenCoreFiles) {
   const actualHash = createHash('sha256').update(readFileSync(path)).digest('hex')

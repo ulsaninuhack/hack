@@ -134,7 +134,7 @@ export function buildAgencyRecommendations({ observations, household, triage }) 
   const isolated = observations.관계망_유무 === '없음';
   if (observations.공과금_2개월_이상_체납 === true || (isolated && (mealConcern || hygieneConcern))) {
     const reason = observations.공과금_2개월_이상_체납 === true
-      ? '공과금 2개월 이상 체납 관찰·보고'
+      ? '공과금 체납 관찰·보고'
       : '관계망 부재와 생활 상태 어려움이 함께 관찰됨';
     push('구 희망복지지원단', reason, ['매뉴얼_p11', '매뉴얼_p49']);
   }
@@ -305,6 +305,7 @@ export function buildAssignmentProposals({ records, workers, referenceDate, dong
       last_contact: {
         date: household.contact.last_contact_date,
         result_label: contactResultLabel(household.contact.last_contact_result),
+        consecutive_no_answer_count: household.contact.consecutive_no_answer_count ?? 0,
       },
       lane,
       dong_code: code,
@@ -314,6 +315,7 @@ export function buildAssignmentProposals({ records, workers, referenceDate, dong
       worker_display_name: worker?.display_name ?? null,
       급성도_등급: triage?.급성도_등급 ?? null,
       급성도_점수: triage?.급성도_점수 ?? null,
+      취약도_점수: triage?.취약도_점수 ?? null,
       grade_source: gradeSource(triage),
       기록_출처: triage?.기록_출처 ?? null,
       프로필_버전: triage?.프로필_버전 ?? null,
