@@ -221,9 +221,9 @@ function arrange() {
   })
   mocks.loadCaseHistorySummary.mockResolvedValue({
     case_id: 'SYN-HH-2812551000-0001',
-    summary_text: "최근 기록 2회 중 '연락 안 됨' 1회, 마지막 기록은 2026-08-11 '연락 안 됨'입니다. 기록상 식사 상태가 '양호'에서 '심각'(으)로 바뀌었습니다. 합성 시연 기록의 요약이며 개인 상태에 대한 판단이 아닙니다.",
+    summary_text: "최근 기록 2회 중 '연락 안 됨' 1회, 마지막 기록은 2026-08-11 '연락 안 됨'입니다. 기록상 식사 상태가 '양호'에서 '심각'(으)로 바뀌었습니다.",
     generator: 'deterministic_v1',
-    label: '[AI 생성 · 기록 요약 · 개인 예측 아님]',
+    label: '[AI 생성 · 기록 요약]',
   })
   mocks.loadCenterCalendar.mockResolvedValue({
     synthetic: true, displayMarker: '[합성]', month: '2026-08',
@@ -451,7 +451,7 @@ describe('CenterPage (동 행정복지센터)', () => {
     const phoneLane = await screen.findByLabelText('전화 레인 할당 제안')
     expect(mocks.loadCaseHistory).not.toHaveBeenCalled()
     await user.click(within(phoneLane).getByText('지난 기록'))
-    expect(await within(phoneLane).findByText('[AI 생성 · 기록 요약 · 개인 예측 아님]')).toBeInTheDocument()
+    expect(await within(phoneLane).findByText('[AI 생성 · 기록 요약]')).toBeInTheDocument()
     expect(within(phoneLane).getByText(/식사 상태가 '양호'에서 '심각'/)).toBeInTheDocument()
     const entries = within(phoneLane).getByLabelText('지난 기록 목록')
     expect(within(entries).getByText('2026-08-04')).toBeInTheDocument()

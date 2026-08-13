@@ -10,7 +10,7 @@ import { buildTodayContactQueue } from './contact-ops.mjs';
 const CASE_ID_PATTERN = /^SYN-HH-\d{10}-\d{4}$/;
 const DONG_CODE_PATTERN = /^\d{10}$/;
 const VIRTUAL_PHONE_LABEL = '[가상]';
-const AI_SUMMARY_LABEL = '[AI 생성 · 관측 집계 해석 · 개인 예측 아님]';
+const AI_SUMMARY_LABEL = '[AI 생성 · 관측 집계 해석]';
 const MIXED_SNAPSHOT_WARNING = '분자 2026-07-31 · 분모 2026-06-30 · 서로 다른 기준월의 참고 비율이며 동시점 비율이 아닙니다.';
 const WELFARE_MIXED_SNAPSHOT_WARNING = '기초수급 분자 2024-12-31 · 인구 분모 2026-06-30 · 서로 다른 기준일의 참고 밀도이며 동시점 비율이 아닙니다.';
 const ACUTE_GRADES = ['정상', '주시', '방문권고', '방문권고-우선'];

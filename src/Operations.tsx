@@ -537,7 +537,7 @@ function ManagerBreadthPanel({ breadth, error }: { breadth: ManagerBreadth | nul
   return <aside className="ops-breadth" aria-label="관리자 운영 요약">
     <section><h2>행정복지센터 이관</h2>{breadth.transfer_recommendations.length === 0 ? <p>현재 이관 권고가 없습니다.</p> : <ul>{breadth.transfer_recommendations.map((item) => <li key={item.case_id}><strong>{item.status_label}</strong><span>{caseDisplayName(item.case_id)} 어르신</span><small>급성도 {formatScore(item.acute.score)} · 취약도 {formatScore(item.vulnerability.score)}</small></li>)}</ul>}</section>
     <section><h2>분리된 2축 분포</h2><h3>급성도 분포</h3><Distribution values={breadth.grade_distribution.acute.grades} /><h3>취약도 분포</h3><Distribution values={breadth.grade_distribution.vulnerability.score_bands} /></section>
-    <section className="ops-tuning"><h2>배점 점검</h2><strong>{breadth.tuning_warning.current_mild_signal_count.toLocaleString()}건</strong><p>점수 규칙 점검값이며 실제 개인 판정이 아닙니다.</p></section>
+    <section className="ops-tuning"><h2>배점 점검</h2><strong>{breadth.tuning_warning.current_mild_signal_count.toLocaleString()}건</strong><p>점수 규칙 점검값입니다.</p></section>
     <section><h2>승인된 방문 {breadth.approved_visit_hint.approved_visit_count}건</h2><p>{breadth.approved_visit_hint.label}</p>{breadth.approved_visit_hint.items.length > 0 && <ol>{breadth.approved_visit_hint.items.map((item) => <li key={item.case_id}>{caseDisplayName(item.case_id)} 어르신 · {item.admin_dong}{item.distance_from_previous_km != null ? ` · 이전 지점에서 ${item.distance_from_previous_km}km` : ''}</li>)}</ol>}</section>
   </aside>
 }

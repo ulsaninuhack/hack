@@ -93,7 +93,7 @@ describe('three-tier case history', () => {
     const summary = deterministicHistorySummary(buildCaseHistory(record(caseIdForTrend('악화'))));
     assert.match(summary, /최근 기록 6회 중 '연락 안 됨'/);
     assert.match(summary, /바뀌었습니다/);
-    assert.match(summary, /개인 상태에 대한 판단이 아닙니다/);
+    assert.doesNotMatch(summary, /개인 상태에 대한 판단이 아닙니다/);
     assert.doesNotMatch(summary, /위험|예측/);
 
     const empty = deterministicHistorySummary({ entries: [] });

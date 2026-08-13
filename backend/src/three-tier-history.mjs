@@ -11,12 +11,11 @@ const MEAL_LEVELS = ['양호', '불량', '심각'];
 const HYGIENE_LEVELS = ['양호', '불량'];
 const RESULT_CODE_POOL = ['connected_ok', 'no_answer', 'connected_ok', 'connected_concern'];
 const NO_ANSWER_LABEL = contactResultLabel('no_answer');
-const SUMMARY_CLOSING = '합성 시연 기록의 요약이며 개인 상태에 대한 판단이 아닙니다.';
 const FORBIDDEN_SUMMARY_PATTERN = /위험|예측|추정|점수|고위험/;
 
 export const HISTORY_SOURCE_SYNTHETIC = '합성 과거 기록';
 export const HISTORY_SOURCE_SESSION = '세션 기록';
-export const HISTORY_SUMMARY_LABEL = '[AI 생성 · 기록 요약 · 개인 예측 아님]';
+export const HISTORY_SUMMARY_LABEL = '[AI 생성 · 기록 요약]';
 
 function seedFor(caseId) {
   let hash = 0x811c9dc5;
@@ -105,7 +104,7 @@ export function buildCaseHistory(record) {
 
 export function deterministicHistorySummary(history) {
   const { entries } = history;
-  if (entries.length === 0) return `요약할 기록이 없습니다. ${SUMMARY_CLOSING}`;
+  if (entries.length === 0) return '요약할 기록이 없습니다.';
   const newest = entries[0];
   const oldest = entries[entries.length - 1];
   const noAnswerCount = entries.filter((entry) => entry.결과_라벨 === NO_ANSWER_LABEL).length;
@@ -115,7 +114,6 @@ export function deterministicHistorySummary(history) {
   if (newest.식사상태 !== null && oldest.식사상태 !== null && newest.식사상태 !== oldest.식사상태) {
     sentences.push(`기록상 식사 상태가 '${oldest.식사상태}'에서 '${newest.식사상태}'(으)로 바뀌었습니다.`);
   }
-  sentences.push(SUMMARY_CLOSING);
   return sentences.join(' ');
 }
 
@@ -182,7 +180,7 @@ export function createHistorySummarizer({
           return fallback;
         }
         return {
-          summary_text: `${summary.trim()} ${SUMMARY_CLOSING}`,
+          summary_text: summary.trim(),
           generator: 'openai_runtime_v1',
           label: HISTORY_SUMMARY_LABEL,
         };

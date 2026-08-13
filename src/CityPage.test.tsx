@@ -115,12 +115,12 @@ const aggregates: DistrictAggregates = {
 const summary: DistrictAiSummary = {
   synthetic: true,
   displayMarker: '[합성]',
-  label: '[AI 생성 · 관측 집계 해석 · 개인 예측 아님]',
+  label: '[AI 생성 · 관측 집계 해석]',
   generator: 'codex_authored_v1',
   district: '제물포구',
   reference_date: '2026-08-12',
   input_metrics: { 구: '제물포구', 기준일: '2026-08-12', 노인인구_비율_퍼센트: '20' },
-  summary_text: '제물포구는 기준일 2026-08-12 관측 집계에서 노인 인구 비율 20%로 나타납니다. 복지시설과 운영 현황을 함께 확인합니다. 이 문단은 주입된 집계 수치를 그대로 인용한 해석이며, 개인 단위 예측이나 판정이 아닙니다.',
+  summary_text: '제물포구는 기준일 2026-08-12 관측 집계에서 노인 인구 비율 20%로 나타납니다. 복지시설과 운영 현황을 함께 확인합니다.',
   mixed_snapshot_warnings: ['분자 2026-07-31 · 분모 2026-06-30 · 서로 다른 기준월의 참고 비율이며 동시점 비율이 아닙니다.'],
 }
 

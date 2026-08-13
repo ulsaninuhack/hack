@@ -499,7 +499,7 @@ describe('three-tier district rollups (INV17) and AI summary (INV19)', () => {
   test('district AI summary quotes injected aggregates deterministically with the required label', async () => {
     const first = await get(`/api/v1/contact-ops/three-tier/district-ai-summary?district=${encodeURIComponent('제물포구')}&referenceDate=${REFERENCE_DATE}`, session);
     assert.equal(first.response.status, 200);
-    assert.equal(first.body.data.label, '[AI 생성 · 관측 집계 해석 · 개인 예측 아님]');
+    assert.equal(first.body.data.label, '[AI 생성 · 관측 집계 해석]');
     assert.equal(first.body.data.generator, 'codex_authored_v1');
     assert.match(first.body.data.summary_text, /제물포구/);
     assert.ok(first.body.data.summary_text.includes(first.body.data.input_metrics.노인인구_비율_퍼센트));
@@ -582,7 +582,7 @@ describe('three-tier case history API', () => {
   test('serves the history summary with the AI label and deterministic fallback', async () => {
     const { response, body } = await get('/api/v1/contact-ops/three-tier/case-history-summaries/SYN-HH-2812551000-0001', session);
     assert.equal(response.status, 200);
-    assert.equal(body.data.label, '[AI 생성 · 기록 요약 · 개인 예측 아님]');
+    assert.equal(body.data.label, '[AI 생성 · 기록 요약]');
     assert.equal(body.data.generator, 'deterministic_v1');
     assert.match(body.data.summary_text, /마지막 기록/);
     assert.doesNotMatch(body.data.summary_text, /위험|예측/);
