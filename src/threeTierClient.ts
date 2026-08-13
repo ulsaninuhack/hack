@@ -28,6 +28,12 @@ export function managementIntakeLabel(channel: ManagementIntakeChannel): string 
   return LABEL_BY_INTAKE_CHANNEL[channel]
 }
 
+// 목록에서 강조가 필요한 연락 결과 라벨. 백엔드 3계층 어댑터는 no_answer를
+// '연락 안 됨'으로, 프런트 제출 흐름은 '미응답'으로 표기하므로 둘 다 포함한다.
+export const ATTENTION_CONTACT_LABELS: ReadonlySet<string> = new Set([
+  '연락 안 됨', '미응답', '연락(또는 방문) 거부', '연락처 확인 필요', '우려 사항 있음',
+])
+
 // 3계층 어댑터 API 클라이언트. contactOpsClient와 같은 규약을 쓴다:
 // VITE_API_BASE_URL 기반 경로, X-Demo-Session-ID 헤더, {data, error} 봉투.
 

@@ -141,7 +141,11 @@
   Static health/map/facility/transit/summary routes remain independent of it.
 - `POST /api/v1/contact-ops/cases/:caseId/ai-observations` now supports candidate and
   explicit-confirmation modes. Live provider calls remain fail-closed unless
-  `ENABLE_LIVE_CONTACT_OPS_AI=1`; no live provider key is deployed yet.
+  `ENABLE_LIVE_CONTACT_OPS_AI=1`. Production receives `OPENAI_API_KEY` from Secret Manager
+  and keeps a finite per-minute request limit; plaintext is not stored in the workflow.
+- The selected-case voice context fix has live synthetic evidence for quoted first-person
+  speech: meal serious, no outing, and no network become a confirmation-required candidate;
+  the unchanged scoring engine returns acute 37 (`주시`). This does not prove real-device audio.
 - Real-device Korean audio accuracy remains a morning-only human gate.
 - Before enabling live AI on the public Cloud Run service, add authentication or a finite
   platform/API quota; the current demo endpoint is intentionally synthetic and unauthenticated.

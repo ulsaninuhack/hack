@@ -104,6 +104,45 @@ test('accepts explicit surveyor risk score and visit recommendation without conf
   assert.equal(result.contact_result.visit_recommended, true);
 });
 
+test('selected-case context tells the model that quoted first-person speech is a contact result', async () => {
+  const transcript = '아 씨발 나 밥 안 먹고 누워만 있어. 사람 안 만나.';
+  const routeCaseId = 'SYN-HH-2812551000-0003';
+  const modelOutput = structuredClone(fixtures[2].expected);
+  modelOutput.case_id = null;
+  modelOutput.transcript = transcript;
+  modelOutput.contact_result.observation.no_outing = true;
+  modelOutput.contact_result.observation.meal_status = '심각';
+  modelOutput.contact_result.free_text = '사람을 만나지 않고 누워만 지냄';
+  modelOutput.contact_result.risk_signals = ['식사 심각', '관계망 없음'];
+  modelOutput.contact_result.evidence = ['밥 안 먹고 누워만 있어', '사람 안 만나'];
+  const calls = [];
+
+  const result = await processVoiceInput(
+    { kind: 'text', text: transcript, surveyorId: '연결단원 001' },
+    {
+      client: mockClient(modelOutput, calls),
+      context: {
+        expectedIntent: 'contact_result',
+        selectedCaseId: routeCaseId,
+        source: 'selected_case_voice_memo',
+      },
+    },
+  );
+
+  assert.equal(result.intent, 'contact_result');
+  assert.equal(result.case_id, routeCaseId);
+  assert.equal(result.contact_result.observation.no_outing, true);
+  assert.ok(result.contact_result.risk_signals.includes('관계망 없음'));
+  const sent = JSON.parse(calls[0].input[1].content);
+  assert.deepEqual(sent.contact_context, {
+    expected_intent: 'contact_result',
+    selected_case_id: routeCaseId,
+    source: 'selected_case_voice_memo',
+  });
+  assert.match(calls[0].input[0].content, /1인칭으로 인용/);
+  assert.match(calls[0].input[0].content, /관계망 없음/);
+});
+
 test('rejects real-looking or malformed surveyor identifiers before an API call', async () => {
   await assert.rejects(
     processVoiceInput(
@@ -111,6 +150,23 @@ test('rejects real-looking or malformed surveyor identifiers before an API call'
       { client: mockClient({}) },
     ),
     (error) => error instanceof VoiceInputError,
+  );
+});
+
+test('rejects malformed selected-case context before an API call', async () => {
+  await assert.rejects(
+    processVoiceInput(
+      { kind: 'text', text: '밥 안 먹고 누워만 있어.', surveyorId: '연결단원 001' },
+      {
+        client: mockClient({}),
+        context: {
+          expectedIntent: 'condition',
+          selectedCaseId: 'SYN-HH-2812551000-0003',
+          source: 'selected_case_voice_memo',
+        },
+      },
+    ),
+    /selected-case contact-result memo/,
   );
 });
 

@@ -88,7 +88,8 @@ describe('MobilePage (조사원 /m)', () => {
     expect(within(visitList).getByText('급성도 62점 · 방문권고')).toBeInTheDocument()
     expect(within(visitList).getByText('주요 근거 · 연속 미응답 2회 (+25점)')).toBeInTheDocument()
     expect(within(visitList).queryByText('김영자 어르신')).toBeNull()
-    expect(within(visitList).getByText(/선호 시간 10:00~13:00/)).toBeInTheDocument()
+    expect(within(visitList).getByText('선호 시간')).toBeInTheDocument()
+    expect(within(visitList).getByText(/10:00~13:00/)).toBeInTheDocument()
     expect(within(visitList).getByText(/공무원 동행 필요/)).toBeInTheDocument()
   })
 
@@ -253,7 +254,7 @@ describe('MobilePage (조사원 /m)', () => {
           최근_건강_정신_괴로움: true, 관계망_유무: null, 연락_빈도: null,
         },
         transcript: '[마스킹] 통화 내용',
-        free_text: '',
+        free_text: '최근 약 복용을 자주 빠뜨린다고 말함',
         critic: { missing_fields: ['관계망_유무'], contradictions: [], low_confidence_fields: [], warnings: ['악취 관련 후보 확인 필요'] },
         requires_user_confirmation: true,
       },
@@ -268,6 +269,8 @@ describe('MobilePage (조사원 /m)', () => {
     expect(await screen.findByText(/음성에서 만든 후보입니다/)).toBeInTheDocument()
     expect(screen.getByText('악취 관련 후보 확인 필요')).toBeInTheDocument()
     expect(screen.getByText('누락 확인: 관계망_유무')).toBeInTheDocument()
+    expect(screen.getByRole('region', { name: '기타 특이사항 확인' })).toHaveTextContent('최근 약 복용을 자주 빠뜨린다고 말함')
+    expect(screen.getByText(/해당하는 체크리스트를 확인하면 제출 후 점수에 반영됩니다/)).toBeInTheDocument()
     expect(screen.getByLabelText('통화(또는 방문) 결과')).toHaveValue('우려 사항 있음')
     expect(screen.getByRole('checkbox', { name: '악취·벌레' })).toBeChecked()
     expect(mocks.submitContact).not.toHaveBeenCalled()

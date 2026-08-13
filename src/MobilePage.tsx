@@ -5,13 +5,13 @@ import MapView from './MapView'
 import { loadData } from './data'
 import type { DataBundle } from './types'
 import {
-  CONTACT_OPS_REFERENCE_DATE,
   ContactOpsClientError,
   emptyObservations,
   submitContact,
 } from './contactOpsClient'
 import type { CanonicalObservations, ContactResultLabel } from './contactOpsClient'
 import {
+  ATTENTION_CONTACT_LABELS,
   contactResultLabelFromCode,
   loadReportCard,
   loadTodayLanes,
@@ -126,6 +126,7 @@ export function MobilePage() {
   const [resultLabel, setResultLabel] = useState<ContactResultLabel | ''>('')
   const [observations, setObservations] = useState<CanonicalObservations>(emptyObservations)
   const [candidateNote, setCandidateNote] = useState<string | null>(null)
+  const [candidateFreeText, setCandidateFreeText] = useState<string | null>(null)
   const [criticWarnings, setCriticWarnings] = useState<string[]>([])
   const [chatIndex, setChatIndex] = useState(0)
   const [chatLog, setChatLog] = useState<Array<{ prompt: string; answer: string }>>([])
@@ -170,6 +171,7 @@ export function MobilePage() {
     setResultLabel('')
     setObservations(emptyObservations())
     setCandidateNote(null)
+    setCandidateFreeText(null)
     setCriticWarnings([])
     setChatIndex(0)
     setChatLog([])
@@ -180,6 +182,7 @@ export function MobilePage() {
     setObservations(candidate.observations)
     setResultLabel(contactResultLabelFromCode(candidate.contact_result))
     setCandidateNote('음성에서 만든 후보입니다. 아래 체크리스트를 확인하고 고친 뒤 제출해 주세요.')
+    setCandidateFreeText(candidate.free_text.trim() || null)
     setCriticWarnings([
       ...candidate.critic.contradictions,
       ...candidate.critic.warnings,
@@ -223,6 +226,7 @@ export function MobilePage() {
     setChatIndex(index)
     setChatLog((log) => log.slice(0, index))
     setCandidateNote(null)
+    setCandidateFreeText(null)
     setInputPath('chat')
   }
 
@@ -260,7 +264,10 @@ export function MobilePage() {
       <header className="tier-header mobile-header">
         <div>
           <h1>조사원 화면 · {lanesData?.worker_display_name ?? '연결단원 001'}</h1>
-          <p className="tier-audience">{lanesData?.dong_name ?? '신포동'} · 기준일 {CONTACT_OPS_REFERENCE_DATE}</p>
+          <p className="tier-audience">
+            {lanesData?.dong_name ?? '신포동'}
+            <span className="live-indicator"><span className="live-dot" aria-hidden="true" />실시간</span>
+          </p>
         </div>
         <nav aria-label="3계층 화면 이동">
           <a href="/center">동 센터</a>
@@ -302,9 +309,16 @@ export function MobilePage() {
                 : items.map((item) => (
                   <li key={item.case_id}>
                     <button className="mobile-task" onClick={() => openCase(item)}>
-                      <span className="mobile-task-heading">
+                      <span className="mobile-task-top">
                         <span className="case-id">{item.display_name} 어르신</span>
-                        <span className="assignment-status" data-status={item.assignment_status}>{assignmentStatusLabel(item)}</span>
+                        {item.lane === 'phone'
+                          ? <span className="assignment-status" data-status={item.assignment_status}>{assignmentStatusLabel(item)}</span>
+                          : <LaneBadge item={item} />}
+                      </span>
+                      <span className="mobile-task-address">
+                        {item.lane === 'visit' && item.location.road_address
+                          ? `${item.location.road_address}${item.location.building_name ? ` (${item.location.building_name})` : ''}`
+                          : item.location.dong_name}
                       </span>
                       {item.lane === 'phone' ? <>
                         <span className="selection-reasons" aria-label="전화 대상 선정 사유">
@@ -312,25 +326,36 @@ export function MobilePage() {
                         </span>
                         <span className="mobile-task-meta">연락 기한 {item.earliest_due_date ?? '기한 없음'}</span>
                         <span className="mobile-task-meta">담당 {item.worker_display_name ?? '미배정'}</span>
-                        <ManagementEntrySummary item={item} />
                       </> : <>
                         <span className="visit-approved"><CheckCircle2 aria-hidden="true" size={17} /> 담당자 승인·배치 확인 완료</span>
                         <span className="mobile-acute-summary">급성도 {item.급성도_점수 ?? '기록 없음'}{item.급성도_점수 === null ? '' : '점'} · {item.급성도_등급 ?? '등급 기록 없음'}</span>
                         {item.급성도_기여내역.slice(0, 2).map((entry) => <span className="mobile-task-meta" key={entry.코드}>주요 근거 · {entry.근거} (+{entry.가산점}점)</span>)}
                       </>}
-                      <span className="mobile-task-meta">
-                        {item.location.dong_name} · 마지막 연락 {item.last_contact.date ?? '기록 없음'} · {item.last_contact.result_label}
-                      </span>
-                      {item.lane === 'visit' && item.visit_context && (
-                        <span className="mobile-task-meta">
-                          선호 시간 {item.visit_context.preferred_visit_time_window.start}~{item.visit_context.preferred_visit_time_window.end}
-                          {item.visit_context.requires_public_official_companion ? ' · 공무원 동행 필요' : ''}
-                          {item.visit_context.requires_two_person_team ? ' · 2인 1조' : ''}
+                      <span className="mobile-task-facts">
+                        <span className="mobile-task-fact">
+                          <span className="fact-label">마지막 연락</span>
+                          <span className="fact-value">
+                            {item.last_contact.date ?? '기록 없음'}
+                            <span
+                              className="fact-status"
+                              data-attention={ATTENTION_CONTACT_LABELS.has(item.last_contact.result_label) || undefined}
+                            >
+                              {item.last_contact.result_label}
+                            </span>
+                          </span>
                         </span>
-                      )}
-                      {item.lane === 'visit' && item.location.road_address && (
-                        <span className="mobile-task-meta">{item.location.road_address}{item.location.building_name ? ` (${item.location.building_name})` : ''}</span>
-                      )}
+                        {item.lane === 'visit' && item.visit_context && (
+                          <span className="mobile-task-fact">
+                            <span className="fact-label">선호 시간</span>
+                            <span className="fact-value">
+                              {item.visit_context.preferred_visit_time_window.start}~{item.visit_context.preferred_visit_time_window.end}
+                              {item.visit_context.requires_public_official_companion ? ' · 공무원 동행 필요' : ''}
+                              {item.visit_context.requires_two_person_team ? ' · 2인 1조' : ''}
+                            </span>
+                          </span>
+                        )}
+                      </span>
+                      {item.lane === 'phone' && <ManagementEntrySummary item={item} />}
                     </button>
                   </li>
                 ))}
@@ -352,7 +377,7 @@ export function MobilePage() {
               : assignmentStatusLabel(selected)}
           </p>
           <dl className="mobile-case-facts">
-            {selected.lane === 'visit' ? <div><dt>급성도</dt><dd>{selected.급성도_점수 ?? '기록 없음'}{selected.급성도_점수 === null ? '' : '점'} · <LaneBadge item={selected} /> <small>({selected.grade_source})</small></dd></div> : <>
+            {selected.lane === 'visit' ? <div><dt>급성도</dt><dd>{selected.급성도_점수 ?? '기록 없음'}{selected.급성도_점수 === null ? '' : '점'} · <LaneBadge item={selected} /></dd></div> : <>
               <div><dt>선정 사유</dt><dd>{selected.selection_reason_labels.join(' · ') || '선정 사유 확인 중'}</dd></div>
               <div><dt>연락 기한</dt><dd>{selected.earliest_due_date ?? '기한 없음'}</dd></div>
               <div><dt>담당</dt><dd>{selected.worker_display_name ?? '미배정'}</dd></div>
@@ -425,7 +450,6 @@ export function MobilePage() {
             <div className="mobile-input-paths" role="group" aria-label="입력 방법 선택">
               <button onClick={() => setInputPath('voice')}><Mic aria-hidden="true" /> 음성 파일로 채우기</button>
               <button onClick={() => setInputPath('chat')}>문답 또는 직접 체크하기</button>
-              <p className="mobile-path-note">두 방법 모두 같은 체크리스트로 모입니다. 제출 전 조사원 확인이 항상 필요합니다.</p>
             </div>
           )}
 
@@ -462,6 +486,13 @@ export function MobilePage() {
           {(inputPath === 'manual' || candidateNote !== null) && (
             <form className="mobile-checklist" onSubmit={(event) => { event.preventDefault(); void submit() }}>
               {candidateNote && <p className="mobile-candidate-note" role="note">{candidateNote}</p>}
+              {candidateFreeText && (
+                <section className="mobile-extra-note" aria-label="기타 특이사항 확인">
+                  <h3>기타 특이사항 확인</h3>
+                  <p>{candidateFreeText}</p>
+                  <p>해당하는 체크리스트를 확인하면 제출 후 점수에 반영됩니다.</p>
+                </section>
+              )}
               {criticWarnings.length > 0 && (
                 <ul className="mobile-critic" aria-label="후보 검토 주의사항">
                   {criticWarnings.map((warning) => <li key={warning}>{warning}</li>)}

@@ -11,6 +11,8 @@ import { VOICE_EXTRACTION_INSTRUCTIONS } from './prompt.mjs';
 const DEFAULT_MODEL = 'gpt-4o-mini';
 const SURVEYOR_ID_PATTERN = /^연결단원 [0-9]{3}$/;
 const CASE_ID_PATTERN = /(?:\bCASE-[0-9]{4,8}\b|\bSYN-HH-[0-9]{10}-[0-9]{4}\b)/g;
+const SINGLE_CASE_ID_PATTERN = /^(?:CASE-[0-9]{4,8}|SYN-HH-[0-9]{10}-[0-9]{4})$/;
+const CONTACT_CONTEXT_KEYS = ['expectedIntent', 'selectedCaseId', 'source'];
 const EXPLICIT_RISK_SCORE_PATTERN = /(?:위험\s*점수|risk\s*score)\s*(?:는|은|:|=)?\s*([0-9]+)(?:\s*점)?/i;
 const NEGATED_VISIT_PATTERN = /방문(?:이|은|을)?\s*(?:필요\s*(?:없|하지\s*않)|권고하지\s*않|추천하지\s*않)/;
 const EXPLICIT_VISIT_PATTERN = /(?:방문(?:이|은)?\s*필요(?:해|하|합|할|했|될)|방문(?:을)?\s*(?:권고|추천)|방문해야|방문해\s*(?:주세요|주십시오))/;
@@ -43,6 +45,23 @@ function extractCaseId(transcript) {
     throw new VoiceInputError('A single voice input cannot contain multiple case IDs.');
   }
   return caseIds[0] || null;
+}
+
+function normalizeContactContext(context) {
+  if (context === undefined) return null;
+  if (!context || typeof context !== 'object' || Array.isArray(context)
+      || Object.keys(context).length !== CONTACT_CONTEXT_KEYS.length
+      || CONTACT_CONTEXT_KEYS.some((key) => !Object.hasOwn(context, key))
+      || context.expectedIntent !== 'contact_result'
+      || context.source !== 'selected_case_voice_memo'
+      || !SINGLE_CASE_ID_PATTERN.test(context.selectedCaseId)) {
+    throw new VoiceInputError('context must identify one selected-case contact-result memo.');
+  }
+  return {
+    expected_intent: context.expectedIntent,
+    selected_case_id: context.selectedCaseId,
+    source: context.source,
+  };
 }
 
 function createClient() {
@@ -106,7 +125,8 @@ export async function processVoiceInput(input, options = {}) {
   assertTextInput(input);
 
   const transcript = maskPii(input.text);
-  const caseId = extractCaseId(transcript);
+  const contactContext = normalizeContactContext(options.context);
+  const caseId = extractCaseId(transcript) || contactContext?.selected_case_id || null;
   const client = options.client || createClient();
   const model = options.model || process.env.OPENAI_VOICE_TEXT_MODEL || DEFAULT_MODEL;
 
@@ -119,6 +139,7 @@ export async function processVoiceInput(input, options = {}) {
         content: JSON.stringify({
           surveyor_id: input.surveyorId,
           transcript,
+          ...(contactContext === null ? {} : { contact_context: contactContext }),
         }),
       },
     ],
