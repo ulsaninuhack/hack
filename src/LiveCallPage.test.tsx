@@ -1,5 +1,9 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+
+const styles = readFileSync(resolve(process.cwd(), 'src/styles.css'), 'utf8')
 
 vi.mock('./LiveCallPanel', () => ({
   LiveCallPanel: ({ join }: { join: { role: string; callId: string } }) => (
@@ -26,6 +30,10 @@ afterEach(() => {
 })
 
 describe('LiveCallPage', () => {
+  it('owns vertical scrolling because the global body is intentionally locked', () => {
+    expect(styles).toMatch(/\.guest-call-page\s*\{(?=[^}]*height:\s*100dvh)(?=[^}]*overflow-y:\s*auto)[^}]*\}/)
+  })
+
   it('captures the guest token from the URL fragment then removes it from the address bar', async () => {
     const invite = buildGuestInviteUrl(credentials, 'https://demo.example/m')
     window.history.replaceState(null, '', new URL(invite).pathname + new URL(invite).hash)
