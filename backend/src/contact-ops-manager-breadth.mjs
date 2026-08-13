@@ -246,7 +246,7 @@ export function buildManagerBreadth({ records, tuningReport }) {
       current_mild_signal_count: tuningReport.경증_누적_우선권고_건수,
       source_case_count: tuningReport.전체_건수,
       source_contract: tuningReport.계약_버전,
-      interpretation: '결정적 합성 시나리오의 배점 점검값이며 실제 개인 판정이 아닙니다.',
+      interpretation: '결정적 합성 시나리오의 배점 점검값입니다.',
     },
     approved_visit_hint: {
       approved_visit_count: approved.length,

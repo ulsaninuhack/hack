@@ -13,11 +13,8 @@ function formatPct(value: number | null) {
   return value === null ? '자료 없음' : `${value}%`
 }
 
-const SUMMARY_DISCLAIMER = '이 문단은 주입된 집계 수치를 그대로 인용한 해석이며, 개인 단위 예측이나 판정이 아닙니다.'
-
 function splitSummarySentences(text: string) {
   return text
-    .replace(SUMMARY_DISCLAIMER, '')
     .split(/(?<=[가-힣]\.)(?:\s+)/)
     .map((sentence) => sentence.trim())
     .filter(Boolean)
