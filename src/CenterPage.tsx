@@ -309,6 +309,12 @@ function ReportCardView({
           {severity.상승_근거.map((reason) => <li key={reason.근거}>{reason.근거} · {formatScore(reason.가산점)}점</li>)}
         </ul>
       </section>
+      {card.기타사항 && (
+        <section className="report-extra-note">
+          <h4>기타사항</h4>
+          <p>{card.기타사항}</p>
+        </section>
+      )}
       <section className="report-agencies">
         <h4>권고 기관</h4>
         {card.권고_기관.length === 0 ? <p>권고할 기관 신호가 없습니다.</p> : (
@@ -530,9 +536,6 @@ export function CenterPage({ reviewCaseId = null }: { reviewCaseId?: string | nu
     <main className="tier-page center-page">
       <header className="center-header">
         <h1>{inbox?.dong_name ?? '신포동'} 행정복지센터</h1>
-        <button className="center-refresh" disabled={loading} onClick={() => void refresh()}>
-          <RefreshCw aria-hidden="true" size={16} /> 새로고침
-        </button>
         <nav aria-label="3계층 화면 이동">
           <a href="/m">조사원</a>
           <a href="/city">시·구</a>

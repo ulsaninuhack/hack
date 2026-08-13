@@ -44,7 +44,7 @@ function createSessionMemory() {
       if (sessions.size >= MAX_TRACKED_SESSIONS) {
         sessions.delete(sessions.keys().next().value);
       }
-      sessions.set(sessionId, { assignmentConfirmations: new Map(), reportAcknowledgements: new Map(), escalations: new Map() });
+      sessions.set(sessionId, { assignmentConfirmations: new Map(), reportAcknowledgements: new Map(), escalations: new Map(), caseNotes: new Map() });
     }
     const memory = sessions.get(sessionId);
     sessions.delete(sessionId);
@@ -278,6 +278,18 @@ export function createThreeTierService({
       return buildCenterCalendar(dongRecords, { month });
     },
 
+    // 통화 중 적은 기타사항(자유 메모)을 세션 메모리에 기록해 동 센터 보고
+    // 카드에 함께 노출한다. 점수·워크플로에는 영향을 주지 않는다.
+    async recordCaseNote({ sessionId, caseId, note }) {
+      const record = await state.get({ sessionId, caseId });
+      if (typeof note !== 'string' || note.trim().length === 0 || note.length > 2000) {
+        throw new TypeError('note must be a non-empty string up to 2000 characters');
+      }
+      const memory = memoryStore.forSession(sessionId);
+      memory.caseNotes.set(record.household.id, note.trim());
+      return { synthetic: true, displayMarker: '[합성]', case_id: record.household.id, 기타사항: note.trim() };
+    },
+
     async getReportCard({ sessionId, caseId }) {
       const record = await state.get({ sessionId, caseId });
       const card = buildReportCard(record);
@@ -291,6 +303,7 @@ export function createThreeTierService({
         report_card: {
           ...card,
           acknowledgement: currentAcknowledgement(memory, card),
+          기타사항: memory.caseNotes.get(card.case_id) ?? null,
         },
         destination: '동 행정복지센터 인박스',
       };
@@ -323,6 +336,7 @@ export function createThreeTierService({
             ...card,
             report_lane: reportLane,
             escalation: memory.escalations.get(card.case_id) ?? null,
+            기타사항: memory.caseNotes.get(card.case_id) ?? null,
             acknowledgement: currentAcknowledgement(memory, card),
           };
         });
