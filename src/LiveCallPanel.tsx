@@ -186,6 +186,7 @@ export function LiveCallPanel({
   const [muted, setMutedState] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [qrCode, setQrCode] = useState<string | null>(null)
+  const [qrError, setQrError] = useState(false)
   const [shareStatus, setShareStatus] = useState<string | null>(null)
   const sessionRef = useRef<LiveCallSession | null>(null)
   const audioRef = useRef<HTMLDivElement>(null)
@@ -199,12 +200,28 @@ export function LiveCallPanel({
   useEffect(() => {
     if (!inviteUrl) {
       setQrCode(null)
+      setQrError(false)
       return
     }
     let active = true
-    void QRCode.toDataURL(inviteUrl, { errorCorrectionLevel: 'M', margin: 1, width: 220 })
-      .then((value) => { if (active) setQrCode(value) })
-      .catch(() => { if (active) setQrCode(null) })
+    setQrCode(null)
+    setQrError(false)
+    void QRCode.toDataURL(inviteUrl, {
+      color: { dark: '#000000', light: '#ffffff' },
+      errorCorrectionLevel: 'H',
+      margin: 4,
+      width: 280,
+    })
+      .then((value) => {
+        if (!active) return
+        setQrCode(value)
+        setQrError(false)
+      })
+      .catch(() => {
+        if (!active) return
+        setQrCode(null)
+        setQrError(true)
+      })
     return () => { active = false }
   }, [inviteUrl])
 
@@ -310,7 +327,12 @@ export function LiveCallPanel({
             </button>
             {shareStatus && <p role="status" className="live-call-share-status">{shareStatus}</p>}
           </div>
-          {qrCode && <img src={qrCode} alt="연락 대상 참여 QR 코드" width="160" height="160" />}
+          {qrCode && <img src={qrCode} alt="연락 대상 참여 QR 코드" width="280" height="280" />}
+          {qrError && (
+            <p className="live-call-qr-error" role="alert">
+              QR 코드를 만들지 못했습니다. 참여 링크 버튼을 사용해 주세요.
+            </p>
+          )}
         </section>
       )}
 

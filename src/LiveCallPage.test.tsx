@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const styles = readFileSync(resolve(process.cwd(), 'src/styles.css'), 'utf8')
@@ -63,5 +64,42 @@ describe('LiveCallPage', () => {
     expect(screen.getByRole('heading', { name: '참여 링크를 다시 받아 주세요' })).toBeInTheDocument()
     expect(screen.getByText(/연결단원에게 새 참여 링크/)).toBeInTheDocument()
     expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('distinguishes a temporary redemption failure and lets the guest retry', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch')
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        apiVersion: 'v1',
+        data: {
+          provider: 'livekit', call_id: 'call123', server_url: 'wss://example.livekit.cloud',
+          expires_at: '2030-08-13T12:00:00.000Z',
+          participant: { role: 'resident', participant_token: 'guest.token.signature' },
+        },
+      }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+    const invite = buildGuestInviteUrl(credentials, 'https://demo.example/m')
+    window.history.replaceState(null, '', new URL(invite).pathname + new URL(invite).search)
+    const user = userEvent.setup()
+    render(<LiveCallPage />)
+
+    expect(await screen.findByRole('heading', { name: '참여 정보를 불러오지 못했습니다' })).toBeInTheDocument()
+    expect(screen.getByText(/인터넷 연결을 확인/)).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '다시 시도' }))
+
+    expect(await screen.findByTestId('live-call-panel')).toHaveTextContent('resident:call123')
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('keeps an expired invite distinct from a temporary failure', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+      apiVersion: 'v1',
+      error: { code: 'INVITE_EXPIRED', message: 'expired' },
+    }), { status: 410, headers: { 'Content-Type': 'application/json' } }))
+    const invite = buildGuestInviteUrl(credentials, 'https://demo.example/m')
+    window.history.replaceState(null, '', new URL(invite).pathname + new URL(invite).search)
+    render(<LiveCallPage />)
+
+    expect(await screen.findByRole('heading', { name: '참여 링크를 다시 받아 주세요' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '다시 시도' })).toBeNull()
   })
 })

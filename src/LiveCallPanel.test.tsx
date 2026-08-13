@@ -51,9 +51,29 @@ describe('LiveCallPanel', () => {
     render(<LiveCallPanel join={hostJoin} inviteUrl="https://demo.example/call?invite=shortcode012345678901234567" />)
 
     expect(mocks.connect).not.toHaveBeenCalled()
-    expect(await screen.findByRole('img', { name: '연락 대상 참여 QR 코드' })).toHaveAttribute('src', 'data:image/png;base64,qr')
+    const qrImage = await screen.findByRole('img', { name: '연락 대상 참여 QR 코드' })
+    expect(qrImage).toHaveAttribute('src', 'data:image/png;base64,qr')
+    expect(qrImage).toHaveAttribute('width', '280')
+    expect(qrImage).toHaveAttribute('height', '280')
+    expect(mocks.toDataUrl).toHaveBeenCalledWith(
+      'https://demo.example/call?invite=shortcode012345678901234567',
+      {
+        color: { dark: '#000000', light: '#ffffff' },
+        errorCorrectionLevel: 'H',
+        margin: 4,
+        width: 280,
+      },
+    )
     await user.click(screen.getByRole('button', { name: '통화 연결' }))
     expect(mocks.connect).toHaveBeenCalledWith(expect.objectContaining({ expectedRole: 'surveyor' }))
+  })
+
+  it('keeps link sharing available when QR rendering fails', async () => {
+    mocks.toDataUrl.mockRejectedValue(new Error('canvas unavailable'))
+    render(<LiveCallPanel join={hostJoin} inviteUrl="https://demo.example/call?invite=shortcode012345678901234567" />)
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('QR 코드를 만들지 못했습니다')
+    expect(screen.getByRole('button', { name: /참여 링크 (보내기|복사)/ })).toBeInTheDocument()
   })
 
   it('labels both speakers but sends only final resident speech after explicit finish', async () => {
