@@ -12,6 +12,7 @@ import {
 import type { CanonicalObservations, ContactResultLabel } from './contactOpsClient'
 import {
   ATTENTION_CONTACT_LABELS,
+  completedContactDisplaySeverity,
   contactResultLabelFromCode,
   displaySeverity,
   laneItemDisplaySeverity,
@@ -42,6 +43,8 @@ const SIGN_FIELDS: Array<{ key: keyof CanonicalObservations['관찰_6징후']; l
 ]
 const PHONE_SIGN_FIELDS = SIGN_FIELDS.filter((field) => field.key === '외출_없음')
 const SURROUNDING_SIGN_FIELDS = SIGN_FIELDS.filter((field) => field.key !== '외출_없음')
+
+const MOBILE_REFRESH_INTERVAL_MS = 5_000
 
 type Step = 'list' | 'case' | 'done'
 type InputPath = 'live' | 'memo' | 'voice' | 'chat' | 'manual'
@@ -200,6 +203,25 @@ export function MobilePage() {
   }, [])
 
   useEffect(() => { void refresh() }, [refresh])
+  // 동 센터가 방문을 확인하면 조사원 목록에도 바로 반영돼야 한다. 센터와
+  // 같은 주기로, 목록 화면이 보일 때만 다시 읽는다.
+  useEffect(() => {
+    if (step !== 'list') return
+    let syncing = false
+    const syncWhenVisible = () => {
+      if (document.visibilityState !== 'visible' || syncing) return
+      syncing = true
+      void refresh().finally(() => { syncing = false })
+    }
+    const intervalId = window.setInterval(syncWhenVisible, MOBILE_REFRESH_INTERVAL_MS)
+    window.addEventListener('focus', syncWhenVisible)
+    document.addEventListener('visibilitychange', syncWhenVisible)
+    return () => {
+      window.clearInterval(intervalId)
+      window.removeEventListener('focus', syncWhenVisible)
+      document.removeEventListener('visibilitychange', syncWhenVisible)
+    }
+  }, [refresh, step])
 
   const invalidateLiveCandidateWork = useCallback(() => {
     liveCandidateGenerationRef.current += 1
@@ -390,12 +412,24 @@ export function MobilePage() {
         resultLabel,
         observations,
       })
+      // 결과 저장은 성공했다. 이후 단계가 실패해도 "저장 실패"로 되돌리지
+      // 않고, 목록만 최신화해 조사원이 다시 시도할 수 있게 둔다.
+      let noteFailed = false
       if (candidateFreeText !== null && candidateFreeText.trim() !== '') {
-        await submitCaseNote({ caseId: selected.case_id, note: candidateFreeText.trim() })
+        try {
+          await submitCaseNote({ caseId: selected.case_id, note: candidateFreeText.trim() })
+        } catch {
+          noteFailed = true
+        }
       }
-      const preview = await loadReportCard(selected.case_id)
-      setReportCard(preview.report_card)
-      setStep('done')
+      try {
+        const preview = await loadReportCard(selected.case_id)
+        setReportCard(preview.report_card)
+        setStep('done')
+      } catch {
+        setStep('list')
+      }
+      if (noteFailed) setError('결과는 저장했습니다. 기타사항만 저장하지 못했습니다.')
       await refresh()
     } catch (cause) {
       setError(errorText(cause, '통화(또는 방문) 결과를 저장하지 못했습니다.'))
@@ -444,7 +478,7 @@ export function MobilePage() {
                   <li key={entry.case_id} className="mobile-completed">
                     <span className="mobile-task-top">
                       <span className="case-id">{entry.display_name} 어르신</span>
-                      <span className="grade-chip" data-grade={entry.급성도_등급 ?? '미기록'}>{entry.급성도_등급 ?? '미기록'}</span>
+                      <span className="grade-chip" data-grade={completedContactDisplaySeverity(entry).등급 ?? entry.급성도_등급 ?? '미기록'}>{completedContactDisplaySeverity(entry).등급 ?? entry.급성도_등급 ?? '미기록'}</span>
                     </span>
                     <span className="mobile-task-facts">
                       <span
@@ -683,6 +717,7 @@ export function MobilePage() {
               <label className="mobile-extra-note-field">기타사항
                 <textarea
                   rows={2}
+                  maxLength={2000}
                   value={candidateFreeText ?? ''}
                   onChange={(event) => setCandidateFreeText(event.target.value)}
                   placeholder="통화 중 특이사항이 있으면 적어 주세요"

@@ -353,14 +353,14 @@ function ReportCardView({
   )
 
   const article = (
-    <article className="report-card" data-grade={card.등급} aria-label={`${card.display_name} 어르신 보고 카드`}>
+    <article className="report-card" data-grade={severity.등급 ?? card.등급} aria-label={`${card.display_name} 어르신 보고 카드`}>
       {!collapsible && <header>{heading}</header>}
       {cardBody}
     </article>
   )
 
   return collapsible ? (
-    <details className="report-accordion" data-grade={card.등급}>
+    <details className="report-accordion" data-grade={severity.등급 ?? card.등급}>
       <summary>{heading}<span className="report-accordion-score">심각도 {formatScore(severity.점수)}</span></summary>
       {article}
     </details>
@@ -424,6 +424,11 @@ export function CenterPage({ reviewCaseId = null }: { reviewCaseId?: string | nu
     const timer = window.setTimeout(() => setReportToast(null), 4000)
     return () => window.clearTimeout(timer)
   }, [inbox])
+  useEffect(() => {
+    if (feedback === '') return
+    const timer = window.setTimeout(() => setFeedback(''), 5000)
+    return () => window.clearTimeout(timer)
+  }, [feedback])
   useEffect(() => {
     let syncing = false
     const syncWhenVisible = () => {
@@ -624,9 +629,7 @@ export function CenterPage({ reviewCaseId = null }: { reviewCaseId?: string | nu
                   <label className="ops-choice"><input checked={decision === 'approved'} onChange={() => setDecision('approved')} type="radio" name="center-review-decision" /><span>방문 권고 승인</span></label>
                   <label className="ops-choice"><input checked={decision === 'rejected'} onChange={() => setDecision('rejected')} type="radio" name="center-review-decision" /><span>방문 권고 반려</span></label>
                   {decision === 'approved' && (
-                    <label>연결단원 배정
-                      <select value={workerId} onChange={() => {}}><option value={workerId}>{inbox.assignment_proposal?.worker_display_name ?? '연결단원 001'}</option></select>
-                    </label>
+                    <p className="center-review-worker">연결단원 배정 <strong>{inbox.assignment_proposal?.worker_display_name ?? '연결단원 001'}</strong></p>
                   )}
                   <label>결정 사유
                     <textarea value={note} onChange={(event) => setNote(event.target.value)} required placeholder="확인한 근거와 결정 내용을 입력하세요." />

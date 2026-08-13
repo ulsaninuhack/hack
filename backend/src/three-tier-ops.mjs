@@ -147,7 +147,7 @@ export function buildAgencyRecommendations({ observations, household, triage }) 
     if (signs.length > 0) reasons.push(`관찰 6징후 중 ${signs.length}개 확인`);
     if (noAnswerStreak >= 2) reasons.push(`연속 미응답 ${noAnswerStreak}회`);
     if (transferRecommended) reasons.push('행정복지센터 이관 권고 상태');
-    if (visitGrade) reasons.push(`급성도 등급 ${triage.급성도_등급}`);
+    if (visitGrade) reasons.push(`심각도 등급 ${triage.급성도_등급}`);
     push('현장 확인', reasons.join(' · '), ['매뉴얼_p14', '매뉴얼_p48']);
   }
   return recommendations;
