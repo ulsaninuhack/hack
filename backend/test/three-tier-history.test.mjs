@@ -121,7 +121,7 @@ describe('three-tier history summarizer', () => {
     assert.equal(result.generator, 'deterministic_v1');
   });
 
-  test('uses the runtime model output and appends the fixed closing note', async () => {
+  test('uses the runtime model output without appending a closing disclaimer', async () => {
     const summarizer = createHistorySummarizer({
       apiKey: 'k',
       fetchImpl: async () => ({
@@ -134,7 +134,7 @@ describe('three-tier history summarizer', () => {
     const result = await summarizer.summarize(history);
     assert.equal(result.generator, 'openai_runtime_v1');
     assert.equal(result.label, HISTORY_SUMMARY_LABEL);
-    assert.match(result.summary_text, /바뀌었습니다\. 합성 시연 기록의 요약이며/);
+    assert.equal(result.summary_text, '기록상 식사 상태가 양호에서 불량으로 바뀌었습니다.');
   });
 
   test('rejects model output that adds forbidden framing', async () => {
