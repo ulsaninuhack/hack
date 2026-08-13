@@ -168,9 +168,9 @@ function PublicMapApp() {
           <h1>인천 돌봄 수요 맥락 지도</h1>
         </div>
         <div className="header-actions">
-          <a className="data-link" href="/city"><MapPinned size={15} /> 시·구 브리핑</a>
-          <button ref={methodologyButtonRef} className="method-button" onClick={() => setShowMethodology(true)}><Info size={15} /> 방법론</button>
-          <a className="data-link" href="/data/manifest.json" target="_blank" rel="noreferrer"><Database size={15} /> 데이터 명세</a>
+          <a className="data-link" href="/city"><MapPinned size={18} /> 시·구 브리핑</a>
+          <button ref={methodologyButtonRef} className="method-button" onClick={() => setShowMethodology(true)}><Info size={18} /> 방법론</button>
+          <a className="data-link" href="/data/manifest.json" target="_blank" rel="noreferrer"><Database size={18} /> 데이터 명세</a>
         </div>
       </header>
 
